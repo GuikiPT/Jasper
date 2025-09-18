@@ -1,10 +1,33 @@
 import './lib/setup';
 
 import { LogLevel, SapphireClient } from '@sapphire/framework';
+import { container } from '@sapphire/pieces';
 import { GatewayIntentBits, Partials } from 'discord.js';
 
 const client = new SapphireClient({
-	defaultPrefix: '!',
+	defaultPrefix: 'j!',
+	fetchPrefix: async (message) => {
+		const sapphireClient = message.client as SapphireClient;
+		const defaults = sapphireClient.options.defaultPrefix;
+		const fallback = (() => {
+			if (!defaults) return null;
+			if (typeof defaults === 'string') return defaults;
+			return defaults[0] ?? null;
+		})();
+
+		if (!message.guildId) return fallback;
+
+		try {
+			const guildConfig = await container.database.guildConfig.findUnique({
+				where: { id: message.guildId }
+			});
+			if (guildConfig?.prefix) return guildConfig.prefix;
+		} catch (error) {
+			sapphireClient.logger.error('Failed to fetch prefix from database', error);
+		}
+
+		return fallback;
+	},
 	regexPrefix: /^(hey +)?bot[,! ]/i,
 	caseInsensitiveCommands: true,
 	logger: {

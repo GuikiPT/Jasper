@@ -11,6 +11,7 @@ import * as colorette from 'colorette';
 import { join } from 'path';
 import { inspect } from 'util';
 import { srcDir } from './constants';
+import './database';
 
 // Set default behavior to bulk overwrite
 ApplicationCommandRegistries.setDefaultBehaviorWhenNotIdentical(RegisterBehavior.BulkOverwrite);
@@ -27,5 +28,6 @@ colorette.createColors({ useColor: true });
 declare module '@skyra/env-utilities' {
 	interface Env {
 		OWNERS: ArrayString;
+		DATABASE_URL: string;
 	}
 }

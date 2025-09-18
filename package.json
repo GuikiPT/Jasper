@@ -6,6 +6,7 @@
   "license": "UNLICENSE",
   "type": "commonjs",
   "dependencies": {
+    "@prisma/client": "^6.16.2",
     "@sapphire/decorators": "^6.2.0",
     "@sapphire/discord-utilities": "^3.5.0",
     "@sapphire/discord.js-utilities": "7.3.3",
@@ -30,6 +31,7 @@
     "@types/ws": "^8.18.1",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.6.2",
+    "prisma": "^6.16.2",
     "tsc-watch": "^7.1.1",
     "typescript": "~5.9.2"
   },
