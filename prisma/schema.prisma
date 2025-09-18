@@ -13,6 +13,7 @@ model GuildConfig {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   roles     GuildRoleSettings?
+  channels  GuildChannelSettings?
   topics    Topic[]
 }
 
@@ -26,6 +27,15 @@ model GuildRoleSettings {
   ignoredSnipedRoles     Json
   supportRoles           Json
   guild                  GuildConfig @relation(fields: [guildId], references: [id], onDelete: Cascade)
+}
+
+model GuildChannelSettings {
+  guildId                    String @id
+  allowedSkullboardChannels  Json
+  allowedSnipeChannels       Json
+  allowedTagChannels         Json
+  automaticSlowmodeChannels  Json
+  guild                      GuildConfig @relation(fields: [guildId], references: [id], onDelete: Cascade)
 }
 
 model Topic {

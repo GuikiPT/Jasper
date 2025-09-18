@@ -29,7 +29,9 @@ export async function messageRoleList(command: RoleCommand, message: Message, ar
 }
 
 export async function chatInputRoleList(command: RoleCommand, interaction: RoleChatInputInteraction) {
-	const bucket = parseBucketChoice(interaction.options.getString('setting'), ROLE_BUCKETS[0].key);
+	// If the user doesn't pick a specific setting, show all buckets.
+	const selected = interaction.options.getString('setting');
+	const bucket = selected ? parseBucketChoice(selected, ROLE_BUCKETS[0].key) : null;
 
 	return executeRoleList({
 		command,
