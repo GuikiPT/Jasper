@@ -12,4 +12,17 @@ model GuildConfig {
   prefix    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  roles     GuildRoleSettings?
+}
+
+model GuildRoleSettings {
+  guildId                String   @id
+  allowedAdminRoles      Json
+  allowedFunCommandRoles Json
+  allowedStaffRoles      Json
+  allowedTagAdminRoles   Json
+  allowedTagRoles        Json
+  ignoredSnipedRoles     Json
+  supportRoles           Json
+  guild                  GuildConfig @relation(fields: [guildId], references: [id], onDelete: Cascade)
 }
