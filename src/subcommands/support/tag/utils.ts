@@ -69,6 +69,60 @@ export const findTag = async (command: TagCommand, guildId: string, name: string
 	}
 };
 
+const toStringArray = (value: unknown): string[] =>
+	Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+
+export const fetchAllowedTagChannels = async (command: TagCommand, guildId: string) => {
+	const settings = await command.container.database.guildChannelSettings.findUnique({
+		where: { guildId },
+		select: { allowedTagChannels: true }
+	});
+
+	return toStringArray(settings?.allowedTagChannels);
+};
+
+const collectCandidateChannelIds = (interaction: TagChatInputInteraction) => {
+	const candidates = new Set<string>();
+
+	if (interaction.channelId) {
+		candidates.add(interaction.channelId);
+	}
+
+	const channel = interaction.channel as { parentId?: unknown } | null | undefined;
+	const parentId = channel && typeof channel === 'object' && typeof channel.parentId === 'string' ? channel.parentId : null;
+	if (parentId) {
+		candidates.add(parentId);
+	}
+
+	return candidates;
+};
+
+type TagChannelAccess =
+	| { allowed: true; allowedChannels: string[] }
+	| { allowed: false; allowedChannels: string[]; reason: 'unconfigured' | 'not-allowed' };
+
+export const ensureTagChannelAccess = async (
+	command: TagCommand,
+	interaction: TagChatInputInteraction
+): Promise<TagChannelAccess> => {
+	const guildId = interaction.guildId;
+	if (!guildId) {
+		return { allowed: false, allowedChannels: [], reason: 'unconfigured' };
+	}
+
+	const allowedChannels = await fetchAllowedTagChannels(command, guildId);
+	if (allowedChannels.length === 0) {
+		return { allowed: false, allowedChannels, reason: 'unconfigured' };
+	}
+
+	const candidateChannels = collectCandidateChannelIds(interaction);
+	const allowed = allowedChannels.some((channelId) => candidateChannels.has(channelId));
+
+	return allowed
+		? { allowed: true, allowedChannels }
+		: { allowed: false, allowedChannels, reason: 'not-allowed' };
+};
+
 export const normalizeTagName = (name: string) => name.trim().toLowerCase();
 
 export const validateName = (name: string) => /^[\w-]+$/u.test(name);

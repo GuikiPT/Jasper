@@ -25,6 +25,8 @@ export { chatInputTagUse } from './use';
 
 export {
 	buildTagEmbed,
+	ensureTagChannelAccess,
+	fetchAllowedTagChannels,
 	findTag,
 	normalizeImportEntry,
 	normalizeOptional,

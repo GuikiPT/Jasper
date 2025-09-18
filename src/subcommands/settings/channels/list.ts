@@ -29,7 +29,9 @@ export async function messageChannelList(command: ChannelCommand, message: Messa
 }
 
 export async function chatInputChannelList(command: ChannelCommand, interaction: ChannelChatInputInteraction) {
-  const bucket = parseBucketChoice(interaction.options.getString('setting'), CHANNEL_BUCKETS[0].key);
+  // If the user doesn't choose a setting, display all configured buckets.
+  const selected = interaction.options.getString('setting');
+  const bucket = selected ? parseBucketChoice(selected, CHANNEL_BUCKETS[0].key) : null;
 
   return executeChannelList({
     command,
@@ -40,4 +42,3 @@ export async function chatInputChannelList(command: ChannelCommand, interaction:
     defer: () => interaction.deferReply({ flags: MessageFlags.Ephemeral })
   });
 }
-
