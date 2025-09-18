@@ -21,6 +21,20 @@ import {
 	messageRoleList as handleMessageRoleList,
 	messageRoleRemove as handleMessageRoleRemove
 } from '../../commands-sub/settings/roles';
+import {
+	topicSubcommandMapping,
+	registerTopicSubcommandGroup,
+	chatInputTopicAdd as handleChatInputTopicAdd,
+	chatInputTopicList as handleChatInputTopicList,
+	chatInputTopicRemove as handleChatInputTopicRemove,
+	chatInputTopicImport as handleChatInputTopicImport,
+	chatInputTopicExport as handleChatInputTopicExport,
+	messageTopicAdd as handleMessageTopicAdd,
+	messageTopicList as handleMessageTopicList,
+	messageTopicRemove as handleMessageTopicRemove,
+	messageTopicImport as handleMessageTopicImport,
+	messageTopicExport as handleMessageTopicExport
+} from '../../commands-sub/settings/topics';
 
 @ApplyOptions<Subcommand.Options>({
 	name: 'settings',
@@ -30,12 +44,10 @@ import {
 	cooldownLimit: 2,
 	cooldownDelay: 5_000,
 	cooldownScope: BucketScope.User,
-	subcommands: [prefixSubcommandMapping, roleSubcommandMapping]
+	subcommands: [prefixSubcommandMapping, roleSubcommandMapping, topicSubcommandMapping]
 })
 export class SettingsCommand extends Subcommand {
-	private readonly integrationTypes: ApplicationIntegrationType[] = [
-		ApplicationIntegrationType.GuildInstall
-	];
+	private readonly integrationTypes: ApplicationIntegrationType[] = [ApplicationIntegrationType.GuildInstall];
 
 	private readonly contexts: InteractionContextType[] = [InteractionContextType.Guild];
 
@@ -48,6 +60,7 @@ export class SettingsCommand extends Subcommand {
 				.setContexts(this.contexts)
 				.addSubcommandGroup(registerPrefixSubcommandGroup)
 				.addSubcommandGroup(registerRoleSubcommandGroup)
+				.addSubcommandGroup(registerTopicSubcommandGroup)
 		);
 	}
 
@@ -89,5 +102,45 @@ export class SettingsCommand extends Subcommand {
 
 	public async chatInputRoleList(interaction: Subcommand.ChatInputCommandInteraction) {
 		return handleChatInputRoleList(this, interaction);
+	}
+
+	public async messageTopicAdd(message: Message, args: Args) {
+		return handleMessageTopicAdd(this, message, args);
+	}
+
+	public async messageTopicRemove(message: Message, args: Args) {
+		return handleMessageTopicRemove(this, message, args);
+	}
+
+	public async messageTopicList(message: Message, args: Args) {
+		return handleMessageTopicList(this, message, args);
+	}
+
+	public async chatInputTopicAdd(interaction: Subcommand.ChatInputCommandInteraction) {
+		return handleChatInputTopicAdd(this, interaction);
+	}
+
+	public async chatInputTopicRemove(interaction: Subcommand.ChatInputCommandInteraction) {
+		return handleChatInputTopicRemove(this, interaction);
+	}
+
+	public async chatInputTopicList(interaction: Subcommand.ChatInputCommandInteraction) {
+		return handleChatInputTopicList(this, interaction);
+	}
+
+	public async messageTopicImport(message: Message, args: Args) {
+		return handleMessageTopicImport(this, message, args);
+	}
+
+	public async messageTopicExport(message: Message, args: Args) {
+		return handleMessageTopicExport(this, message, args);
+	}
+
+	public async chatInputTopicImport(interaction: Subcommand.ChatInputCommandInteraction) {
+		return handleChatInputTopicImport(this, interaction);
+	}
+
+	public async chatInputTopicExport(interaction: Subcommand.ChatInputCommandInteraction) {
+		return handleChatInputTopicExport(this, interaction);
 	}
 }

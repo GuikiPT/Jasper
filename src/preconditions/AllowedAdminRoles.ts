@@ -1,10 +1,5 @@
 import { AllFlowsPrecondition } from '@sapphire/framework';
-import type {
-	ChatInputCommandInteraction,
-	ContextMenuCommandInteraction,
-	GuildMember,
-	Message
-} from 'discord.js';
+import type { ChatInputCommandInteraction, ContextMenuCommandInteraction, GuildMember, Message } from 'discord.js';
 import { PermissionFlagsBits } from 'discord.js';
 import type { APIInteractionGuildMember } from 'discord.js';
 
@@ -15,7 +10,8 @@ export class AllowedAdminRolesPrecondition extends AllFlowsPrecondition {
 		return this.checkMemberAccess(
 			message.guildId,
 			message.member,
-			message.member?.permissions.has(PermissionFlagsBits.ManageGuild) ?? false
+			message.member?.permissions.has(PermissionFlagsBits.ManageGuild) ?? false,
+			true
 		);
 	}
 
@@ -23,7 +19,8 @@ export class AllowedAdminRolesPrecondition extends AllFlowsPrecondition {
 		return this.checkMemberAccess(
 			interaction.guildId,
 			interaction.member ?? null,
-			interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild) ?? false
+			interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild) ?? false,
+			false
 		);
 	}
 
@@ -31,17 +28,19 @@ export class AllowedAdminRolesPrecondition extends AllFlowsPrecondition {
 		return this.checkMemberAccess(
 			interaction.guildId,
 			interaction.member ?? null,
-			interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild) ?? false
+			interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild) ?? false,
+			false
 		);
 	}
 
 	private async checkMemberAccess(
 		guildId: string | null,
 		member: GuildMember | APIInteractionGuildMember | null,
-		hasManageGuild: boolean
+		hasManageGuild: boolean,
+		silentOnFail: boolean
 	) {
 		if (!guildId || !member) {
-			return this.error({ message: ERROR_MESSAGE });
+			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : undefined });
 		}
 
 		if (hasManageGuild) {
@@ -51,14 +50,14 @@ export class AllowedAdminRolesPrecondition extends AllFlowsPrecondition {
 		const allowedRoles = await this.fetchAllowedAdminRoles(guildId);
 
 		if (allowedRoles.length === 0) {
-			return this.error({ message: ERROR_MESSAGE });
+			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : undefined });
 		}
 
 		if (this.memberHasAllowedRole(member, allowedRoles)) {
 			return this.ok();
 		}
 
-		return this.error({ message: ERROR_MESSAGE });
+		return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : undefined });
 	}
 
 	private async fetchAllowedAdminRoles(guildId: string) {

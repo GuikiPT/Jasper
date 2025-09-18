@@ -13,6 +13,7 @@ model GuildConfig {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   roles     GuildRoleSettings?
+  topics    Topic[]
 }
 
 model GuildRoleSettings {
@@ -25,4 +26,16 @@ model GuildRoleSettings {
   ignoredSnipedRoles     Json
   supportRoles           Json
   guild                  GuildConfig @relation(fields: [guildId], references: [id], onDelete: Cascade)
+}
+
+model Topic {
+  id        Int      @id @default(autoincrement())
+  guildId   String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  guild     GuildConfig @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@index([guildId])
+  @@unique([guildId, value])
 }

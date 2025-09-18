@@ -1,46 +1,38 @@
 import { AllFlowsPrecondition } from '@sapphire/framework';
-import type {
-	ChatInputCommandInteraction,
-	ContextMenuCommandInteraction,
-	GuildMember,
-	Message
-} from 'discord.js';
+import type { ChatInputCommandInteraction, ContextMenuCommandInteraction, GuildMember, Message } from 'discord.js';
 import type { APIInteractionGuildMember } from 'discord.js';
 
 const ERROR_MESSAGE = 'You need an allowed tag admin role to use this command.';
 
 export class AllowedTagAdminRolesPrecondition extends AllFlowsPrecondition {
 	public override messageRun(message: Message) {
-		return this.checkMemberAccess(message.guildId, message.member);
+		return this.checkMemberAccess(message.guildId, message.member, true);
 	}
 
 	public override chatInputRun(interaction: ChatInputCommandInteraction) {
-		return this.checkMemberAccess(interaction.guildId, interaction.member ?? null);
+		return this.checkMemberAccess(interaction.guildId, interaction.member ?? null, false);
 	}
 
 	public override contextMenuRun(interaction: ContextMenuCommandInteraction) {
-		return this.checkMemberAccess(interaction.guildId, interaction.member ?? null);
+		return this.checkMemberAccess(interaction.guildId, interaction.member ?? null, false);
 	}
 
-	private async checkMemberAccess(
-		guildId: string | null,
-		member: GuildMember | APIInteractionGuildMember | null
-	) {
+	private async checkMemberAccess(guildId: string | null, member: GuildMember | APIInteractionGuildMember | null, silentOnFail: boolean) {
 		if (!guildId || !member) {
-			return this.error({ message: ERROR_MESSAGE });
+			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : undefined });
 		}
 
 		const allowedRoles = await this.fetchAllowedRoles(guildId);
 
 		if (allowedRoles.length === 0) {
-			return this.error({ message: ERROR_MESSAGE });
+			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : undefined });
 		}
 
 		if (this.memberHasAllowedRole(member, allowedRoles)) {
 			return this.ok();
 		}
 
-		return this.error({ message: ERROR_MESSAGE });
+		return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : undefined });
 	}
 
 	private async fetchAllowedRoles(guildId: string) {
