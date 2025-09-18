@@ -3,7 +3,7 @@ import type { ChatInputCommand, ContextMenuCommand, MessageCommand, Precondition
 import type { ChatInputCommandInteraction, ContextMenuCommandInteraction, GuildMember, Message } from 'discord.js';
 import { PermissionFlagsBits } from 'discord.js';
 import type { APIInteractionGuildMember } from 'discord.js';
-import type { RoleBucketKey } from '../commands-sub/settings/roles/utils';
+import type { RoleBucketKey } from '../subcommands/settings/roles/utils';
 
 type AllowedGuildRoleBucketsContext = Precondition.Context & {
 	buckets?: readonly RoleBucketKey[];

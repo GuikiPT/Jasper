@@ -10,7 +10,7 @@ import {
 	chatInputPrefixView as handleChatInputPrefixView,
 	messagePrefixSet as handleMessagePrefixSet,
 	messagePrefixView as handleMessagePrefixView
-} from '../../commands-sub/settings/prefix';
+} from '../../subcommands/settings/prefix';
 import {
 	roleSubcommandMapping,
 	registerRoleSubcommandGroup,
@@ -20,7 +20,17 @@ import {
 	messageRoleAdd as handleMessageRoleAdd,
 	messageRoleList as handleMessageRoleList,
 	messageRoleRemove as handleMessageRoleRemove
-} from '../../commands-sub/settings/roles';
+} from '../../subcommands/settings/roles';
+import {
+	channelSubcommandMapping,
+	registerChannelSubcommandGroup,
+	chatInputChannelAdd as handleChatInputChannelAdd,
+	chatInputChannelList as handleChatInputChannelList,
+	chatInputChannelRemove as handleChatInputChannelRemove,
+	messageChannelAdd as handleMessageChannelAdd,
+	messageChannelList as handleMessageChannelList,
+	messageChannelRemove as handleMessageChannelRemove
+} from '../../subcommands/settings/channels';
 import {
 	topicSubcommandMapping,
 	registerTopicSubcommandGroup,
@@ -34,7 +44,7 @@ import {
 	messageTopicRemove as handleMessageTopicRemove,
 	messageTopicImport as handleMessageTopicImport,
 	messageTopicExport as handleMessageTopicExport
-} from '../../commands-sub/settings/topics';
+} from '../../subcommands/settings/topics';
 
 @ApplyOptions<Subcommand.Options>({
 	name: 'settings',
@@ -44,7 +54,7 @@ import {
 	cooldownLimit: 2,
 	cooldownDelay: 5_000,
 	cooldownScope: BucketScope.User,
-	subcommands: [prefixSubcommandMapping, roleSubcommandMapping, topicSubcommandMapping]
+	subcommands: [prefixSubcommandMapping, roleSubcommandMapping, channelSubcommandMapping, topicSubcommandMapping]
 })
 export class SettingsCommand extends Subcommand {
 	private readonly integrationTypes: ApplicationIntegrationType[] = [ApplicationIntegrationType.GuildInstall];
@@ -60,6 +70,7 @@ export class SettingsCommand extends Subcommand {
 				.setContexts(this.contexts)
 				.addSubcommandGroup(registerPrefixSubcommandGroup)
 				.addSubcommandGroup(registerRoleSubcommandGroup)
+				.addSubcommandGroup(registerChannelSubcommandGroup)
 				.addSubcommandGroup(registerTopicSubcommandGroup)
 		);
 	}
@@ -102,6 +113,30 @@ export class SettingsCommand extends Subcommand {
 
 	public async chatInputRoleList(interaction: Subcommand.ChatInputCommandInteraction) {
 		return handleChatInputRoleList(this, interaction);
+	}
+
+	public async messageChannelAdd(message: Message, args: Args) {
+		return handleMessageChannelAdd(this, message, args);
+	}
+
+	public async messageChannelRemove(message: Message, args: Args) {
+		return handleMessageChannelRemove(this, message, args);
+	}
+
+	public async messageChannelList(message: Message, args: Args) {
+		return handleMessageChannelList(this, message, args);
+	}
+
+	public async chatInputChannelAdd(interaction: Subcommand.ChatInputCommandInteraction) {
+		return handleChatInputChannelAdd(this, interaction);
+	}
+
+	public async chatInputChannelRemove(interaction: Subcommand.ChatInputCommandInteraction) {
+		return handleChatInputChannelRemove(this, interaction);
+	}
+
+	public async chatInputChannelList(interaction: Subcommand.ChatInputCommandInteraction) {
+		return handleChatInputChannelList(this, interaction);
 	}
 
 	public async messageTopicAdd(message: Message, args: Args) {
