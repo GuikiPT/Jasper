@@ -55,7 +55,7 @@ async function handleTopicRemove({ command, guildId, id, deny, respond, defer }:
 		await defer();
 	}
 
-	const topic = await command.container.database.topic.findFirst({
+	const topic = await command.container.database.guildTopic.findFirst({
 		where: { id, guildId }
 	});
 
@@ -63,7 +63,7 @@ async function handleTopicRemove({ command, guildId, id, deny, respond, defer }:
 		return respond(`No topic with id #${id} found for this server.`);
 	}
 
-	await command.container.database.topic.delete({ where: { id } });
+	await command.container.database.guildTopic.delete({ where: { id } });
 
 	const preview = topic.value.length > 80 ? `${topic.value.slice(0, 77)}…` : topic.value;
 	return respond(`Removed topic #${topic.id}: ${preview}`);

@@ -42,7 +42,7 @@ async function handleTopicList({ command, guildId, deny, respond, defer }: Topic
 		await defer();
 	}
 
-	const topics = await command.container.database.topic.findMany({
+	const topics = await command.container.database.guildTopic.findMany({
 		where: { guildId },
 		orderBy: { id: 'asc' }
 	});

@@ -40,7 +40,7 @@ async function handleTopicExport({ command, guildId, deny, respond, defer }: Top
 		await defer();
 	}
 
-	const topics = await command.container.database.topic.findMany({
+	const topics = await command.container.database.guildTopic.findMany({
 		where: { guildId },
 		orderBy: { id: 'asc' }
 	});

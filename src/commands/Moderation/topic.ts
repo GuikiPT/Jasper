@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { BucketScope, Command, CommandOptionsRunTypeEnum } from '@sapphire/framework';
-import { ApplicationIntegrationType, InteractionContextType } from 'discord.js';
+import { ApplicationIntegrationType, InteractionContextType, MessageFlags } from 'discord.js';
 import type { Message } from 'discord.js';
 
 interface GuildTopic {
@@ -68,14 +68,14 @@ export class TopicCommand extends Command {
 		if (!interaction.guildId) {
 			return interaction.reply({
 				content: 'This command can only be used inside a server.',
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			});
 		}
 
 		if (!interaction.channel || !interaction.channel.isSendable()) {
 			return interaction.reply({
 				content: 'I cannot send messages in this channel.',
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			});
 		}
 
@@ -84,7 +84,7 @@ export class TopicCommand extends Command {
 		if (!topic) {
 			return interaction.reply({
 				content: 'No topics configured yet. Ask an admin to add some with `/settings topic add`.',
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			});
 		}
 
@@ -92,13 +92,13 @@ export class TopicCommand extends Command {
 
 		return interaction.reply({
 			content: 'Topic sent.',
-			ephemeral: true
+			flags: MessageFlags.Ephemeral
 		});
 	}
 
 	private async fetchRandomTopic(guildId: string): Promise<GuildTopic | null> {
 		try {
-			const total = await this.container.database.topic.count({
+			const total = await this.container.database.guildTopic.count({
 				where: { guildId }
 			});
 
@@ -107,7 +107,7 @@ export class TopicCommand extends Command {
 			}
 
 			const skip = Math.floor(Math.random() * total);
-			const entry = await this.container.database.topic.findFirst({
+			const entry = await this.container.database.guildTopic.findFirst({
 				where: { guildId },
 				skip,
 				take: 1
