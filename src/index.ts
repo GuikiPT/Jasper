@@ -38,7 +38,7 @@ const client = new SapphireClient({
 		GatewayIntentBits.DirectMessageReactions,
 		GatewayIntentBits.DirectMessages,
 		GatewayIntentBits.GuildModeration,
-		GatewayIntentBits.GuildEmojisAndStickers,
+		GatewayIntentBits.GuildExpressions,
 		GatewayIntentBits.GuildMembers,
 		GatewayIntentBits.GuildMessageReactions,
 		GatewayIntentBits.GuildMessages,
