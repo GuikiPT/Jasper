@@ -1,7 +1,10 @@
 -- CreateTable
-CREATE TABLE "GuildConfig" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "prefix" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
-);
+CREATE TABLE `GuildConfig` (
+	`id` VARCHAR(191) NOT NULL,
+	`prefix` VARCHAR(191) NULL,
+	`createdAt` DATETIME (3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+	`updatedAt` DATETIME (3) NOT NULL,
+	PRIMARY KEY (`id`)
+) DEFAULT CHARACTER
+SET
+	utf8mb4 COLLATE utf8mb4_unicode_ci;

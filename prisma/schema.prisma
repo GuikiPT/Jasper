@@ -1,72 +1,72 @@
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+    provider = "mysql"
+    url      = env("DATABASE_URL")
 }
 
 model GuildConfig {
-  id           String                @id
-  prefix       String?
-  createdAt    DateTime              @default(now())
-  updatedAt    DateTime              @updatedAt
-  channels     GuildChannelSettings?
-  roles        GuildRoleSettings?
-  supportTags  GuildSupportTag[]
-  topics       GuildTopic[]
+    id          String                @id
+    prefix      String?
+    createdAt   DateTime              @default(now())
+    updatedAt   DateTime              @updatedAt
+    channels    GuildChannelSettings?
+    roles       GuildRoleSettings?
+    supportTags GuildSupportTag[]
+    topics      GuildTopic[]
 }
 
 model GuildRoleSettings {
-  guildId                String      @id
-  allowedAdminRoles      Json
-  allowedFunCommandRoles Json
-  allowedStaffRoles      Json
-  allowedTagAdminRoles   Json
-  allowedTagRoles        Json
-  ignoredSnipedRoles     Json
-  supportRoles           Json
-  guild                  GuildConfig @relation(fields: [guildId], references: [id], onDelete: Cascade)
+    guildId                String      @id
+    allowedAdminRoles      Json
+    allowedFunCommandRoles Json
+    allowedStaffRoles      Json
+    allowedTagAdminRoles   Json
+    allowedTagRoles        Json
+    ignoredSnipedRoles     Json
+    supportRoles           Json
+    guild                  GuildConfig @relation(fields: [guildId], references: [id], onDelete: Cascade)
 }
 
 model GuildChannelSettings {
-  guildId                   String      @id
-  allowedSkullboardChannels Json
-  allowedSnipeChannels      Json
-  allowedTagChannels        Json
-  automaticSlowmodeChannels Json
-  guild                     GuildConfig @relation(fields: [guildId], references: [id], onDelete: Cascade)
+    guildId                   String      @id
+    allowedSkullboardChannels Json
+    allowedSnipeChannels      Json
+    allowedTagChannels        Json
+    automaticSlowmodeChannels Json
+    guild                     GuildConfig @relation(fields: [guildId], references: [id], onDelete: Cascade)
 }
 
 model GuildSupportTag {
-  id               Int         @id @default(autoincrement())
-  guildId          String
-  name             String
-  authorId         String
-  editedBy         String?
-  embedTitle       String
-  embedDescription String?
-  embedFooter      String?
-  embedImageUrl    String?
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime
-  GuildConfig      GuildConfig @relation(fields: [guildId], references: [id], onDelete: Cascade)
+    id               Int         @id @default(autoincrement())
+    guildId          String
+    name             String
+    authorId         String
+    editedBy         String?
+    embedTitle       String
+    embedDescription String?
+    embedFooter      String?
+    embedImageUrl    String?
+    createdAt        DateTime    @default(now())
+    updatedAt        DateTime    @updatedAt
+    GuildConfig      GuildConfig @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
-  @@unique([guildId, name])
-  @@index([guildId])
-  @@map("GuildSupportTags")
+    @@unique([guildId, name])
+    @@index([guildId])
+    @@map("GuildSupportTags")
 }
 
 model GuildTopic {
-  id          Int         @id @default(autoincrement())
-  guildId     String
-  value       String
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime
-  GuildConfig GuildConfig @relation(fields: [guildId], references: [id], onDelete: Cascade)
+    id          Int         @id @default(autoincrement())
+    guildId     String
+    value       String
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+    GuildConfig GuildConfig @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
-  @@unique([guildId, value])
-  @@index([guildId])
-  @@map("GuildTopics")
+    @@unique([guildId, value])
+    @@index([guildId])
+    @@map("GuildTopics")
 }
