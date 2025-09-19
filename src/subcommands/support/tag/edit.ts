@@ -1,4 +1,4 @@
-import { ActionRowBuilder, MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
+import { ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 
 import {
 	MAX_EMBED_DESCRIPTION_LENGTH,
@@ -11,7 +11,8 @@ import {
 	findTag,
 	isSupportTagPrismaTableMissingError,
 	isSupportTagTableMissingError,
-	normalizeTagName
+	normalizeTagName,
+	replyWithComponents
 } from './utils';
 import {
 	SUPPORT_TAG_EDIT_MODAL_ID_PREFIX,
@@ -25,7 +26,7 @@ import {
 export async function chatInputTagEdit(command: TagCommand, interaction: TagChatInputInteraction) {
 	const guildId = interaction.guildId;
 	if (!guildId) {
-		return interaction.reply({ content: 'This command can only be used inside a server.', flags: MessageFlags.Ephemeral });
+		return replyWithComponents(interaction, 'This command can only be used inside a server.', true);
 	}
 
 	const name = normalizeTagName(interaction.options.getString('name', true));
@@ -34,13 +35,13 @@ export async function chatInputTagEdit(command: TagCommand, interaction: TagChat
 		tag = await findTag(command, guildId, name);
 	} catch (error) {
 		if (isSupportTagTableMissingError(error) || isSupportTagPrismaTableMissingError(error)) {
-			return interaction.reply({ content: SUPPORT_TAG_TABLE_MISSING_MESSAGE, flags: MessageFlags.Ephemeral });
+			return replyWithComponents(interaction, SUPPORT_TAG_TABLE_MISSING_MESSAGE, true);
 		}
 		throw error;
 	}
 
 	if (!tag) {
-		return interaction.reply({ content: 'No tag with that name exists.', flags: MessageFlags.Ephemeral });
+		return replyWithComponents(interaction, 'No tag with that name exists.', true);
 	}
 
 	const modalId = `${SUPPORT_TAG_EDIT_MODAL_ID_PREFIX}:${tag.id}`;

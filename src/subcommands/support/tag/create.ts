@@ -1,4 +1,4 @@
-import { ActionRowBuilder, MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
+import { ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 
 import {
 	MAX_EMBED_DESCRIPTION_LENGTH,
@@ -6,7 +6,8 @@ import {
 	MAX_EMBED_TITLE_LENGTH,
 	MAX_TAG_NAME_LENGTH,
 	TagCommand,
-	TagChatInputInteraction
+	TagChatInputInteraction,
+	replyWithComponents
 } from './utils';
 import {
 	SUPPORT_TAG_CREATE_MODAL_ID,
@@ -20,7 +21,7 @@ import {
 export async function chatInputTagCreate(_command: TagCommand, interaction: TagChatInputInteraction) {
 	const guildId = interaction.guildId;
 	if (!guildId) {
-		return interaction.reply({ content: 'This command can only be used inside a server.', flags: MessageFlags.Ephemeral });
+		return replyWithComponents(interaction, 'This command can only be used inside a server.', true);
 	}
 
 	const modal = new ModalBuilder().setCustomId(SUPPORT_TAG_CREATE_MODAL_ID).setTitle('Create Support Tag');

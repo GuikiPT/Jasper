@@ -1,7 +1,7 @@
 import type { Args } from '@sapphire/framework';
 import type { Message } from 'discord.js';
 import { MessageFlags } from 'discord.js';
-import { executeSupportView, denyInteraction, formatError, type SupportCommand, type SupportChatInputInteraction } from './utils';
+import { executeSupportView, formatError, type SupportCommand, type SupportChatInputInteraction } from './utils';
 
 export async function messageSupportView(command: SupportCommand, message: Message, _args: Args) {
 	try {
@@ -21,11 +21,12 @@ export async function chatInputSupportView(command: SupportCommand, interaction:
 		return executeSupportView({
 			command,
 			guildId: interaction.guild?.id ?? null,
-			deny: (content) => denyInteraction(interaction, content),
+			deny: (content) => interaction.editReply({ content }),
 			respond: (content) => interaction.editReply({ content }),
+			respondComponents: (components) => interaction.editReply({ components }),
 			defer: () => interaction.deferReply({ flags: MessageFlags.Ephemeral })
 		});
 	} catch (error) {
-		return denyInteraction(interaction, formatError(error));
+		return interaction.editReply({ content: formatError(error) });
 	}
 }

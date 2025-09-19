@@ -58,6 +58,6 @@ export async function chatInputTagUse(command: TagCommand, interaction: TagChatI
 
 	return interaction.reply({
 		components,
-		flags: ephemeral ? [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2] : [MessageFlags.IsComponentsV2]
+		flags: ephemeral ? MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 : MessageFlags.IsComponentsV2
 	});
 }

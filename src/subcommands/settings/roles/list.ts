@@ -39,6 +39,10 @@ export async function chatInputRoleList(command: RoleCommand, interaction: RoleC
 		bucket,
 		deny: (content) => denyInteraction(interaction, content),
 		respond: (content) => interaction.editReply({ content }),
+		respondComponents: (components) => interaction.editReply({
+			components,
+			flags: MessageFlags.IsComponentsV2
+		}),
 		defer: () => interaction.deferReply({ flags: MessageFlags.Ephemeral })
 	});
 }

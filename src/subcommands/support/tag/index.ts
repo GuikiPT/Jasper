@@ -36,6 +36,7 @@ export {
 	normalizeOptional,
 	normalizeTagName,
 	replyEphemeral,
+	replyWithComponents,
 	ALLOWED_TAG_ROLE_REQUIRED_MESSAGE,
 	SUPPORT_ROLE_REQUIRED_MESSAGE,
 	timestamp,

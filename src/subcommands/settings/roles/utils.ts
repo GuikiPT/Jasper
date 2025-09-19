@@ -20,6 +20,7 @@ export type RoleListContext = {
 	bucket: RoleBucketKey | null;
 	deny: (content: string) => Promise<unknown>;
 	respond: (content: string) => Promise<unknown>;
+	respondComponents?: (components: any[]) => Promise<unknown>;
 	defer?: () => Promise<unknown>;
 };
 
@@ -191,6 +192,7 @@ export async function executeRoleList({
 	bucket,
 	deny,
 	respond,
+	respondComponents,
 	defer
 }: RoleListContext) {
 	if (!guildId) {
@@ -204,6 +206,37 @@ export async function executeRoleList({
 	const settings = await ensureRoleSettings(command, guildId);
 	const buckets = bucket ? [bucket] : ROLE_BUCKETS.map((entry) => entry.key);
 
+	// If we have component support, use it
+	if (respondComponents) {
+		const { createListComponent, createMultiSectionComponent } = await import('../../../lib/components.js');
+
+		if (bucket) {
+			// Single bucket - use simple list component
+			const roles = getStringArray(settings[bucket]);
+			const label = bucketLabel(bucket);
+			const items = roles.length === 0 ? [] : roles.map((id) => `<@&${id}>`);
+			const component = createListComponent(label, items, 'No roles configured yet.');
+			return respondComponents([component]);
+		} else {
+			// Multiple buckets - use multi-section component
+			const sections = buckets.map((key) => {
+				const roles = getStringArray(settings[key]);
+				const label = bucketLabel(key);
+				return {
+					title: label,
+					items: roles.map((id) => `<@&${id}>`),
+					emptyMessage: '*(none)*'
+				};
+			});
+			const component = createMultiSectionComponent(sections);
+			if (component) {
+				return respondComponents([component]);
+			}
+			// Fallback to plain text if the component would exceed Discord limits
+		}
+	}
+
+	// Fallback to plain text for message commands
 	const lines = buckets.map((key) => {
 		const roles = getStringArray(settings[key]);
 		const label = bucketLabel(key);

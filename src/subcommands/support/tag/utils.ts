@@ -11,8 +11,37 @@ export const MAX_EMBED_TITLE_LENGTH = 256;
 export const MAX_EMBED_DESCRIPTION_LENGTH = 4_096;
 export const MAX_EMBED_FOOTER_LENGTH = 2_048;
 
-export const replyEphemeral = (interaction: TagChatInputInteraction, content: string) =>
-	interaction.reply({ content, flags: MessageFlags.Ephemeral });
+export const replyEphemeral = (interaction: TagChatInputInteraction, content: string) => {
+	const components = [
+		new ContainerBuilder()
+			.addTextDisplayComponents(
+				new TextDisplayBuilder().setContent(content)
+			)
+	];
+
+	return interaction.reply({
+		components,
+		flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
+	});
+};
+
+export const replyWithComponents = (interaction: TagChatInputInteraction, content: string, ephemeral: boolean = false) => {
+	const components = [
+		new ContainerBuilder()
+			.addTextDisplayComponents(
+				new TextDisplayBuilder().setContent(content)
+			)
+	];
+
+	const flags = ephemeral
+		? MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
+		: MessageFlags.IsComponentsV2;
+
+	return interaction.reply({
+		components,
+		flags
+	});
+};
 
 type ContainerAccessor = { container: TagCommand['container'] };
 

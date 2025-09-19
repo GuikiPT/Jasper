@@ -12,6 +12,7 @@ type PrefixExecutionContext = {
 	providedPrefix: string | null;
 	deny: (content: string) => Promise<unknown>;
 	respond: (content: string) => Promise<unknown>;
+	respondComponents?: (components: any[]) => Promise<unknown>;
 	defer?: () => Promise<unknown>;
 };
 
@@ -27,6 +28,7 @@ export async function executePrefixRequest({
 	providedPrefix,
 	deny,
 	respond,
+	respondComponents,
 	defer
 }: PrefixExecutionContext) {
 	if (!guildId) {
@@ -43,6 +45,21 @@ export async function executePrefixRequest({
 		providedPrefix,
 		defaultPrefix
 	});
+
+	// Use components if available
+	if (respondComponents && !providedPrefix) {
+		const { createListComponent } = await import('../../../lib/components.js');
+		const resolvedPrefix = result.content.includes('current prefix is')
+			? result.content.match(/`(.+?)`/)?.[1] || 'None'
+			: 'None';
+
+		const component = createListComponent(
+			'Server Prefix',
+			resolvedPrefix !== 'None' ? [resolvedPrefix] : [],
+			'No custom prefix configured. Using default prefix.'
+		);
+		return respondComponents([component]);
+	}
 
 	return respond(result.content);
 }

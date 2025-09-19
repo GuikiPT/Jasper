@@ -20,6 +20,7 @@ export type SupportViewContext = {
 	guildId: string | null;
 	deny: (content: string) => Promise<unknown>;
 	respond: (content: string) => Promise<unknown>;
+	respondComponents?: (components: any[]) => Promise<unknown>;
 	defer?: () => Promise<unknown>;
 };
 
@@ -184,6 +185,7 @@ export async function executeSupportView({
 	guildId,
 	deny,
 	respond,
+	respondComponents,
 	defer
 }: SupportViewContext) {
 	if (!guildId) {
@@ -198,6 +200,39 @@ export async function executeSupportView({
 		where: { guildId }
 	});
 
+	// Use components if available
+	if (respondComponents) {
+		const { createListComponent } = await import('../../../lib/components.js');
+
+		if (!settings) {
+			const component = createListComponent(
+				'Support Settings',
+				[],
+				'No support settings configured for this server.'
+			);
+			return respondComponents([component]);
+		}
+
+		const items = SUPPORT_SETTINGS.map((setting) => {
+			const value = settings[setting.key];
+			const label = setting.label;
+
+			if (!value) {
+				return `${label}: *(not set)*`;
+			}
+
+			if (setting.key === 'supportForumChannelId') {
+				return `${label}: <#${value}>`;
+			} else {
+				return `${label}: \`${value}\``;
+			}
+		});
+
+		const component = createListComponent('Support Settings', items);
+		return respondComponents([component]);
+	}
+
+	// Fallback to plain text
 	if (!settings) {
 		return respond('No support settings configured for this server.');
 	}

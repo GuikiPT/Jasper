@@ -49,8 +49,8 @@ export async function chatInputTagShow(command: TagCommand, interaction: TagChat
 	const components = buildTagComponents(tag);
 
 	if (ephemeral) {
-		return interaction.reply({ components, flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2] });
+		return interaction.reply({ components, flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
 	}
 
-	return interaction.reply({ components, flags: [MessageFlags.IsComponentsV2] });
+	return interaction.reply({ components, flags: MessageFlags.IsComponentsV2 });
 }

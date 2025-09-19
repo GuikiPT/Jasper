@@ -30,6 +30,7 @@ export async function chatInputPrefixView(command: PrefixCommand, interaction: P
 		providedPrefix: null,
 		deny: (content) => ephemeralResponse(interaction, content),
 		respond: (content) => interaction.editReply({ content }),
+		respondComponents: (components) => interaction.editReply({ components }),
 		defer: () => interaction.deferReply({ flags: MessageFlags.Ephemeral })
 	});
 }

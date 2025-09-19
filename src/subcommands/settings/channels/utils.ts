@@ -2,6 +2,7 @@ import type { Args } from '@sapphire/framework';
 import type { Subcommand } from '@sapphire/plugin-subcommands';
 import { MessageFlags, type SlashCommandSubcommandGroupBuilder } from 'discord.js';
 import type { GuildChannelSettings, Prisma } from '@prisma/client';
+import { createMultiSectionComponent } from '../../../lib/components';
 
 export type ChannelCommand = Subcommand;
 export type ChannelChatInputInteraction = Subcommand.ChatInputCommandInteraction;
@@ -23,6 +24,7 @@ export type ChannelListContext = {
 	bucket: ChannelBucketKey | null;
 	deny: (content: string) => Promise<unknown>;
 	respond: (content: string) => Promise<unknown>;
+	respondComponents?: (components: any[]) => Promise<unknown>;
 	defer?: () => Promise<unknown>;
 };
 
@@ -184,6 +186,7 @@ export async function executeChannelList({
 	bucket,
 	deny,
 	respond,
+	respondComponents,
 	defer
 }: ChannelListContext) {
 	if (!guildId) {
@@ -197,6 +200,27 @@ export async function executeChannelList({
 	const settings = await ensureChannelSettings(command, guildId);
 	const buckets = bucket ? [bucket] : CHANNEL_BUCKETS.map((entry) => entry.key);
 
+	// Use components if available, otherwise fallback to text
+	if (respondComponents) {
+		const sections = buckets.map((key) => {
+			const chans = getStringArray(settings[key]);
+			const label = bucketLabel(key);
+			const items = chans.length === 0 ? ['*(none)*'] : chans.map((id) => `<#${id}>`);
+			return {
+				title: label,
+				items,
+				emptyMessage: '*(none)*'
+			};
+		});
+
+		const component = createMultiSectionComponent(sections);
+		if (component) {
+			return respondComponents([component]);
+		}
+		// Fallback to plain text if the component would exceed Discord limits
+	}
+
+	// Fallback to text for message commands
 	const lines = buckets.map((key) => {
 		const chans = getStringArray(settings[key]);
 		const label = bucketLabel(key);
@@ -246,4 +270,3 @@ export function removeInPlace(array: string[], value: string) {
 
 export const denyInteraction = (interaction: ChannelChatInputInteraction, content: string) =>
 	interaction.reply({ content, flags: MessageFlags.Ephemeral });
-
