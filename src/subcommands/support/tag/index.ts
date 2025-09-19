@@ -22,7 +22,6 @@ export { chatInputTagList } from './list';
 export { chatInputTagRaw } from './raw';
 export { chatInputTagShow } from './show';
 export { chatInputTagUse } from './use';
-export { resolveSupportTagAutocomplete } from './autocomplete';
 
 export {
 	buildTagEmbed,

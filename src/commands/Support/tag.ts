@@ -20,7 +20,6 @@ import {
 	chatInputTagRaw,
 	chatInputTagShow,
 	chatInputTagUse,
-	resolveSupportTagAutocomplete,
 	type TagChatInputInteraction
 } from '../../subcommands/support/tag';
 
@@ -206,14 +205,5 @@ export class SupportTagCommand extends Subcommand {
 
 	public async chatInputTagUse(interaction: TagChatInputInteraction) {
 		return chatInputTagUse(this, interaction);
-	}
-
-	public override async autocompleteRun(interaction: Subcommand.AutocompleteInteraction) {
-		const result = await resolveSupportTagAutocomplete(this, interaction);
-		if (!result.handled) {
-			return interaction.respond([]);
-		}
-
-		return interaction.respond(result.choices);
 	}
 }

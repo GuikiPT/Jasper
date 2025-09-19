@@ -107,7 +107,7 @@ export async function parseBucket(args: Args, required: boolean): Promise<RoleBu
 		if (required) {
 			throw new Error(
 				`You must provide a role setting. Available options: ${ROLE_BUCKETS.map((b) => b.key).join(', ')}`
-				);
+			);
 		}
 		return null;
 	}
@@ -224,6 +224,13 @@ export async function ensureRoleSettings(command: RoleCommand, guildId: string):
 	});
 
 	if (existing) return existing;
+
+	// Ensure GuildConfig exists first (required for foreign key constraint)
+	await command.container.database.guildConfig.upsert({
+		where: { id: guildId },
+		create: { id: guildId },
+		update: {}
+	});
 
 	return command.container.database.guildRoleSettings.create({
 		data: blankRoleSettings(guildId)
