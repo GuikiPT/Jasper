@@ -8,14 +8,15 @@ datasource db {
 }
 
 model GuildConfig {
-    id          String                @id
-    prefix      String?
-    createdAt   DateTime              @default(now())
-    updatedAt   DateTime              @updatedAt
-    channels    GuildChannelSettings?
-    roles       GuildRoleSettings?
-    supportTags GuildSupportTag[]
-    topics      GuildTopic[]
+    id              String                @id
+    prefix          String?
+    createdAt       DateTime              @default(now())
+    updatedAt       DateTime              @updatedAt
+    channels        GuildChannelSettings?
+    roles           GuildRoleSettings?
+    supportSettings GuildSupportSettings?
+    supportTags     GuildSupportTag[]
+    topics          GuildTopic[]
 }
 
 model GuildRoleSettings {
@@ -69,4 +70,11 @@ model GuildTopic {
     @@unique([guildId, value])
     @@index([guildId])
     @@map("GuildTopics")
+}
+
+model GuildSupportSettings {
+    guildId               String      @id
+    supportForumChannelId String?
+    resolvedTagId         String?
+    guild                 GuildConfig @relation(fields: [guildId], references: [id], onDelete: Cascade)
 }

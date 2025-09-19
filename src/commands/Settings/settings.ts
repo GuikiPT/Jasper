@@ -45,6 +45,14 @@ import {
 	messageTopicImport as handleMessageTopicImport,
 	messageTopicExport as handleMessageTopicExport
 } from '../../subcommands/settings/topics';
+import {
+	supportSubcommandMapping,
+	registerSupportSubcommandGroup,
+	chatInputSupportSet as handleChatInputSupportSet,
+	chatInputSupportView as handleChatInputSupportView,
+	messageSupportSet as handleMessageSupportSet,
+	messageSupportView as handleMessageSupportView
+} from '../../subcommands/settings/support';
 
 @ApplyOptions<Subcommand.Options>({
 	name: 'settings',
@@ -54,7 +62,7 @@ import {
 	cooldownLimit: 2,
 	cooldownDelay: 5_000,
 	cooldownScope: BucketScope.User,
-	subcommands: [prefixSubcommandMapping, roleSubcommandMapping, channelSubcommandMapping, topicSubcommandMapping]
+	subcommands: [prefixSubcommandMapping, roleSubcommandMapping, channelSubcommandMapping, topicSubcommandMapping, supportSubcommandMapping]
 })
 export class SettingsCommand extends Subcommand {
 	private readonly integrationTypes: ApplicationIntegrationType[] = [ApplicationIntegrationType.GuildInstall];
@@ -72,6 +80,7 @@ export class SettingsCommand extends Subcommand {
 				.addSubcommandGroup(registerRoleSubcommandGroup)
 				.addSubcommandGroup(registerChannelSubcommandGroup)
 				.addSubcommandGroup(registerTopicSubcommandGroup)
+				.addSubcommandGroup(registerSupportSubcommandGroup)
 		);
 	}
 
@@ -177,5 +186,21 @@ export class SettingsCommand extends Subcommand {
 
 	public async chatInputTopicExport(interaction: Subcommand.ChatInputCommandInteraction) {
 		return handleChatInputTopicExport(this, interaction);
+	}
+
+	public async messageSupportSet(message: Message, args: Args) {
+		return handleMessageSupportSet(this, message, args);
+	}
+
+	public async messageSupportView(message: Message, args: Args) {
+		return handleMessageSupportView(this, message, args);
+	}
+
+	public async chatInputSupportSet(interaction: Subcommand.ChatInputCommandInteraction) {
+		return handleChatInputSupportSet(this, interaction);
+	}
+
+	public async chatInputSupportView(interaction: Subcommand.ChatInputCommandInteraction) {
+		return handleChatInputSupportView(this, interaction);
 	}
 }
