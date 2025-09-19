@@ -1,6 +1,6 @@
 import type { Subcommand } from '@sapphire/plugin-subcommands';
 import type { APIInteractionGuildMember, GuildMember } from 'discord.js';
-import { EmbedBuilder, MessageFlags } from 'discord.js';
+import { EmbedBuilder, MessageFlags, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize, MediaGalleryBuilder, MediaGalleryItemBuilder } from 'discord.js';
 import { Prisma, type GuildSupportTag } from '@prisma/client';
 
 export type TagCommand = Subcommand;
@@ -43,6 +43,70 @@ export const buildTagEmbed = (tag: GuildSupportTag) => {
 	}
 
 	return embed;
+};
+
+export const buildTagComponents = (tag: GuildSupportTag, user?: { id: string }) => {
+	const components = [];
+
+	// Add user mention as separate component outside container if provided
+	if (user) {
+		components.push(
+			new TextDisplayBuilder().setContent(`<@${user.id}>`)
+		);
+	}
+
+	// Create the main container for the tag content
+	const container = new ContainerBuilder();
+
+	// Always start with the title
+	container.addTextDisplayComponents(
+		new TextDisplayBuilder().setContent(`# ${tag.embedTitle}`)
+	);
+
+	// Add separator after title
+	container.addSeparatorComponents(
+		new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+	);
+
+	// Add body (description) if present
+	if (tag.embedDescription) {
+		container.addTextDisplayComponents(
+			new TextDisplayBuilder().setContent(tag.embedDescription)
+		);
+
+		// Add separator after body
+		container.addSeparatorComponents(
+			new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+		);
+	}
+
+	// Add image if present
+	if (tag.embedImageUrl) {
+		container.addMediaGalleryComponents(
+			new MediaGalleryBuilder()
+				.addItems(
+					new MediaGalleryItemBuilder()
+						.setURL(tag.embedImageUrl)
+				)
+		);
+
+		// Add separator after image
+		container.addSeparatorComponents(
+			new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+		);
+	}
+
+	// Add footer if present (should always have separator before footer when footer exists)
+	if (tag.embedFooter) {
+		container.addTextDisplayComponents(
+			new TextDisplayBuilder().setContent(tag.embedFooter)
+		);
+	}
+
+	// Add the container to components
+	components.push(container);
+
+	return components;
 };
 
 export class GuildSupportTagTableMissingError extends Error {

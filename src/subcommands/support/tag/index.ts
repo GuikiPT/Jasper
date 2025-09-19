@@ -25,6 +25,7 @@ export { chatInputTagUse } from './use';
 
 export {
 	buildTagEmbed,
+	buildTagComponents,
 	ensureAllowedTagRoleAccess,
 	ensureSupportRoleAccess,
 	ensureTagChannelAccess,

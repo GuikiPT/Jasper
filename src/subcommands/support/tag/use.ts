@@ -5,7 +5,7 @@ import {
 	SUPPORT_TAG_TABLE_MISSING_MESSAGE,
 	TagCommand,
 	TagChatInputInteraction,
-	buildTagEmbed,
+	buildTagComponents,
 	ensureAllowedTagRoleAccess,
 	ensureTagChannelAccess,
 	formatTagChannelRestrictionMessage,
@@ -54,8 +54,10 @@ export async function chatInputTagUse(command: TagCommand, interaction: TagChatI
 		return replyEphemeral(interaction, 'No tag with that name exists.');
 	}
 
-	const embed = buildTagEmbed(tag);
-	const content = user ? `<@${user.id}>` : undefined;
+	const components = buildTagComponents(tag, user ? { id: user.id } : undefined);
 
-	return interaction.reply({ embeds: [embed], content, flags: ephemeral ? MessageFlags.Ephemeral : undefined });
+	return interaction.reply({
+		components,
+		flags: ephemeral ? [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2] : [MessageFlags.IsComponentsV2]
+	});
 }
