@@ -6,6 +6,7 @@ import {
 	TagChatInputInteraction,
 	buildTagEmbed,
 	ensureTagChannelAccess,
+	formatTagChannelRestrictionMessage,
 	findTag,
 	isSupportTagPrismaTableMissingError,
 	isSupportTagTableMissingError,
@@ -23,17 +24,12 @@ export async function chatInputTagShow(command: TagCommand, interaction: TagChat
 	const ephemeral = interaction.options.getBoolean('ephemeral') ?? true;
 	const access = await ensureTagChannelAccess(command, interaction);
 	if (!access.allowed) {
-		let message: string;
-		if (access.reason === 'unconfigured') {
-			message =
-				'Support tags cannot be previewed yet because no allowed channels have been configured. Use `/settings channel add` with the `allowedTagChannels` setting to choose where previews may be shown.';
-		} else {
-			const formatted = access.allowedChannels.map((id) => `<#${id}>`).join(', ');
-			message =
-				access.allowedChannels.length === 1
-					? `Support tags may only be previewed in ${formatted}.`
-					: `Support tags may only be previewed in the following channels: ${formatted}.`;
-		}
+		const message = formatTagChannelRestrictionMessage(access, {
+			unconfigured:
+				'Support tags cannot be previewed yet because no allowed channels have been configured. Use `/settings channel add` with the `allowedTagChannels` setting to choose where previews may be shown.',
+			single: (channel) => `Support tags may only be previewed in ${channel}.`,
+			multiple: (channels) => `Support tags may only be previewed in the following channels: ${channels}.`
+		});
 		return replyEphemeral(interaction, message);
 	}
 	let tag;

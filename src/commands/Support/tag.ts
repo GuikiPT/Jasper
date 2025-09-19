@@ -20,7 +20,7 @@ import {
 	chatInputTagRaw,
 	chatInputTagShow,
 	chatInputTagUse,
-	normalizeTagName,
+	resolveSupportTagAutocomplete,
 	type TagChatInputInteraction
 } from '../../subcommands/support/tag';
 
@@ -209,53 +209,11 @@ export class SupportTagCommand extends Subcommand {
 	}
 
 	public override async autocompleteRun(interaction: Subcommand.AutocompleteInteraction) {
-		if (!interaction.guildId) {
+		const result = await resolveSupportTagAutocomplete(this, interaction);
+		if (!result.handled) {
 			return interaction.respond([]);
 		}
 
-		const subcommand = interaction.options.getSubcommand(false);
-		if (!subcommand || !['delete', 'edit', 'use'].includes(subcommand)) {
-			return interaction.respond([]);
-		}
-
-		const focused = interaction.options.getFocused(true);
-		if (focused.name !== 'name') {
-			return interaction.respond([]);
-		}
-
-		const query = typeof focused.value === 'string' ? focused.value : '';
-		const normalizedQuery = query ? normalizeTagName(query) : '';
-
-		try {
-			const tags = await this.container.database.guildSupportTag.findMany({
-				where: { guildId: interaction.guildId },
-				select: { name: true },
-				orderBy: { name: 'asc' }
-			});
-
-			const startsWith: string[] = [];
-			const contains: string[] = [];
-			for (const { name } of tags) {
-				if (!normalizedQuery) {
-					contains.push(name);
-					continue;
-				}
-
-				if (name.startsWith(normalizedQuery)) {
-					startsWith.push(name);
-				} else if (name.includes(normalizedQuery)) {
-					contains.push(name);
-				}
-			}
-
-			const suggestions = [...startsWith, ...contains]
-				.slice(0, 25)
-				.map((name) => ({ name, value: name }));
-
-			return interaction.respond(suggestions);
-		} catch (error) {
-			this.container.logger.error('Failed to provide tag autocomplete suggestions', error);
-			return interaction.respond([]);
-		}
+		return interaction.respond(result.choices);
 	}
 }

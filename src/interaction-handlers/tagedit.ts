@@ -11,7 +11,11 @@ import {
 	SUPPORT_TAG_MODAL_FIELD_TITLE
 } from '../subcommands/support/tag/constants';
 import {
+	SUPPORT_ROLE_REQUIRED_MESSAGE,
 	SUPPORT_TAG_TABLE_MISSING_MESSAGE,
+	ensureSupportRoleAccess,
+	ensureTagChannelAccess,
+	formatTagChannelRestrictionMessage,
 	isSupportTagPrismaTableMissingError,
 	normalizeOptional,
 	normalizeTagName,
@@ -49,6 +53,22 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 				content: 'This modal can only be used inside a server.',
 				flags: MessageFlags.Ephemeral
 			});
+		}
+
+		const supportAccess = await ensureSupportRoleAccess(this, interaction);
+		if (!supportAccess.allowed) {
+			return interaction.reply({ content: SUPPORT_ROLE_REQUIRED_MESSAGE, flags: MessageFlags.Ephemeral });
+		}
+
+		const channelAccess = await ensureTagChannelAccess(this, interaction);
+		if (!channelAccess.allowed) {
+			const message = formatTagChannelRestrictionMessage(channelAccess, {
+				unconfigured:
+					'Support tags cannot be managed yet because no allowed channels have been configured. Use `/settings channel add` with the `allowedTagChannels` setting to choose where they may be managed.',
+				single: (channel) => `Support tags may only be managed in ${channel}.`,
+				multiple: (channels) => `Support tags may only be managed in the following channels: ${channels}.`
+			});
+			return interaction.reply({ content: message, flags: MessageFlags.Ephemeral });
 		}
 
 		const rawName = interaction.fields.getTextInputValue(SUPPORT_TAG_MODAL_FIELD_NAME).trim();

@@ -11,7 +11,11 @@ import {
 	SUPPORT_TAG_MODAL_FIELD_TITLE
 } from '../subcommands/support/tag/constants';
 import {
+	SUPPORT_ROLE_REQUIRED_MESSAGE,
 	SUPPORT_TAG_TABLE_MISSING_MESSAGE,
+	ensureSupportRoleAccess,
+	ensureTagChannelAccess,
+	formatTagChannelRestrictionMessage,
 	isSupportTagPrismaTableMissingError,
 	normalizeOptional,
 	normalizeTagName,
@@ -46,6 +50,22 @@ export class SupportTagCreateModalHandler extends InteractionHandler {
 		const description = normalizeOptional(interaction.fields.getTextInputValue(SUPPORT_TAG_MODAL_FIELD_DESCRIPTION));
 		const image = normalizeOptional(interaction.fields.getTextInputValue(SUPPORT_TAG_MODAL_FIELD_IMAGE));
 		const footer = normalizeOptional(interaction.fields.getTextInputValue(SUPPORT_TAG_MODAL_FIELD_FOOTER));
+
+		const supportAccess = await ensureSupportRoleAccess(this, interaction);
+		if (!supportAccess.allowed) {
+			return interaction.reply({ content: SUPPORT_ROLE_REQUIRED_MESSAGE, flags: MessageFlags.Ephemeral });
+		}
+
+		const channelAccess = await ensureTagChannelAccess(this, interaction);
+		if (!channelAccess.allowed) {
+			const message = formatTagChannelRestrictionMessage(channelAccess, {
+				unconfigured:
+					'Support tags cannot be managed yet because no allowed channels have been configured. Use `/settings channel add` with the `allowedTagChannels` setting to choose where they may be managed.',
+				single: (channel) => `Support tags may only be managed in ${channel}.`,
+				multiple: (channels) => `Support tags may only be managed in the following channels: ${channels}.`
+			});
+			return interaction.reply({ content: message, flags: MessageFlags.Ephemeral });
+		}
 
 		if (!validateName(name)) {
 			return interaction.reply({

@@ -1,11 +1,14 @@
 import { MessageFlags } from 'discord.js';
 
 import {
+	ALLOWED_TAG_ROLE_REQUIRED_MESSAGE,
 	SUPPORT_TAG_TABLE_MISSING_MESSAGE,
 	TagCommand,
 	TagChatInputInteraction,
 	buildTagEmbed,
+	ensureAllowedTagRoleAccess,
 	ensureTagChannelAccess,
+	formatTagChannelRestrictionMessage,
 	findTag,
 	isSupportTagPrismaTableMissingError,
 	isSupportTagTableMissingError,
@@ -22,19 +25,19 @@ export async function chatInputTagUse(command: TagCommand, interaction: TagChatI
 	const name = normalizeTagName(interaction.options.getString('name', true));
 	const user = interaction.options.getUser('user');
 	const ephemeral = interaction.options.getBoolean('ephemeral') ?? false;
+	const tagRoleAccess = await ensureAllowedTagRoleAccess(command, interaction);
+	if (!tagRoleAccess.allowed) {
+		return replyEphemeral(interaction, ALLOWED_TAG_ROLE_REQUIRED_MESSAGE);
+	}
+
 	const access = await ensureTagChannelAccess(command, interaction);
 	if (!access.allowed) {
-		let message: string;
-		if (access.reason === 'unconfigured') {
-			message =
-				'Support tags cannot be used yet because no allowed channels have been configured. Use `/settings channel add` with the `allowedTagChannels` setting to choose where tags may be used.';
-		} else {
-			const formatted = access.allowedChannels.map((id) => `<#${id}>`).join(', ');
-			message =
-				access.allowedChannels.length === 1
-					? `Support tags may only be used in ${formatted}.`
-					: `Support tags may only be used in the following channels: ${formatted}.`;
-		}
+		const message = formatTagChannelRestrictionMessage(access, {
+			unconfigured:
+				'Support tags cannot be used yet because no allowed channels have been configured. Use `/settings channel add` with the `allowedTagChannels` setting to choose where tags may be used.',
+			single: (channel) => `Support tags may only be used in ${channel}.`,
+			multiple: (channels) => `Support tags may only be used in the following channels: ${channels}.`
+		});
 		return replyEphemeral(interaction, message);
 	}
 	let tag;

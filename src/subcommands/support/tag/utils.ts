@@ -1,4 +1,5 @@
 import type { Subcommand } from '@sapphire/plugin-subcommands';
+import type { APIInteractionGuildMember, GuildMember } from 'discord.js';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { Prisma, type GuildSupportTag } from '@prisma/client';
 
@@ -12,6 +13,19 @@ export const MAX_EMBED_FOOTER_LENGTH = 2_048;
 
 export const replyEphemeral = (interaction: TagChatInputInteraction, content: string) =>
 	interaction.reply({ content, flags: MessageFlags.Ephemeral });
+
+type ContainerAccessor = { container: TagCommand['container'] };
+
+type ChannelAwareInteraction = {
+	guildId: string | null;
+	channelId: string | null;
+	channel: unknown;
+};
+
+type SupportRoleAwareInteraction = {
+	guildId: string | null;
+	member: GuildMember | APIInteractionGuildMember | null;
+};
 
 export const buildTagEmbed = (tag: GuildSupportTag) => {
 	const embed = new EmbedBuilder().setTitle(tag.embedTitle).setColor(0x5865f2);
@@ -72,8 +86,8 @@ export const findTag = async (command: TagCommand, guildId: string, name: string
 const toStringArray = (value: unknown): string[] =>
 	Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
 
-export const fetchAllowedTagChannels = async (command: TagCommand, guildId: string) => {
-	const settings = await command.container.database.guildChannelSettings.findUnique({
+export const fetchAllowedTagChannels = async (context: ContainerAccessor, guildId: string) => {
+	const settings = await context.container.database.guildChannelSettings.findUnique({
 		where: { guildId },
 		select: { allowedTagChannels: true }
 	});
@@ -81,7 +95,7 @@ export const fetchAllowedTagChannels = async (command: TagCommand, guildId: stri
 	return toStringArray(settings?.allowedTagChannels);
 };
 
-const collectCandidateChannelIds = (interaction: TagChatInputInteraction) => {
+const collectCandidateChannelIds = (interaction: ChannelAwareInteraction) => {
 	const candidates = new Set<string>();
 
 	if (interaction.channelId) {
@@ -101,16 +115,18 @@ type TagChannelAccess =
 	| { allowed: true; allowedChannels: string[] }
 	| { allowed: false; allowedChannels: string[]; reason: 'unconfigured' | 'not-allowed' };
 
+type RestrictedTagChannelAccess = Extract<TagChannelAccess, { allowed: false }>;
+
 export const ensureTagChannelAccess = async (
-	command: TagCommand,
-	interaction: TagChatInputInteraction
+	context: ContainerAccessor,
+	interaction: ChannelAwareInteraction
 ): Promise<TagChannelAccess> => {
 	const guildId = interaction.guildId;
 	if (!guildId) {
 		return { allowed: false, allowedChannels: [], reason: 'unconfigured' };
 	}
 
-	const allowedChannels = await fetchAllowedTagChannels(command, guildId);
+	const allowedChannels = await fetchAllowedTagChannels(context, guildId);
 	if (allowedChannels.length === 0) {
 		return { allowed: false, allowedChannels, reason: 'unconfigured' };
 	}
@@ -121,6 +137,114 @@ export const ensureTagChannelAccess = async (
 	return allowed
 		? { allowed: true, allowedChannels }
 		: { allowed: false, allowedChannels, reason: 'not-allowed' };
+};
+
+type RestrictionCopy = {
+	unconfigured: string;
+	single: (channel: string) => string;
+	multiple: (channels: string) => string;
+};
+
+export const formatTagChannelRestrictionMessage = (
+	access: RestrictedTagChannelAccess,
+	copy: RestrictionCopy
+) => {
+	if (access.reason === 'unconfigured') {
+		return copy.unconfigured;
+	}
+
+	const formatted = access.allowedChannels.map((id) => `<#${id}>`).join(', ');
+	return access.allowedChannels.length === 1 ? copy.single(formatted) : copy.multiple(formatted);
+};
+
+const fetchSupportRoles = async (context: ContainerAccessor, guildId: string) => {
+	const settings = await context.container.database.guildRoleSettings.findUnique({
+		where: { guildId },
+		select: { supportRoles: true }
+	});
+
+	return toStringArray(settings?.supportRoles);
+};
+
+const fetchAllowedTagRoles = async (context: ContainerAccessor, guildId: string) => {
+	const settings = await context.container.database.guildRoleSettings.findUnique({
+		where: { guildId },
+		select: { allowedTagRoles: true }
+	});
+
+	return toStringArray(settings?.allowedTagRoles);
+};
+
+const memberHasAllowedRole = (
+	member: GuildMember | APIInteractionGuildMember,
+	allowedRoles: readonly string[]
+) => {
+	if ('roles' in member) {
+		const roles = member.roles;
+		if (Array.isArray(roles)) {
+			return roles.some((roleId) => allowedRoles.includes(roleId));
+		}
+	}
+
+	if ((member as GuildMember).roles?.cache) {
+		return allowedRoles.some((roleId) => (member as GuildMember).roles.cache.has(roleId));
+	}
+
+	return false;
+};
+
+type SupportRoleAccess =
+	| { allowed: true }
+	| { allowed: false; reason: 'missing-member' | 'no-config' | 'forbidden' };
+
+export const SUPPORT_ROLE_REQUIRED_MESSAGE = 'You need a support role to use this command.';
+
+export const ensureSupportRoleAccess = async (
+	context: ContainerAccessor,
+	interaction: SupportRoleAwareInteraction
+): Promise<SupportRoleAccess> => {
+	const { guildId, member } = interaction;
+	if (!guildId || !member) {
+		return { allowed: false, reason: 'missing-member' };
+	}
+
+	const allowedRoles = await fetchSupportRoles(context, guildId);
+	if (allowedRoles.length === 0) {
+		return { allowed: false, reason: 'no-config' };
+	}
+
+	if (!memberHasAllowedRole(member, allowedRoles)) {
+		return { allowed: false, reason: 'forbidden' };
+	}
+
+	return { allowed: true };
+};
+
+type AllowedTagRoleAccess =
+	| { allowed: true }
+	| { allowed: false; reason: 'missing-member' | 'forbidden' };
+
+export const ALLOWED_TAG_ROLE_REQUIRED_MESSAGE = 'You need an allowed tag role to use this command.';
+
+export const ensureAllowedTagRoleAccess = async (
+	context: ContainerAccessor,
+	interaction: SupportRoleAwareInteraction
+): Promise<AllowedTagRoleAccess> => {
+	const { guildId, member } = interaction;
+	if (!guildId || !member) {
+		return { allowed: false, reason: 'missing-member' };
+	}
+
+	const allowedRoles = await fetchAllowedTagRoles(context, guildId);
+	if (allowedRoles.length === 0) {
+		return { allowed: true };
+	}
+
+	if (!memberHasAllowedRole(member, allowedRoles)) {
+		return { allowed: false, reason: 'forbidden' };
+	}
+
+	return { allowed: true };
 };
 
 export const normalizeTagName = (name: string) => name.trim().toLowerCase();
