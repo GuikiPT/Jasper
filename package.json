@@ -43,7 +43,19 @@
     "start": "node dist/index.js",
     "dev": "run-s build start",
     "watch:start": "tsc-watch --onSuccess \"node ./dist/index.js\"",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:reset": "prisma migrate reset",
+    "db:status": "prisma migrate status",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "db:pull": "prisma db pull",
+    "db:push": "prisma db push",
+    "db:validate": "prisma validate",
+    "db:autodeploy": "run-s db:validate db:generate db:deploy",
+    "db:dev-setup": "run-s db:validate db:reset db:generate db:seed"
   },
   "prettier": "@sapphire/prettier-config"
 }
