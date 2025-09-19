@@ -16,6 +16,7 @@ export {
 export { chatInputTagCreate } from './create';
 export { chatInputTagDelete } from './delete';
 export { chatInputTagEdit } from './edit';
+export { chatInputTagExport } from './export';
 export { chatInputTagImport } from './import';
 export { chatInputTagInfo } from './info';
 export { chatInputTagList } from './list';

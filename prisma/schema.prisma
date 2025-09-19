@@ -46,10 +46,10 @@ model GuildSupportTag {
     name             String
     authorId         String
     editedBy         String?
-    embedTitle       String
-    embedDescription String?
-    embedFooter      String?
-    embedImageUrl    String?
+    embedTitle       String      @db.VarChar(512)
+    embedDescription String?     @db.Text
+    embedFooter      String?     @db.Text
+    embedImageUrl    String?     @db.VarChar(1024)
     createdAt        DateTime    @default(now())
     updatedAt        DateTime    @updatedAt
     GuildConfig      GuildConfig @relation(fields: [guildId], references: [id], onDelete: Cascade)

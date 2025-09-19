@@ -14,6 +14,7 @@ import {
 	chatInputTagCreate,
 	chatInputTagDelete,
 	chatInputTagEdit,
+	chatInputTagExport,
 	chatInputTagImport,
 	chatInputTagInfo,
 	chatInputTagList,
@@ -37,6 +38,7 @@ import {
 		{ name: 'create', chatInputRun: 'chatInputTagCreate' },
 		{ name: 'delete', chatInputRun: 'chatInputTagDelete' },
 		{ name: 'edit', chatInputRun: 'chatInputTagEdit' },
+		{ name: 'export', chatInputRun: 'chatInputTagExport' },
 		{ name: 'import', chatInputRun: 'chatInputTagImport' },
 		{ name: 'info', chatInputRun: 'chatInputTagInfo' },
 		{ name: 'list', chatInputRun: 'chatInputTagList' },
@@ -84,6 +86,8 @@ export class SupportTagCommand extends Subcommand {
 						)
 				)
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
+					sub.setName('export').setDescription('Export all tags to a JSON file.'))
+				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
 					sub
 						.setName('import')
 						.setDescription('Import tags from JSON data.')
@@ -91,7 +95,13 @@ export class SupportTagCommand extends Subcommand {
 							option
 								.setName('payload')
 								.setDescription('JSON array payload describing the tags to import.')
-								.setRequired(true)
+								.setRequired(false)
+						)
+						.addAttachmentOption((option) =>
+							option
+								.setName('file')
+								.setDescription('JSON file containing tags to import.')
+								.setRequired(false)
 						)
 						.addBooleanOption((option: SlashCommandBooleanOption) =>
 							option
@@ -181,6 +191,10 @@ export class SupportTagCommand extends Subcommand {
 
 	public async chatInputTagEdit(interaction: TagChatInputInteraction) {
 		return chatInputTagEdit(this, interaction);
+	}
+
+	public async chatInputTagExport(interaction: TagChatInputInteraction) {
+		return chatInputTagExport(this, interaction);
 	}
 
 	public async chatInputTagImport(interaction: TagChatInputInteraction) {

@@ -7,9 +7,9 @@ export type TagCommand = Subcommand;
 export type TagChatInputInteraction = Subcommand.ChatInputCommandInteraction;
 
 export const MAX_TAG_NAME_LENGTH = 64;
-export const MAX_EMBED_TITLE_LENGTH = 256;
-export const MAX_EMBED_DESCRIPTION_LENGTH = 4_096;
-export const MAX_EMBED_FOOTER_LENGTH = 2_048;
+export const MAX_EMBED_TITLE_LENGTH = 512;
+export const MAX_EMBED_DESCRIPTION_LENGTH = 65_535; // TEXT field limit in MySQL
+export const MAX_EMBED_FOOTER_LENGTH = 65_535; // TEXT field limit in MySQL
 
 export const replyEphemeral = (interaction: TagChatInputInteraction, content: string) => {
 	const components = [
@@ -361,13 +361,15 @@ export const normalizeOptional = (value: string | null) => {
 	return trimmed.length > 0 ? trimmed : null;
 };
 
-export const normalizeImportEntry = (raw: unknown): NormalizedImportResult => {
+export const normalizeImportEntry = (raw: unknown, tagName?: string): NormalizedImportResult => {
 	if (typeof raw !== 'object' || raw === null) {
 		return { ok: false, reason: 'Entry is not an object.' };
 	}
 
 	const candidate = raw as Record<string, unknown>;
-	const nameRaw = typeof candidate.name === 'string' ? candidate.name.trim() : null;
+
+	// Handle both formats: array format with explicit name field, or object format where name is the key
+	const nameRaw = tagName || (typeof candidate.name === 'string' ? candidate.name.trim() : null);
 	const titleRaw = typeof candidate.title === 'string' ? candidate.title.trim() : null;
 
 	if (!nameRaw || !titleRaw) {
@@ -385,22 +387,24 @@ export const normalizeImportEntry = (raw: unknown): NormalizedImportResult => {
 	}
 
 	if (titleRaw.length > MAX_EMBED_TITLE_LENGTH) {
-		return { ok: false, reason: `Embed title exceeds ${MAX_EMBED_TITLE_LENGTH} characters.` };
+		return { ok: false, reason: `Embed title for "${nameRaw}" exceeds ${MAX_EMBED_TITLE_LENGTH} characters (${titleRaw.length} chars). Consider shortening it.` };
 	}
 
 	const descriptionRaw = typeof candidate.description === 'string' ? candidate.description.trim() : null;
 	if (descriptionRaw && descriptionRaw.length > MAX_EMBED_DESCRIPTION_LENGTH) {
-		return { ok: false, reason: 'Embed description is too long.' };
+		return { ok: false, reason: `Embed description for "${nameRaw}" is too long.` };
 	}
 
 	const footerRaw = typeof candidate.footer === 'string' ? candidate.footer.trim() : null;
 	if (footerRaw && footerRaw.length > MAX_EMBED_FOOTER_LENGTH) {
-		return { ok: false, reason: 'Embed footer is too long.' };
+		return { ok: false, reason: `Embed footer for "${nameRaw}" is too long.` };
 	}
 
-	const imageRaw = typeof candidate.image === 'string' ? candidate.image.trim() : null;
+	// Handle both 'image' and 'imageUrl' properties for compatibility
+	const imageRaw = (typeof candidate.imageUrl === 'string' ? candidate.imageUrl.trim() : null) ||
+		(typeof candidate.image === 'string' ? candidate.image.trim() : null);
 	if (imageRaw && !validateUrl(imageRaw)) {
-		return { ok: false, reason: 'Embed image URL is invalid.' };
+		return { ok: false, reason: `Embed image URL for "${nameRaw}" is invalid.` };
 	}
 
 	const authorId = typeof candidate.authorId === 'string' ? candidate.authorId : undefined;
