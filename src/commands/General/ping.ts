@@ -47,12 +47,12 @@ export class UserCommand extends Command {
 					new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true),
 				)
 				.addActionRowComponents(
-                new ActionRowBuilder<MessageActionRowComponentBuilder>()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setStyle(ButtonStyle.Link)
-                            .setLabel("Discord Status Page")
-							.setURL("https://discordstatus.com/"),
+					new ActionRowBuilder<MessageActionRowComponentBuilder>()
+						.addComponents(
+							new ButtonBuilder()
+								.setStyle(ButtonStyle.Link)
+								.setLabel("Discord Status Page")
+								.setURL("https://discordstatus.com/"),
 						),
 				),
 		];

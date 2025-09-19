@@ -2,6 +2,7 @@ import './lib/setup';
 
 import { LogLevel, SapphireClient } from '@sapphire/framework';
 import { container } from '@sapphire/pieces';
+import { envParseString } from '@skyra/env-utilities';
 import { GatewayIntentBits, Partials } from 'discord.js';
 
 const client = new SapphireClient({
@@ -53,7 +54,7 @@ const client = new SapphireClient({
 const main = async () => {
 	try {
 		client.logger.info('Logging in');
-		await client.login();
+		await client.login(envParseString('DISCORD_TOKEN'));
 		client.logger.info('logged in');
 	} catch (error) {
 		client.logger.fatal(error);
