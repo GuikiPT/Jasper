@@ -62,6 +62,7 @@ import {
 	cooldownLimit: 2,
 	cooldownDelay: 5_000,
 	cooldownScope: BucketScope.User,
+	requiredClientPermissions: ['SendMessages'],
 	subcommands: [prefixSubcommandMapping, roleSubcommandMapping, channelSubcommandMapping, topicSubcommandMapping, supportSubcommandMapping]
 })
 export class SettingsCommand extends Subcommand {
