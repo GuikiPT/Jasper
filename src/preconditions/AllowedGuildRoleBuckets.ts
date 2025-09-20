@@ -11,7 +11,7 @@ type AllowedGuildRoleBucketsContext = Precondition.Context & {
 	errorMessage?: string;
 };
 
-const DEFAULT_ERROR_MESSAGE = 'You need one of the allowed roles to use this command.';
+const DEFAULT_ERROR_MESSAGE = 'This command may only be used by users with proper roles.';
 
 export class AllowedGuildRoleBucketsPrecondition extends AllFlowsPrecondition {
 	public override messageRun(message: Message, _command: MessageCommand, context: AllowedGuildRoleBucketsContext) {
@@ -59,7 +59,10 @@ export class AllowedGuildRoleBucketsPrecondition extends AllFlowsPrecondition {
 
 		if (!guildId || !member) {
 			this.logDenial('missing-member', { guildId, member, buckets, allowManageGuild, silent: silentOnFail });
-			return this.error({ message: errorMessage, context: silentOnFail ? { silent: true } : {} });
+			return this.error({
+				message: this.createErrorMessage([], buckets, allowManageGuild, errorMessage),
+				context: silentOnFail ? { silent: true } : {}
+			});
 		}
 
 		if (allowManageGuild && hasManageGuild) {
@@ -76,7 +79,10 @@ export class AllowedGuildRoleBucketsPrecondition extends AllFlowsPrecondition {
 
 		if (buckets.length === 0) {
 			this.logDenial('no-buckets', { guildId, member, buckets, allowManageGuild, silent: silentOnFail });
-			return this.error({ message: errorMessage, context: silentOnFail ? { silent: true } : {} });
+			return this.error({
+				message: this.createErrorMessage([], buckets, allowManageGuild, errorMessage),
+				context: silentOnFail ? { silent: true } : {}
+			});
 		}
 
 		const allowedRoles = await this.fetchAllowedRoles(guildId, buckets);
@@ -90,7 +96,10 @@ export class AllowedGuildRoleBucketsPrecondition extends AllFlowsPrecondition {
 				allowedRoles,
 				silent: silentOnFail
 			});
-			return this.error({ message: errorMessage, context: silentOnFail ? { silent: true } : {} });
+			return this.error({
+				message: this.createErrorMessage([], buckets, allowManageGuild, errorMessage),
+				context: silentOnFail ? { silent: true } : {}
+			});
 		}
 
 		if (this.memberHasAllowedRole(member, allowedRoles)) {
@@ -113,7 +122,39 @@ export class AllowedGuildRoleBucketsPrecondition extends AllFlowsPrecondition {
 			allowedRoles,
 			silent: silentOnFail
 		});
-		return this.error({ message: errorMessage, context: silentOnFail ? { silent: true } : {} });
+		return this.error({
+			message: this.createErrorMessage(allowedRoles, buckets, allowManageGuild, errorMessage),
+			context: silentOnFail ? { silent: true } : {}
+		});
+	}
+
+	private createErrorMessage(
+		allowedRoles: string[],
+		_buckets: readonly RoleBucketKey[],
+		allowManageGuild: boolean,
+		fallbackMessage: string
+	): string {
+		// If custom error message provided, use it
+		if (fallbackMessage !== DEFAULT_ERROR_MESSAGE) {
+			return fallbackMessage;
+		}
+
+		// Create descriptive message based on buckets and roles
+		const permissions: string[] = [];
+
+		if (allowManageGuild) {
+			permissions.push('users with "Manage Server" permission');
+		}
+
+		if (allowedRoles.length > 0) {
+			permissions.push('users with configured role permissions');
+		}
+
+		if (permissions.length === 0) {
+			return 'This command may only be used by users with proper roles. No roles are currently configured.';
+		}
+
+		return `This command may only be used by ${permissions.join(' or ')}.`;
 	}
 
 	private resolveContext(context: AllowedGuildRoleBucketsContext) {

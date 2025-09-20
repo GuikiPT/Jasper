@@ -2,8 +2,6 @@ import { AllFlowsPrecondition } from '@sapphire/framework';
 import type { ChatInputCommandInteraction, ContextMenuCommandInteraction, GuildMember, Message } from 'discord.js';
 import type { APIInteractionGuildMember } from 'discord.js';
 
-const ERROR_MESSAGE = 'You need a support role to use this command.';
-
 export class SupportRolesPrecondition extends AllFlowsPrecondition {
 	public override messageRun(message: Message) {
 		return this.checkMemberAccess(message.guildId, message.member, true);
@@ -24,14 +22,20 @@ export class SupportRolesPrecondition extends AllFlowsPrecondition {
 	) {
 		if (!guildId || !member) {
 			this.logDenial('missing-member', { guildId, member, silent: silentOnFail });
-			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : {} });
+			return this.error({
+				message: this.createErrorMessage([]),
+				context: silentOnFail ? { silent: true } : {}
+			});
 		}
 
 		const allowedRoles = await this.fetchRoles(guildId);
 
 		if (allowedRoles.length === 0) {
 			this.logDenial('no-config', { guildId, member, allowedRoles, silent: silentOnFail });
-			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : {} });
+			return this.error({
+				message: this.createErrorMessage([]),
+				context: silentOnFail ? { silent: true } : {}
+			});
 		}
 
 		if (this.memberHasAllowedRole(member, allowedRoles)) {
@@ -40,10 +44,19 @@ export class SupportRolesPrecondition extends AllFlowsPrecondition {
 		}
 
 		this.logDenial('forbidden', { guildId, member, allowedRoles, silent: silentOnFail });
-		return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : {} });
+		return this.error({
+			message: this.createErrorMessage(allowedRoles),
+			context: silentOnFail ? { silent: true } : {}
+		});
 	}
 
-	private async fetchRoles(guildId: string) {
+	private createErrorMessage(allowedRoles: string[]): string {
+		if (allowedRoles.length === 0) {
+			return 'Support commands may only be used by users with "Support Roles". No roles are currently configured.';
+		}
+
+		return 'Support commands may only be used by users with "Support Roles".';
+	} private async fetchRoles(guildId: string) {
 		const settings = await this.container.database.guildRoleSettings.findUnique({
 			where: { guildId }
 		});

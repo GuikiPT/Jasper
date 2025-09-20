@@ -47,6 +47,16 @@ export function createTextComponent(content: string) {
 }
 
 /**
+ * Creates a component-based reply with longer text content for error messages
+ */
+export function createErrorTextComponent(content: string) {
+	return new ContainerBuilder()
+		.addTextDisplayComponents(
+			new TextDisplayBuilder().setContent(truncateText(content, 2000)) // Much longer limit for error messages
+		);
+}
+
+/**
  * Creates a component-based reply for ephemeral messages
  */
 export function replyEphemeralComponent(interaction: CommandInteraction, content: string) {

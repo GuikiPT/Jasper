@@ -2,8 +2,6 @@ import { AllFlowsPrecondition } from '@sapphire/framework';
 import type { ChatInputCommandInteraction, ContextMenuCommandInteraction, GuildMember, Message } from 'discord.js';
 import type { APIInteractionGuildMember } from 'discord.js';
 
-const ERROR_MESSAGE = 'You need an allowed tag admin role to use this command.';
-
 export class AllowedTagAdminRolesPrecondition extends AllFlowsPrecondition {
 	public override messageRun(message: Message) {
 		return this.checkMemberAccess(message.guildId, message.member, true);
@@ -24,14 +22,20 @@ export class AllowedTagAdminRolesPrecondition extends AllFlowsPrecondition {
 	) {
 		if (!guildId || !member) {
 			this.logDenial('missing-member', { guildId, member, silent: silentOnFail });
-			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : {} });
+			return this.error({
+				message: this.createErrorMessage([]),
+				context: silentOnFail ? { silent: true } : {}
+			});
 		}
 
 		const allowedRoles = await this.fetchAllowedRoles(guildId);
 
 		if (allowedRoles.length === 0) {
 			this.logDenial('no-config', { guildId, member, allowedRoles, silent: silentOnFail });
-			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : {} });
+			return this.error({
+				message: this.createErrorMessage([]),
+				context: silentOnFail ? { silent: true } : {}
+			});
 		}
 
 		if (this.memberHasAllowedRole(member, allowedRoles)) {
@@ -40,10 +44,19 @@ export class AllowedTagAdminRolesPrecondition extends AllFlowsPrecondition {
 		}
 
 		this.logDenial('forbidden', { guildId, member, allowedRoles, silent: silentOnFail });
-		return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : {} });
+		return this.error({
+			message: this.createErrorMessage(allowedRoles),
+			context: silentOnFail ? { silent: true } : {}
+		});
 	}
 
-	private async fetchAllowedRoles(guildId: string) {
+	private createErrorMessage(allowedRoles: string[]): string {
+		if (allowedRoles.length === 0) {
+			return 'Support tag admin commands may only be used by users with "Allowed Tag Admin Roles". No roles are currently configured.';
+		}
+
+		return 'Support tag admin commands may only be used by users with "Allowed Tag Admin Roles".';
+	} private async fetchAllowedRoles(guildId: string) {
 		const settings = await this.container.database.guildRoleSettings.findUnique({
 			where: { guildId }
 		});

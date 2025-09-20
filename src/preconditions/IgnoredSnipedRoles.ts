@@ -2,8 +2,6 @@ import { AllFlowsPrecondition } from '@sapphire/framework';
 import type { ChatInputCommandInteraction, ContextMenuCommandInteraction, GuildMember, Message } from 'discord.js';
 import type { APIInteractionGuildMember } from 'discord.js';
 
-const ERROR_MESSAGE = 'You need a role listed under ignored sniped roles to use this command.';
-
 export class IgnoredSnipedRolesPrecondition extends AllFlowsPrecondition {
 	public override messageRun(message: Message) {
 		return this.checkMemberAccess(message.guildId, message.member, true);
@@ -19,23 +17,38 @@ export class IgnoredSnipedRolesPrecondition extends AllFlowsPrecondition {
 
 	private async checkMemberAccess(guildId: string | null, member: GuildMember | APIInteractionGuildMember | null, silentOnFail: boolean) {
 		if (!guildId || !member) {
-			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : {} });
+			return this.error({
+				message: this.createErrorMessage([]),
+				context: silentOnFail ? { silent: true } : {}
+			});
 		}
 
 		const allowedRoles = await this.fetchRoles(guildId);
 
 		if (allowedRoles.length === 0) {
-			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : {} });
+			return this.error({
+				message: this.createErrorMessage([]),
+				context: silentOnFail ? { silent: true } : {}
+			});
 		}
 
 		if (this.memberHasAllowedRole(member, allowedRoles)) {
 			return this.ok();
 		}
 
-		return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : {} });
+		return this.error({
+			message: this.createErrorMessage(allowedRoles),
+			context: silentOnFail ? { silent: true } : {}
+		});
 	}
 
-	private async fetchRoles(guildId: string) {
+	private createErrorMessage(allowedRoles: string[]): string {
+		if (allowedRoles.length === 0) {
+			return 'This command may only be used by users with "Ignored Sniped Roles". No roles are currently configured.';
+		}
+
+		return 'This command may only be used by users with "Ignored Sniped Roles".';
+	} private async fetchRoles(guildId: string) {
 		const settings = await this.container.database.guildRoleSettings.findUnique({
 			where: { guildId }
 		});
