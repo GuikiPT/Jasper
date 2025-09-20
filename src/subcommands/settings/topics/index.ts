@@ -22,7 +22,7 @@ export {
 };
 
 export const topicSubcommandMapping: SubcommandMappingGroup = {
-	name: 'topic',
+	name: 'topics',
 	type: 'group',
 	entries: [
 		{

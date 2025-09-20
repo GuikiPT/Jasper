@@ -64,7 +64,7 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 		if (!channelAccess.allowed) {
 			const message = formatTagChannelRestrictionMessage(channelAccess, {
 				unconfigured:
-					'Support tags cannot be managed yet because no allowed channels have been configured. Use `/settings channel add` with the `allowedTagChannels` setting to choose where they may be managed.',
+					'Support tags cannot be managed yet because no allowed channels have been configured. Use `/settings channels add` with the `allowedTagChannels` setting to choose where they may be managed.',
 				single: (channel) => `Support tags may only be managed in ${channel}.`,
 				multiple: (channels) => `Support tags may only be managed in the following channels: ${channels}.`
 			});

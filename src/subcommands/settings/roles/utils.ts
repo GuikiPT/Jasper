@@ -45,7 +45,7 @@ export const bucketLookup = new Map<string, RoleBucketKey>(
 
 export const registerRoleSubcommandGroup = (group: SlashCommandSubcommandGroupBuilder) =>
 	group
-		.setName('role')
+		.setName('roles')
 		.setDescription('Configure server role allow lists.')
 		.addSubcommand((subcommand) =>
 			subcommand

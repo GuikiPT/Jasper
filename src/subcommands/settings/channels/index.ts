@@ -17,7 +17,7 @@ export {
 };
 
 export const channelSubcommandMapping: SubcommandMappingGroup = {
-	name: 'channel',
+	name: 'channels',
 	type: 'group',
 	entries: [
 		{
@@ -40,4 +40,3 @@ export const channelSubcommandMapping: SubcommandMappingGroup = {
 		}
 	]
 };
-

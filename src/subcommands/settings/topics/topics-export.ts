@@ -46,7 +46,7 @@ async function handleTopicExport({ command, guildId, deny, respond, defer }: Top
 	});
 
 	if (topics.length === 0) {
-		return respond('No topics configured yet. Add one with `/settings topic add`.');
+		return respond('No topics configured yet. Add one with `/settings topics add`.');
 	}
 
 	const payload = JSON.stringify(

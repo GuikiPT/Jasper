@@ -54,7 +54,7 @@ export class TopicCommand extends Command {
 		const topic = await this.fetchRandomTopic(message.guildId);
 
 		if (!topic) {
-			return message.reply('No topics configured yet. Ask an admin to add some with `/settings topic add`.');
+			return message.reply('No topics configured yet. Ask an admin to add some with `/settings topics add`.');
 		}
 
 		if (message.deletable) {
@@ -83,7 +83,7 @@ export class TopicCommand extends Command {
 
 		if (!topic) {
 			return interaction.reply({
-				content: 'No topics configured yet. Ask an admin to add some with `/settings topic add`.',
+				content: 'No topics configured yet. Ask an admin to add some with `/settings topics add`.',
 				flags: MessageFlags.Ephemeral
 			});
 		}

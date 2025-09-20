@@ -42,7 +42,7 @@ export const bucketLookup = new Map<string, ChannelBucketKey>(
 
 export const registerChannelSubcommandGroup = (group: SlashCommandSubcommandGroupBuilder) =>
 	group
-		.setName('channel')
+		.setName('channels')
 		.setDescription('Configure server channel allow lists.')
 		.addSubcommand((sub) =>
 			sub

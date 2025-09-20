@@ -26,7 +26,7 @@ export async function chatInputTagShow(command: TagCommand, interaction: TagChat
 	if (!access.allowed) {
 		const message = formatTagChannelRestrictionMessage(access, {
 			unconfigured:
-				'Support tags cannot be previewed yet because no allowed channels have been configured. Use `/settings channel add` with the `allowedTagChannels` setting to choose where previews may be shown.',
+				'Support tags cannot be previewed yet because no allowed channels have been configured. Use `/settings channels add` with the `allowedTagChannels` setting to choose where previews may be shown.',
 			single: (channel) => `Support tags may only be previewed in ${channel}.`,
 			multiple: (channels) => `Support tags may only be previewed in the following channels: ${channels}.`
 		});

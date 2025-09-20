@@ -28,7 +28,7 @@ export async function chatInputTagUse(command: TagCommand, interaction: TagChatI
 	if (!access.allowed) {
 		const message = formatTagChannelRestrictionMessage(access, {
 			unconfigured:
-				'Support tags cannot be used yet because no allowed channels have been configured. Use `/settings channel add` with the `allowedTagChannels` setting to choose where tags may be used.',
+				'Support tags cannot be used yet because no allowed channels have been configured. Use `/settings channels add` with the `allowedTagChannels` setting to choose where tags may be used.',
 			single: (channel) => `Support tags may only be used in ${channel}.`,
 			multiple: (channels) => `Support tags may only be used in the following channels: ${channels}.`
 		});

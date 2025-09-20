@@ -7,7 +7,7 @@ import { chatInputPrefixView, messagePrefixView } from './prefix-view';
 export { chatInputPrefixSet, chatInputPrefixView, messagePrefixSet, messagePrefixView };
 
 export const prefixSubcommandMapping: SubcommandMappingGroup = {
-	name: 'prefix',
+	name: 'prefixes',
 	type: 'group',
 	entries: [
 		{
@@ -28,7 +28,7 @@ export const prefixSubcommandMapping: SubcommandMappingGroup = {
 
 export const registerPrefixSubcommandGroup = (group: SlashCommandSubcommandGroupBuilder) =>
 	group
-		.setName('prefix')
+		.setName('prefixes')
 		.setDescription('View or update the prefix used for message commands.')
 		.addSubcommand((subcommand) =>
 			subcommand

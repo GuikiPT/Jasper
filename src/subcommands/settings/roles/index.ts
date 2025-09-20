@@ -17,7 +17,7 @@ export {
 };
 
 export const roleSubcommandMapping: SubcommandMappingGroup = {
-	name: 'role',
+	name: 'roles',
 	type: 'group',
 	entries: [
 		{
