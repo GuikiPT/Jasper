@@ -1,11 +1,11 @@
 import type { SubcommandMappingGroup } from '@sapphire/plugin-subcommands';
 
 import { registerTopicSubcommandGroup } from './utils';
-import { messageTopicAdd, chatInputTopicAdd } from './add';
-import { messageTopicList, chatInputTopicList } from './list';
-import { messageTopicRemove, chatInputTopicRemove } from './remove';
-import { messageTopicImport, chatInputTopicImport } from './import';
-import { messageTopicExport, chatInputTopicExport } from './export';
+import { messageTopicAdd, chatInputTopicAdd } from './topics-add';
+import { messageTopicList, chatInputTopicList } from './topics-list';
+import { messageTopicRemove, chatInputTopicRemove } from './topics-remove';
+import { messageTopicImport, chatInputTopicImport } from './topics-import';
+import { messageTopicExport, chatInputTopicExport } from './topics-export';
 
 export {
 	registerTopicSubcommandGroup,

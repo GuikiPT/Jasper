@@ -1,8 +1,8 @@
 import type { SubcommandMappingGroup } from '@sapphire/plugin-subcommands';
 import type { SlashCommandSubcommandGroupBuilder } from 'discord.js';
 
-import { chatInputPrefixSet, messagePrefixSet } from './set';
-import { chatInputPrefixView, messagePrefixView } from './view';
+import { chatInputPrefixSet, messagePrefixSet } from './prefix-set';
+import { chatInputPrefixView, messagePrefixView } from './prefix-view';
 
 export { chatInputPrefixSet, chatInputPrefixView, messagePrefixSet, messagePrefixView };
 

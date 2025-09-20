@@ -1,9 +1,9 @@
 import type { SubcommandMappingGroup } from '@sapphire/plugin-subcommands';
 
 import { CHANNEL_BUCKETS, registerChannelSubcommandGroup } from './utils';
-import { chatInputChannelAdd, messageChannelAdd } from './add';
-import { chatInputChannelRemove, messageChannelRemove } from './remove';
-import { chatInputChannelList, messageChannelList } from './list';
+import { chatInputChannelAdd, messageChannelAdd } from './channels-add';
+import { chatInputChannelRemove, messageChannelRemove } from './channels-remove';
+import { chatInputChannelList, messageChannelList } from './channels-list';
 
 export {
   CHANNEL_BUCKETS,

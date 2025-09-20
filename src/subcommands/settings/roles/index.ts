@@ -1,9 +1,9 @@
 import type { SubcommandMappingGroup } from '@sapphire/plugin-subcommands';
 
 import { ROLE_BUCKETS, registerRoleSubcommandGroup } from './utils';
-import { chatInputRoleAdd, messageRoleAdd } from './add';
-import { chatInputRoleList, messageRoleList } from './list';
-import { chatInputRoleRemove, messageRoleRemove } from './remove';
+import { chatInputRoleAdd, messageRoleAdd } from './roles-add';
+import { chatInputRoleList, messageRoleList } from './roles-list';
+import { chatInputRoleRemove, messageRoleRemove } from './roles-remove';
 
 export {
 	ROLE_BUCKETS,

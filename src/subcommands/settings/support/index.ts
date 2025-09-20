@@ -1,8 +1,8 @@
 import type { SubcommandMappingGroup } from '@sapphire/plugin-subcommands';
 
 import { registerSupportSubcommandGroup } from './utils';
-import { chatInputSupportSet, messageSupportSet } from './set';
-import { chatInputSupportView, messageSupportView } from './view';
+import { chatInputSupportSet, messageSupportSet } from './support-set';
+import { chatInputSupportView, messageSupportView } from './support-view';
 
 export {
 	registerSupportSubcommandGroup,
