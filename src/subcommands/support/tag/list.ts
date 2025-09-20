@@ -15,7 +15,7 @@ export async function chatInputTagList(command: TagCommand, interaction: TagChat
 		return replyEphemeral(interaction, 'This command can only be used inside a server.');
 	}
 
-let tags: GuildSupportTag[];
+	let tags: GuildSupportTag[];
 	try {
 		tags = await command.container.database.guildSupportTag.findMany({
 			where: { guildId },
@@ -32,7 +32,7 @@ let tags: GuildSupportTag[];
 		return replyEphemeral(interaction, 'No support tags have been created yet.');
 	}
 
-const entries = tags.map((tag: GuildSupportTag) => `• ${tag.name}`);
+	const entries = tags.map((tag: GuildSupportTag) => `• ${tag.name}`);
 	const content = entries.join('\n');
 
 	if (content.length > 1_900) {

@@ -268,6 +268,15 @@ const fetchAllowedTagRoles = async (context: ContainerAccessor, guildId: string)
 	return toStringArray(settings?.allowedTagRoles);
 };
 
+const fetchAllowedTagAdminRoles = async (context: ContainerAccessor, guildId: string) => {
+	const settings = await context.container.database.guildRoleSettings.findUnique({
+		where: { guildId },
+		select: { allowedTagAdminRoles: true }
+	});
+
+	return toStringArray(settings?.allowedTagAdminRoles);
+};
+
 const memberHasAllowedRole = (
 	member: GuildMember | APIInteractionGuildMember,
 	allowedRoles: readonly string[]
@@ -315,9 +324,11 @@ export const ensureSupportRoleAccess = async (
 
 type AllowedTagRoleAccess =
 	| { allowed: true }
-	| { allowed: false; reason: 'missing-member' | 'forbidden' };
+	| { allowed: false; reason: 'missing-member' | 'no-config' | 'forbidden' };
 
-export const ALLOWED_TAG_ROLE_REQUIRED_MESSAGE = 'You need an allowed tag role to use this command.';
+type AllowedTagAdminRoleAccess =
+	| { allowed: true }
+	| { allowed: false; reason: 'missing-member' | 'no-config' | 'forbidden' };
 
 export const ensureAllowedTagRoleAccess = async (
 	context: ContainerAccessor,
@@ -328,12 +339,41 @@ export const ensureAllowedTagRoleAccess = async (
 		return { allowed: false, reason: 'missing-member' };
 	}
 
-	const allowedRoles = await fetchAllowedTagRoles(context, guildId);
-	if (allowedRoles.length === 0) {
+	const [allowedRoles, allowedAdminRoles] = await Promise.all([
+		fetchAllowedTagRoles(context, guildId),
+		fetchAllowedTagAdminRoles(context, guildId)
+	]);
+
+	if (allowedRoles.length === 0 && allowedAdminRoles.length === 0) {
+		return { allowed: false, reason: 'no-config' };
+	}
+
+	if (allowedRoles.length > 0 && memberHasAllowedRole(member, allowedRoles)) {
 		return { allowed: true };
 	}
 
-	if (!memberHasAllowedRole(member, allowedRoles)) {
+	if (allowedAdminRoles.length > 0 && memberHasAllowedRole(member, allowedAdminRoles)) {
+		return { allowed: true };
+	}
+
+	return { allowed: false, reason: 'forbidden' };
+};
+
+export const ensureAllowedTagAdminRoleAccess = async (
+	context: ContainerAccessor,
+	interaction: SupportRoleAwareInteraction
+): Promise<AllowedTagAdminRoleAccess> => {
+	const { guildId, member } = interaction;
+	if (!guildId || !member) {
+		return { allowed: false, reason: 'missing-member' };
+	}
+
+	const allowedAdminRoles = await fetchAllowedTagAdminRoles(context, guildId);
+	if (allowedAdminRoles.length === 0) {
+		return { allowed: false, reason: 'no-config' };
+	}
+
+	if (!memberHasAllowedRole(member, allowedAdminRoles)) {
 		return { allowed: false, reason: 'forbidden' };
 	}
 

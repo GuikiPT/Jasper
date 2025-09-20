@@ -27,6 +27,7 @@ export { chatInputTagUse } from './use';
 export {
 	buildTagEmbed,
 	buildTagComponents,
+	ensureAllowedTagAdminRoleAccess,
 	ensureAllowedTagRoleAccess,
 	ensureSupportRoleAccess,
 	ensureTagChannelAccess,
@@ -38,7 +39,6 @@ export {
 	normalizeTagName,
 	replyEphemeral,
 	replyWithComponents,
-	ALLOWED_TAG_ROLE_REQUIRED_MESSAGE,
 	SUPPORT_ROLE_REQUIRED_MESSAGE,
 	timestamp,
 	validateName,

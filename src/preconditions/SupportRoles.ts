@@ -17,22 +17,30 @@ export class SupportRolesPrecondition extends AllFlowsPrecondition {
 		return this.checkMemberAccess(interaction.guildId, interaction.member ?? null, false);
 	}
 
-	private async checkMemberAccess(guildId: string | null, member: GuildMember | APIInteractionGuildMember | null, silentOnFail: boolean) {
+	private async checkMemberAccess(
+		guildId: string | null,
+		member: GuildMember | APIInteractionGuildMember | null,
+		silentOnFail: boolean
+	) {
 		if (!guildId || !member) {
-			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : undefined });
+			this.logDenial('missing-member', { guildId, member, silent: silentOnFail });
+			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : {} });
 		}
 
 		const allowedRoles = await this.fetchRoles(guildId);
 
 		if (allowedRoles.length === 0) {
-			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : undefined });
+			this.logDenial('no-config', { guildId, member, allowedRoles, silent: silentOnFail });
+			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : {} });
 		}
 
 		if (this.memberHasAllowedRole(member, allowedRoles)) {
+			this.logSuccess({ guildId, member, allowedRoles, silent: silentOnFail });
 			return this.ok();
 		}
 
-		return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : undefined });
+		this.logDenial('forbidden', { guildId, member, allowedRoles, silent: silentOnFail });
+		return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : {} });
 	}
 
 	private async fetchRoles(guildId: string) {
@@ -58,7 +66,69 @@ export class SupportRolesPrecondition extends AllFlowsPrecondition {
 
 		return false;
 	}
+
+	private logSuccess(details: SupportLogDetails) {
+		const logger = this.container.logger;
+		if (!logger) return;
+		logger.debug('[SupportRoles] Access granted', this.buildMeta(details));
+	}
+
+	private logDenial(
+		reason: 'missing-member' | 'no-config' | 'forbidden',
+		details: SupportLogDetails
+	) {
+		const logger = this.container.logger;
+		if (!logger) return;
+		const meta = { ...this.buildMeta(details), reason };
+		const level = details.silent
+			? 'debug'
+			: reason === 'forbidden'
+				? 'warn'
+				: 'info';
+		logger[level]('[SupportRoles] Access denied', meta);
+	}
+
+	private buildMeta({ guildId, member, allowedRoles, silent }: SupportLogDetails) {
+		return {
+			guildId: guildId ?? 'unknown',
+			memberId: this.resolveMemberId(member),
+			memberRoleIds: this.collectMemberRoles(member),
+			allowedRoles: allowedRoles ?? [],
+			silent: silent ?? false
+		};
+	}
+
+	private resolveMemberId(member: GuildMember | APIInteractionGuildMember | null) {
+		if (!member) return 'unknown';
+		if ('user' in member && member.user) {
+			return member.user.id;
+		}
+		return (member as GuildMember)?.id ?? 'unknown';
+	}
+
+	private collectMemberRoles(member: GuildMember | APIInteractionGuildMember | null) {
+		if (!member) return [] as string[];
+		if ('roles' in member) {
+			const roles = member.roles;
+			if (Array.isArray(roles)) {
+				return [...roles];
+			}
+		}
+
+		if ((member as GuildMember)?.roles?.cache) {
+			return [...(member as GuildMember).roles.cache.keys()];
+		}
+
+		return [] as string[];
+	}
 }
+
+type SupportLogDetails = {
+	guildId: string | null;
+	member: GuildMember | APIInteractionGuildMember | null;
+	allowedRoles?: string[];
+	silent?: boolean;
+};
 
 declare module '@sapphire/framework' {
 	interface Preconditions {

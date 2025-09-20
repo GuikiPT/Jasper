@@ -1,12 +1,10 @@
 import { MessageFlags } from 'discord.js';
 
 import {
-	ALLOWED_TAG_ROLE_REQUIRED_MESSAGE,
 	SUPPORT_TAG_TABLE_MISSING_MESSAGE,
 	TagCommand,
 	TagChatInputInteraction,
 	buildTagComponents,
-	ensureAllowedTagRoleAccess,
 	ensureTagChannelAccess,
 	formatTagChannelRestrictionMessage,
 	findTag,
@@ -25,10 +23,6 @@ export async function chatInputTagUse(command: TagCommand, interaction: TagChatI
 	const name = normalizeTagName(interaction.options.getString('name', true));
 	const user = interaction.options.getUser('user');
 	const ephemeral = interaction.options.getBoolean('ephemeral') ?? false;
-	const tagRoleAccess = await ensureAllowedTagRoleAccess(command, interaction);
-	if (!tagRoleAccess.allowed) {
-		return replyEphemeral(interaction, ALLOWED_TAG_ROLE_REQUIRED_MESSAGE);
-	}
 
 	const access = await ensureTagChannelAccess(command, interaction);
 	if (!access.allowed) {

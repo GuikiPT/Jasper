@@ -19,20 +19,20 @@ export class IgnoredSnipedRolesPrecondition extends AllFlowsPrecondition {
 
 	private async checkMemberAccess(guildId: string | null, member: GuildMember | APIInteractionGuildMember | null, silentOnFail: boolean) {
 		if (!guildId || !member) {
-			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : undefined });
+			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : {} });
 		}
 
 		const allowedRoles = await this.fetchRoles(guildId);
 
 		if (allowedRoles.length === 0) {
-			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : undefined });
+			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : {} });
 		}
 
 		if (this.memberHasAllowedRole(member, allowedRoles)) {
 			return this.ok();
 		}
 
-		return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : undefined });
+		return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : {} });
 	}
 
 	private async fetchRoles(guildId: string) {

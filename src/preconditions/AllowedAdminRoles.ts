@@ -40,7 +40,7 @@ export class AllowedAdminRolesPrecondition extends AllFlowsPrecondition {
 		silentOnFail: boolean
 	) {
 		if (!guildId || !member) {
-			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : undefined });
+			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : {} });
 		}
 
 		if (hasManageGuild) {
@@ -50,14 +50,14 @@ export class AllowedAdminRolesPrecondition extends AllFlowsPrecondition {
 		const allowedRoles = await this.fetchAllowedAdminRoles(guildId);
 
 		if (allowedRoles.length === 0) {
-			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : undefined });
+			return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : {} });
 		}
 
 		if (this.memberHasAllowedRole(member, allowedRoles)) {
 			return this.ok();
 		}
 
-		return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : undefined });
+		return this.error({ message: ERROR_MESSAGE, context: silentOnFail ? { silent: true } : {} });
 	}
 
 	private async fetchAllowedAdminRoles(guildId: string) {

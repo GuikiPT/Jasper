@@ -20,13 +20,33 @@ export const supportSubcommandMapping: SubcommandMappingGroup = {
 			name: 'set',
 			chatInputRun: 'chatInputSupportSet',
 			messageRun: 'messageSupportSet',
-			preconditions: ['AllowedAdminRoles']
+			preconditions: [
+				{
+					name: 'AllowedGuildRoleBuckets',
+					context: {
+						buckets: ['allowedAdminRoles', 'allowedTagAdminRoles'] as const,
+						allowManageGuild: true,
+						errorMessage:
+							'You need an allowed admin role, allowed tag admin role, or the Manage Server permission to change support settings.'
+					}
+				}
+			]
 		},
 		{
 			name: 'view',
 			chatInputRun: 'chatInputSupportView',
 			messageRun: 'messageSupportView',
-			preconditions: ['AllowedAdminRoles']
+			preconditions: [
+				{
+					name: 'AllowedGuildRoleBuckets',
+					context: {
+						buckets: ['allowedAdminRoles', 'allowedTagAdminRoles'] as const,
+						allowManageGuild: true,
+						errorMessage:
+							'You need an allowed admin role, allowed tag admin role, or the Manage Server permission to view support settings.'
+					}
+				}
+			]
 		}
 	]
 };

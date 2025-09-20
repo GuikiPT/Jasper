@@ -34,18 +34,18 @@ import {
 	preconditions: ['SupportRoles'],
 	requiredClientPermissions: ['SendMessages'],
 	runIn: [CommandOptionsRunTypeEnum.GuildAny],
-	subcommands: [
-		{ name: 'create', chatInputRun: 'chatInputTagCreate' },
-		{ name: 'delete', chatInputRun: 'chatInputTagDelete' },
-		{ name: 'edit', chatInputRun: 'chatInputTagEdit' },
-		{ name: 'export', chatInputRun: 'chatInputTagExport' },
-		{ name: 'import', chatInputRun: 'chatInputTagImport' },
-		{ name: 'info', chatInputRun: 'chatInputTagInfo' },
-		{ name: 'list', chatInputRun: 'chatInputTagList' },
-		{ name: 'raw', chatInputRun: 'chatInputTagRaw' },
-		{ name: 'show', chatInputRun: 'chatInputTagShow' },
-		{ name: 'use', chatInputRun: 'chatInputTagUse' }
-	]
+		subcommands: [
+			{ name: 'create', chatInputRun: 'chatInputTagCreate', preconditions: ['AllowedTagRoles'] },
+			{ name: 'delete', chatInputRun: 'chatInputTagDelete', preconditions: ['AllowedTagRoles'] },
+			{ name: 'edit', chatInputRun: 'chatInputTagEdit', preconditions: ['AllowedTagRoles'] },
+			{ name: 'export', chatInputRun: 'chatInputTagExport', preconditions: ['AllowedTagAdminRoles'] },
+			{ name: 'import', chatInputRun: 'chatInputTagImport', preconditions: ['AllowedTagAdminRoles'] },
+			{ name: 'info', chatInputRun: 'chatInputTagInfo', preconditions: ['AllowedTagRoles'] },
+			{ name: 'list', chatInputRun: 'chatInputTagList', preconditions: ['AllowedTagRoles'] },
+			{ name: 'raw', chatInputRun: 'chatInputTagRaw', preconditions: ['AllowedTagAdminRoles'] },
+			{ name: 'show', chatInputRun: 'chatInputTagShow', preconditions: ['AllowedTagRoles'] },
+			{ name: 'use', chatInputRun: 'chatInputTagUse', preconditions: ['AllowedTagRoles'] }
+		]
 })
 export class SupportTagCommand extends Subcommand {
 	private readonly integrationTypes: ApplicationIntegrationType[] = [ApplicationIntegrationType.GuildInstall];

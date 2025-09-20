@@ -58,28 +58,62 @@ export class AllowedGuildRoleBucketsPrecondition extends AllFlowsPrecondition {
 		const { buckets, allowManageGuild, errorMessage } = this.resolveContext(context);
 
 		if (!guildId || !member) {
-			return this.error({ message: errorMessage, context: silentOnFail ? { silent: true } : undefined });
+			this.logDenial('missing-member', { guildId, member, buckets, allowManageGuild, silent: silentOnFail });
+			return this.error({ message: errorMessage, context: silentOnFail ? { silent: true } : {} });
 		}
 
 		if (allowManageGuild && hasManageGuild) {
+			this.logSuccess({
+				guildId,
+				member,
+				buckets,
+				allowManageGuild,
+				grantedBy: 'manage-guild',
+				silent: silentOnFail
+			});
 			return this.ok();
 		}
 
 		if (buckets.length === 0) {
-			return this.error({ message: errorMessage, context: silentOnFail ? { silent: true } : undefined });
+			this.logDenial('no-buckets', { guildId, member, buckets, allowManageGuild, silent: silentOnFail });
+			return this.error({ message: errorMessage, context: silentOnFail ? { silent: true } : {} });
 		}
 
 		const allowedRoles = await this.fetchAllowedRoles(guildId, buckets);
 
 		if (allowedRoles.length === 0) {
-			return this.error({ message: errorMessage, context: silentOnFail ? { silent: true } : undefined });
+			this.logDenial('no-config', {
+				guildId,
+				member,
+				buckets,
+				allowManageGuild,
+				allowedRoles,
+				silent: silentOnFail
+			});
+			return this.error({ message: errorMessage, context: silentOnFail ? { silent: true } : {} });
 		}
 
 		if (this.memberHasAllowedRole(member, allowedRoles)) {
+			this.logSuccess({
+				guildId,
+				member,
+				buckets,
+				allowManageGuild,
+				allowedRoles,
+				silent: silentOnFail
+			});
 			return this.ok();
 		}
 
-		return this.error({ message: errorMessage, context: silentOnFail ? { silent: true } : undefined });
+		this.logDenial('forbidden', {
+			guildId,
+			member,
+			buckets,
+			allowManageGuild,
+			allowedRoles,
+			silent: silentOnFail
+		});
+		return this.error({ message: errorMessage, context: silentOnFail ? { silent: true } : {} });
 	}
 
 	private resolveContext(context: AllowedGuildRoleBucketsContext) {
@@ -129,6 +163,76 @@ export class AllowedGuildRoleBucketsPrecondition extends AllFlowsPrecondition {
 
 		return false;
 	}
+
+	private logSuccess(details: BucketLogDetails & { grantedBy?: 'manage-guild' | 'roles' }) {
+		const logger = this.container.logger;
+		if (!logger) return;
+		logger.debug('[AllowedGuildRoleBuckets] Access granted', this.buildMeta({ ...details, outcome: 'success' }));
+	}
+
+	private logDenial(
+		reason: 'missing-member' | 'no-buckets' | 'no-config' | 'forbidden',
+		details: BucketLogDetails
+	) {
+		const logger = this.container.logger;
+		if (!logger) return;
+		const meta = this.buildMeta({ ...details, outcome: 'denied', reason });
+		const level = details.silent
+			? 'debug'
+			: reason === 'forbidden'
+				? 'warn'
+				: 'info';
+		logger[level]('[AllowedGuildRoleBuckets] Access denied', meta);
+	}
+
+	private buildMeta({
+		guildId,
+		member,
+		buckets,
+		allowManageGuild,
+		allowedRoles,
+		silent,
+		outcome,
+		reason,
+		grantedBy
+	}: BucketLogDetails & { outcome: 'success' | 'denied'; reason?: string; grantedBy?: 'manage-guild' | 'roles' }) {
+		return {
+			outcome,
+			reason: reason ?? null,
+			grant: grantedBy ?? null,
+			guildId: guildId ?? 'unknown',
+			memberId: this.resolveMemberId(member),
+			memberRoleIds: this.collectMemberRoles(member),
+			buckets,
+			allowManageGuild,
+			allowedRoles: allowedRoles ?? [],
+			silent: silent ?? false
+		};
+	}
+
+	private resolveMemberId(member: GuildMember | APIInteractionGuildMember | null) {
+		if (!member) return 'unknown';
+		if ('user' in member && member.user) {
+			return member.user.id;
+		}
+		return (member as GuildMember)?.id ?? 'unknown';
+	}
+
+	private collectMemberRoles(member: GuildMember | APIInteractionGuildMember | null) {
+		if (!member) return [] as string[];
+		if ('roles' in member) {
+			const roles = member.roles;
+			if (Array.isArray(roles)) {
+				return [...roles];
+			}
+		}
+
+		if ((member as GuildMember)?.roles?.cache) {
+			return [...(member as GuildMember).roles.cache.keys()];
+		}
+
+		return [] as string[];
+	}
 }
 
 declare module '@sapphire/framework' {
@@ -136,3 +240,12 @@ declare module '@sapphire/framework' {
 		AllowedGuildRoleBuckets: AllowedGuildRoleBucketsContext;
 	}
 }
+
+type BucketLogDetails = {
+	guildId: string | null;
+	member: GuildMember | APIInteractionGuildMember | null;
+	buckets: readonly RoleBucketKey[];
+	allowManageGuild: boolean;
+	allowedRoles?: string[];
+	silent?: boolean;
+};

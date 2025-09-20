@@ -17,10 +17,16 @@ type TagExportContext = {
 	defer?: () => Promise<unknown>;
 };
 
+
 export async function chatInputTagExport(command: TagCommand, interaction: TagChatInputInteraction) {
+	const guildId = interaction.guildId;
+	if (!guildId) {
+		return replyEphemeral(interaction, 'This command can only be used inside a server.');
+	}
+
 	return handleTagExport({
 		command,
-		guildId: interaction.guildId ?? null,
+		guildId,
 		deny: (content) => replyEphemeral(interaction, content),
 		respond: (content, attachment) =>
 			attachment

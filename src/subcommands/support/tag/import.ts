@@ -17,11 +17,11 @@ import {
 const MAX_IMPORT_FILE_SIZE = 512_000; // 500KB
 const MAX_TAGS_PER_IMPORT = 100;
 
-export async function chatInputTagImport(command: TagCommand, interaction: TagChatInputInteraction) {
-	const guildId = interaction.guildId;
-	if (!guildId) {
-		return replyEphemeral(interaction, 'This command can only be used inside a server.');
-	}
+	export async function chatInputTagImport(command: TagCommand, interaction: TagChatInputInteraction) {
+		const guildId = interaction.guildId;
+		if (!guildId) {
+			return replyEphemeral(interaction, 'This command can only be used inside a server.');
+		}
 
 	const attachment = interaction.options.getAttachment('file') ?? null;
 	const payloadText = interaction.options.getString('payload');
