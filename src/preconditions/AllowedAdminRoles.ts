@@ -85,12 +85,17 @@ export class AllowedAdminRolesPrecondition extends AllFlowsPrecondition {
 	}
 
 	private async fetchAllowedAdminRoles(guildId: string) {
-		const settings = await this.container.database.guildRoleSettings.findUnique({
-			where: { guildId }
-		});
+		try {
+			const settings = await this.container.database.guildRoleSettings.findUnique({
+				where: { guildId }
+			});
 
-		const value = settings?.allowedAdminRoles;
-		return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+			const value = settings?.allowedAdminRoles as unknown;
+			return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+		} catch (error) {
+			this.container.logger.error('[AllowedAdminRoles] Failed to load guild role settings', error);
+			return [] as string[];
+		}
 	}
 
 	private memberHasAllowedRole(member: GuildMember | APIInteractionGuildMember, allowedRoles: readonly string[]) {

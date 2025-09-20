@@ -122,16 +122,20 @@ export async function executeSupportSet({
 
 	// If no value provided, remove the setting
 	if (!value || value.trim() === '') {
-		await command.container.database.guildSupportSettings.upsert({
-			where: { guildId },
-			create: {
-				guildId,
-				[setting]: null
-			},
-			update: {
-				[setting]: null
-			}
-		});
+		try {
+			await command.container.database.guildSupportSettings.upsert({
+				where: { guildId },
+				create: {
+					guildId,
+					[setting]: null
+				},
+				update: {
+					[setting]: null
+				}
+			});
+		} catch (error) {
+			return respond('Failed to update support settings. Please try again later.');
+		}
 
 		return respond(`Removed **${label}** setting.`);
 	}
@@ -156,22 +160,26 @@ export async function executeSupportSet({
 	}
 
 	// Ensure GuildConfig exists first (required for foreign key constraint)
-	await command.container.database.guildConfig.upsert({
-		where: { id: guildId },
-		create: { id: guildId },
-		update: {}
-	});
+	try {
+		await command.container.database.guildConfig.upsert({
+			where: { id: guildId },
+			create: { id: guildId },
+			update: {}
+		});
 
-	await command.container.database.guildSupportSettings.upsert({
-		where: { guildId },
-		create: {
-			guildId,
-			[setting]: value
-		},
-		update: {
-			[setting]: value
-		}
-	});
+		await command.container.database.guildSupportSettings.upsert({
+			where: { guildId },
+			create: {
+				guildId,
+				[setting]: value
+			},
+			update: {
+				[setting]: value
+			}
+		});
+	} catch (error) {
+		return respond('Failed to update support settings. Please try again later.');
+	}
 
 	if (setting === 'supportForumChannelId') {
 		return respond(`Set **${label}** to <#${value}>.`);
@@ -196,9 +204,14 @@ export async function executeSupportView({
 		await defer();
 	}
 
-	const settings = await command.container.database.guildSupportSettings.findUnique({
-		where: { guildId }
-	});
+	let settings: Awaited<ReturnType<typeof command.container.database.guildSupportSettings.findUnique>> | null = null;
+	try {
+		settings = await command.container.database.guildSupportSettings.findUnique({
+			where: { guildId }
+		});
+	} catch {
+		return respond('Failed to load support settings. Please try again later.');
+	}
 
 	// Use components if available
 	if (respondComponents) {

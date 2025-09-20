@@ -150,7 +150,12 @@ export async function executeRoleMutation({
 		await defer();
 	}
 
-	const settings = await ensureRoleSettings(command, guildId);
+	let settings: GuildRoleSettings;
+	try {
+		settings = await ensureRoleSettings(command, guildId);
+	} catch (error) {
+		return respond('Failed to load role settings. Please try again later.');
+	}
 	const current = getStringArray(settings[bucket]);
 	const label = bucketLabel(bucket);
 
@@ -168,16 +173,20 @@ export async function executeRoleMutation({
 		removeInPlace(current, roleId);
 	}
 
-	await command.container.database.guildRoleSettings.upsert({
-		where: { guildId },
-		create: {
-			...blankRoleSettings(guildId),
-			[bucket]: current as unknown as Prisma.JsonArray
-		},
-		update: {
-			[bucket]: current as unknown as Prisma.JsonArray
-		}
-	});
+	try {
+		await command.container.database.guildRoleSettings.upsert({
+			where: { guildId },
+			create: {
+				...blankRoleSettings(guildId),
+				[bucket]: current as unknown as Prisma.JsonArray
+			},
+			update: {
+				[bucket]: current as unknown as Prisma.JsonArray
+			}
+		});
+	} catch {
+		return respond('Failed to update role settings. Please try again later.');
+	}
 
 	return respond(
 		operation === 'add'
@@ -203,7 +212,12 @@ export async function executeRoleList({
 		await defer();
 	}
 
-	const settings = await ensureRoleSettings(command, guildId);
+	let settings: GuildRoleSettings;
+	try {
+		settings = await ensureRoleSettings(command, guildId);
+	} catch (error) {
+		return respond('Failed to load role settings. Please try again later.');
+	}
 	const buckets = bucket ? [bucket] : ROLE_BUCKETS.map((entry) => entry.key);
 
 	// If we have component support, use it

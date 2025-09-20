@@ -166,28 +166,33 @@ export class AllowedGuildRoleBucketsPrecondition extends AllFlowsPrecondition {
 	}
 
 	private async fetchAllowedRoles(guildId: string, buckets: readonly RoleBucketKey[]) {
-		const settings = await this.container.database.guildRoleSettings.findUnique({
-			where: { guildId }
-		});
+		try {
+			const settings = await this.container.database.guildRoleSettings.findUnique({
+				where: { guildId }
+			});
 
-		if (!settings) {
-			return [] as string[];
-		}
+			if (!settings) {
+				return [] as string[];
+			}
 
-		const roles = new Set<string>();
+			const roles = new Set<string>();
 
-		for (const bucket of buckets) {
-			const value = settings[bucket] as unknown;
-			if (Array.isArray(value)) {
-				for (const entry of value) {
-					if (typeof entry === 'string') {
-						roles.add(entry);
+			for (const bucket of buckets) {
+				const value = settings[bucket] as unknown;
+				if (Array.isArray(value)) {
+					for (const entry of value) {
+						if (typeof entry === 'string') {
+							roles.add(entry);
+						}
 					}
 				}
 			}
-		}
 
-		return [...roles];
+			return [...roles];
+		} catch (error) {
+			this.container.logger.error('[AllowedGuildRoleBuckets] Failed to load guild role settings', error);
+			return [] as string[];
+		}
 	}
 
 	private memberHasAllowedRole(member: GuildMember | APIInteractionGuildMember, allowedRoles: string[]) {

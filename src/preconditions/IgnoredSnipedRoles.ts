@@ -48,13 +48,20 @@ export class IgnoredSnipedRolesPrecondition extends AllFlowsPrecondition {
 		}
 
 		return 'This command may only be used by users with "Ignored Sniped Roles".';
-	} private async fetchRoles(guildId: string) {
-		const settings = await this.container.database.guildRoleSettings.findUnique({
-			where: { guildId }
-		});
+	}
 
-		const value = settings?.ignoredSnipedRoles as unknown;
-		return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+	private async fetchRoles(guildId: string) {
+		try {
+			const settings = await this.container.database.guildRoleSettings.findUnique({
+				where: { guildId }
+			});
+
+			const value = settings?.ignoredSnipedRoles as unknown;
+			return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+		} catch (error) {
+			this.container.logger.error('[IgnoredSnipedRoles] Failed to load guild role settings', error);
+			return [] as string[];
+		}
 	}
 
 	private memberHasAllowedRole(member: GuildMember | APIInteractionGuildMember, allowedRoles: readonly string[]) {

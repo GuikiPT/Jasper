@@ -5,6 +5,7 @@ import { container } from '@sapphire/pieces';
 import { envParseString } from '@skyra/env-utilities';
 import { GatewayIntentBits, Partials } from 'discord.js';
 import { ensureDatabaseReady } from './lib/database';
+import { Logger } from './lib/logger';
 
 const client = new SapphireClient({
 	defaultPrefix: 'j!',
@@ -61,10 +62,19 @@ const main = async () => {
 		await client.login(envParseString('DISCORD_TOKEN'));
 		client.logger.info('logged in');
 	} catch (error) {
-		client.logger.fatal(error);
+		Logger.fatal('Fatal error during startup', error);
 		await client.destroy();
 		process.exit(1);
 	}
 };
 
 void main();
+
+// Global safety nets
+process.on('unhandledRejection', (reason, promise) => {
+	Logger.error('Unhandled promise rejection', reason, { promise: String(promise) });
+});
+
+process.on('uncaughtException', (error) => {
+	Logger.fatal('Uncaught exception', error);
+});

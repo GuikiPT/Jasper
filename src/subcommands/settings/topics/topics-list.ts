@@ -15,7 +15,13 @@ export async function messageTopicList(command: TopicCommand, message: Message, 
 		return message.reply({ content: 'This command can only be used inside a server.', allowedMentions: { users: [], roles: [] } });
 	}
 
-	const topics = await fetchTopics(command, message.guildId);
+	let topics = [] as Array<{ value: string }>;
+	try {
+		topics = await fetchTopics(command, message.guildId);
+	} catch (error) {
+		command.container.logger.error('Failed to load topic list (message)', error);
+		return message.reply({ content: 'Failed to load topics. Please try again later.', allowedMentions: { users: [], roles: [] } });
+	}
 	if (topics.length === 0) {
 		return message.reply({ content: TOPIC_LIST_EMPTY_MESSAGE, allowedMentions: { users: [], roles: [] } });
 	}
@@ -49,7 +55,13 @@ export async function chatInputTopicList(command: TopicCommand, interaction: Top
 		return interaction.reply({ content: 'This command can only be used inside a server.', flags: MessageFlags.Ephemeral });
 	}
 
-	const topics = await fetchTopics(command, interaction.guildId);
+	let topics = [] as Array<{ value: string }>;
+	try {
+		topics = await fetchTopics(command, interaction.guildId);
+	} catch (error) {
+		command.container.logger.error('Failed to load topic list (chat input)', error);
+		return interaction.reply({ content: 'Failed to load topics. Please try again later.', flags: MessageFlags.Ephemeral });
+	}
 	if (topics.length === 0) {
 		return interaction.reply({ content: TOPIC_LIST_EMPTY_MESSAGE, flags: MessageFlags.Ephemeral });
 	}

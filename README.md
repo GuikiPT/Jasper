@@ -30,3 +30,24 @@ Dedicated to the public domain via the [Unlicense], courtesy of the Sapphire Com
 
 [sapphire]: https://github.com/sapphiredev/framework
 [unlicense]: https://github.com/sapphiredev/examples/blob/main/LICENSE.md
+
+## Logging and error handling
+
+This project includes a lightweight logger utility at `src/lib/logger.ts` that wraps the Sapphire logger and provides consistent structured logs with timestamps and optional metadata. Use it for risky operations such as database access or network calls.
+
+- Use `Logger.debug/info/warn/error/fatal(message, error?, meta?)`.
+- Catch Prisma/database errors, log context (e.g., guildId, userId), and reply with concise user-friendly messages.
+- Global safety nets in `src/index.ts` capture unhandled rejections and uncaught exceptions.
+
+Example:
+
+```ts
+import { Logger } from './lib/logger';
+
+try {
+	await doRiskyThing();
+} catch (error) {
+	Logger.error('Risky thing failed', error, { guildId });
+	return interaction.reply({ content: 'Something went wrong. Please try again later.' });
+}
+```

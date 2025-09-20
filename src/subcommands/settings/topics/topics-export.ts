@@ -40,10 +40,16 @@ async function handleTopicExport({ command, guildId, deny, respond, defer }: Top
 		await defer();
 	}
 
-	const topics = await command.container.database.guildTopic.findMany({
-		where: { guildId },
-		orderBy: { id: 'asc' }
-	});
+	let topics: { value: string }[] = [];
+	try {
+		topics = await command.container.database.guildTopic.findMany({
+			where: { guildId },
+			orderBy: { id: 'asc' }
+		});
+	} catch (error) {
+		command.container.logger.error('Failed to export topics', error);
+		return respond('Failed to export topics. Please try again later.');
+	}
 
 	if (topics.length === 0) {
 		return respond('No topics configured yet. Add one with `/settings topics add`.');

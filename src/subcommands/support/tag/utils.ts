@@ -180,12 +180,17 @@ const toStringArray = (value: unknown): string[] =>
 	Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
 
 export const fetchAllowedTagChannels = async (context: ContainerAccessor, guildId: string) => {
-	const settings = await context.container.database.guildChannelSettings.findUnique({
-		where: { guildId },
-		select: { allowedTagChannels: true }
-	});
+	try {
+		const settings = await context.container.database.guildChannelSettings.findUnique({
+			where: { guildId },
+			select: { allowedTagChannels: true }
+		});
 
-	return toStringArray(settings?.allowedTagChannels);
+		return toStringArray(settings?.allowedTagChannels);
+	} catch (error) {
+		context.container.logger.error('[SupportTag] Failed to load allowed tag channels', error);
+		return [] as string[];
+	}
 };
 
 const collectCandidateChannelIds = (interaction: ChannelAwareInteraction) => {
@@ -251,30 +256,45 @@ export const formatTagChannelRestrictionMessage = (
 };
 
 const fetchSupportRoles = async (context: ContainerAccessor, guildId: string) => {
-	const settings = await context.container.database.guildRoleSettings.findUnique({
-		where: { guildId },
-		select: { supportRoles: true }
-	});
+	try {
+		const settings = await context.container.database.guildRoleSettings.findUnique({
+			where: { guildId },
+			select: { supportRoles: true }
+		});
 
-	return toStringArray(settings?.supportRoles);
+		return toStringArray(settings?.supportRoles);
+	} catch (error) {
+		context.container.logger.error('[SupportTag] Failed to load support roles', error);
+		return [] as string[];
+	}
 };
 
 const fetchAllowedTagRoles = async (context: ContainerAccessor, guildId: string) => {
-	const settings = await context.container.database.guildRoleSettings.findUnique({
-		where: { guildId },
-		select: { allowedTagRoles: true }
-	});
+	try {
+		const settings = await context.container.database.guildRoleSettings.findUnique({
+			where: { guildId },
+			select: { allowedTagRoles: true }
+		});
 
-	return toStringArray(settings?.allowedTagRoles);
+		return toStringArray(settings?.allowedTagRoles);
+	} catch (error) {
+		context.container.logger.error('[SupportTag] Failed to load allowed tag roles', error);
+		return [] as string[];
+	}
 };
 
 const fetchAllowedTagAdminRoles = async (context: ContainerAccessor, guildId: string) => {
-	const settings = await context.container.database.guildRoleSettings.findUnique({
-		where: { guildId },
-		select: { allowedTagAdminRoles: true }
-	});
+	try {
+		const settings = await context.container.database.guildRoleSettings.findUnique({
+			where: { guildId },
+			select: { allowedTagAdminRoles: true }
+		});
 
-	return toStringArray(settings?.allowedTagAdminRoles);
+		return toStringArray(settings?.allowedTagAdminRoles);
+	} catch (error) {
+		context.container.logger.error('[SupportTag] Failed to load allowed tag admin roles', error);
+		return [] as string[];
+	}
 };
 
 const memberHasAllowedRole = (

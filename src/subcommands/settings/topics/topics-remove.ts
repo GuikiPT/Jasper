@@ -3,6 +3,7 @@ import type { Message } from 'discord.js';
 import { MessageFlags } from 'discord.js';
 
 import { type TopicCommand, type TopicChatInputInteraction, denyInteraction } from './utils';
+import { Logger } from '../../../lib/logger';
 
 type TopicRemoveContext = {
 	command: TopicCommand;
@@ -55,16 +56,21 @@ async function handleTopicRemove({ command, guildId, id, deny, respond, defer }:
 		await defer();
 	}
 
-	const topic = await command.container.database.guildTopic.findFirst({
-		where: { id, guildId }
-	});
+	try {
+		const topic = await command.container.database.guildTopic.findFirst({
+			where: { id, guildId }
+		});
 
-	if (!topic) {
-		return respond(`No topic with id #${id} found for this server.`);
+		if (!topic) {
+			return respond(`No topic with id #${id} found for this server.`);
+		}
+
+		await command.container.database.guildTopic.delete({ where: { id } });
+
+		const preview = topic.value.length > 80 ? `${topic.value.slice(0, 77)}…` : topic.value;
+		return respond(`Removed topic #${topic.id}: ${preview}`);
+	} catch (error) {
+		Logger.error('Failed to remove topic', error, { guildId: guildId ?? 'unknown', id });
+		return respond('Failed to remove the topic. Please try again later.');
 	}
-
-	await command.container.database.guildTopic.delete({ where: { id } });
-
-	const preview = topic.value.length > 80 ? `${topic.value.slice(0, 77)}…` : topic.value;
-	return respond(`Removed topic #${topic.id}: ${preview}`);
 }

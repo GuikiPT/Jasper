@@ -57,12 +57,17 @@ export class AllowedTagAdminRolesPrecondition extends AllFlowsPrecondition {
 
 		return 'Support tag admin commands may only be used by users with "Allowed Tag Admin Roles".';
 	} private async fetchAllowedRoles(guildId: string) {
-		const settings = await this.container.database.guildRoleSettings.findUnique({
-			where: { guildId }
-		});
+		try {
+			const settings = await this.container.database.guildRoleSettings.findUnique({
+				where: { guildId }
+			});
 
-		const value = settings?.allowedTagAdminRoles as unknown;
-		return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+			const value = settings?.allowedTagAdminRoles as unknown;
+			return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+		} catch (error) {
+			this.container.logger.error('[AllowedTagAdminRoles] Failed to load allowed tag admin roles', error);
+			return [] as string[];
+		}
 	}
 
 	private memberHasAllowedRole(member: GuildMember | APIInteractionGuildMember, allowedRoles: readonly string[]) {

@@ -145,7 +145,12 @@ export async function executeChannelMutation({
 		await defer();
 	}
 
-	const settings = await ensureChannelSettings(command, guildId);
+	let settings: GuildChannelSettings;
+	try {
+		settings = await ensureChannelSettings(command, guildId);
+	} catch (error) {
+		return respond('Failed to load channel settings. Please try again later.');
+	}
 	const current = getStringArray(settings[bucket]);
 	const label = bucketLabel(bucket);
 
@@ -161,16 +166,20 @@ export async function executeChannelMutation({
 		removeInPlace(current, channelId);
 	}
 
-	await command.container.database.guildChannelSettings.upsert({
-		where: { guildId },
-		create: {
-			...blankChannelSettings(guildId),
-			[bucket]: current as unknown as Prisma.JsonArray
-		},
-		update: {
-			[bucket]: current as unknown as Prisma.JsonArray
-		}
-	});
+	try {
+		await command.container.database.guildChannelSettings.upsert({
+			where: { guildId },
+			create: {
+				...blankChannelSettings(guildId),
+				[bucket]: current as unknown as Prisma.JsonArray
+			},
+			update: {
+				[bucket]: current as unknown as Prisma.JsonArray
+			}
+		});
+	} catch (error) {
+		return respond('Failed to update channel settings. Please try again later.');
+	}
 
 	return respond(
 		operation === 'add'
@@ -196,7 +205,12 @@ export async function executeChannelList({
 		await defer();
 	}
 
-	const settings = await ensureChannelSettings(command, guildId);
+	let settings: GuildChannelSettings;
+	try {
+		settings = await ensureChannelSettings(command, guildId);
+	} catch (error) {
+		return respond('Failed to load channel settings. Please try again later.');
+	}
 	const buckets = bucket ? [bucket] : CHANNEL_BUCKETS.map((entry) => entry.key);
 
 	// Use components if available, otherwise fallback to text
