@@ -4,6 +4,7 @@ import { LogLevel, SapphireClient } from '@sapphire/framework';
 import { container } from '@sapphire/pieces';
 import { envParseString } from '@skyra/env-utilities';
 import { GatewayIntentBits, Partials } from 'discord.js';
+import { ensureDatabaseReady } from './lib/database';
 
 const client = new SapphireClient({
 	defaultPrefix: 'j!',
@@ -53,6 +54,9 @@ const client = new SapphireClient({
 
 const main = async () => {
 	try {
+		client.logger.info('Checking database connectivity');
+		await ensureDatabaseReady();
+		client.logger.info('Database connection verified');
 		client.logger.info('Logging in');
 		await client.login(envParseString('DISCORD_TOKEN'));
 		client.logger.info('logged in');

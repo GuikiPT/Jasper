@@ -22,7 +22,7 @@ import {
 	chatInputTagShow,
 	chatInputTagUse,
 	type TagChatInputInteraction
-} from '../../subcommands/support/tag';
+} from '../../subcommands/support/tag/tag-index';
 
 @ApplyOptions<Subcommand.Options>({
 	name: 'tag',

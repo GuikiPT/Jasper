@@ -13,16 +13,16 @@ export {
 	MAX_TAG_NAME_LENGTH
 } from './utils';
 
-export { chatInputTagCreate } from './create';
-export { chatInputTagDelete } from './delete';
-export { chatInputTagEdit } from './edit';
-export { chatInputTagExport } from './export';
-export { chatInputTagImport } from './import';
-export { chatInputTagInfo } from './info';
-export { chatInputTagList } from './list';
-export { chatInputTagRaw } from './raw';
-export { chatInputTagShow } from './show';
-export { chatInputTagUse } from './use';
+export { chatInputTagCreate } from './tag-create';
+export { chatInputTagDelete } from './tag-delete';
+export { chatInputTagEdit } from './tag-edit';
+export { chatInputTagExport } from './tag-export';
+export { chatInputTagImport } from './tag-import';
+export { chatInputTagInfo } from './tag-info';
+export { chatInputTagList } from './tag-list';
+export { chatInputTagRaw } from './tag-raw';
+export { chatInputTagShow } from './tag-show';
+export { chatInputTagUse } from './tag-use';
 
 export {
 	buildTagEmbed,
