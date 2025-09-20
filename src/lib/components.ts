@@ -72,7 +72,7 @@ export function replyEphemeralComponent(interaction: CommandInteraction, content
  * Creates a component-based reply for public messages
  */
 export function replyWithComponent(interaction: CommandInteraction, content: string, ephemeral: boolean = false) {
-	const components = [createTextComponent(content)];
+	const components = [createErrorTextComponent(content)]; // Use error text component for longer content
 
 	const flags = ephemeral
 		? MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
@@ -88,7 +88,7 @@ export function replyWithComponent(interaction: CommandInteraction, content: str
  * Creates a component-based edit reply
  */
 export function editReplyWithComponent(interaction: CommandInteraction, content: string) {
-	const components = [createTextComponent(content)];
+	const components = [createErrorTextComponent(content)]; // Use error text component for longer content
 
 	return interaction.editReply({
 		components,

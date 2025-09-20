@@ -31,21 +31,82 @@ import {
 	cooldownLimit: 2,
 	cooldownDelay: 5_000,
 	cooldownScope: BucketScope.User,
-	preconditions: ['SupportRoles'],
+	preconditions: [
+		{
+			name: 'AllowedGuildRoleBuckets',
+			context: {
+				buckets: ['supportRoles', 'allowedStaffRoles'] as const,
+				allowManageGuild: false,
+				errorMessage: 'Support commands may only be used by users with "Support Roles" or "Staff Roles".'
+			}
+		}
+	],
 	requiredClientPermissions: ['SendMessages'],
 	runIn: [CommandOptionsRunTypeEnum.GuildAny],
-		subcommands: [
-			{ name: 'create', chatInputRun: 'chatInputTagCreate', preconditions: ['AllowedTagRoles'] },
-			{ name: 'delete', chatInputRun: 'chatInputTagDelete', preconditions: ['AllowedTagRoles'] },
-			{ name: 'edit', chatInputRun: 'chatInputTagEdit', preconditions: ['AllowedTagRoles'] },
-			{ name: 'export', chatInputRun: 'chatInputTagExport', preconditions: ['AllowedTagAdminRoles'] },
-			{ name: 'import', chatInputRun: 'chatInputTagImport', preconditions: ['AllowedTagAdminRoles'] },
-			{ name: 'info', chatInputRun: 'chatInputTagInfo', preconditions: ['AllowedTagRoles'] },
-			{ name: 'list', chatInputRun: 'chatInputTagList', preconditions: ['AllowedTagRoles'] },
-			{ name: 'raw', chatInputRun: 'chatInputTagRaw', preconditions: ['AllowedTagAdminRoles'] },
-			{ name: 'show', chatInputRun: 'chatInputTagShow', preconditions: ['AllowedTagRoles'] },
-			{ name: 'use', chatInputRun: 'chatInputTagUse', preconditions: ['AllowedTagRoles'] }
-		]
+	subcommands: [
+		{ name: 'create', chatInputRun: 'chatInputTagCreate', preconditions: ['AllowedTagRoles'] },
+		{ name: 'delete', chatInputRun: 'chatInputTagDelete', preconditions: ['AllowedTagRoles'] },
+		{ name: 'edit', chatInputRun: 'chatInputTagEdit', preconditions: ['AllowedTagRoles'] },
+		{ name: 'export', chatInputRun: 'chatInputTagExport', preconditions: ['AllowedTagAdminRoles'] },
+		{ name: 'import', chatInputRun: 'chatInputTagImport', preconditions: ['AllowedTagAdminRoles'] },
+		{
+			name: 'info',
+			chatInputRun: 'chatInputTagInfo',
+			preconditions: [
+				{
+					name: 'AllowedGuildRoleBuckets',
+					context: {
+						buckets: ['allowedTagRoles', 'allowedStaffRoles'] as const,
+						allowManageGuild: false,
+						errorMessage: 'You need an allowed tag role or allowed staff role to view tag information.'
+					}
+				}
+			]
+		},
+		{
+			name: 'list',
+			chatInputRun: 'chatInputTagList',
+			preconditions: [
+				{
+					name: 'AllowedGuildRoleBuckets',
+					context: {
+						buckets: ['allowedTagRoles', 'allowedStaffRoles'] as const,
+						allowManageGuild: false,
+						errorMessage: 'You need an allowed tag role or allowed staff role to list tags.'
+					}
+				}
+			]
+		},
+		{ name: 'raw', chatInputRun: 'chatInputTagRaw', preconditions: ['AllowedTagAdminRoles'] },
+		{
+			name: 'show',
+			chatInputRun: 'chatInputTagShow',
+			preconditions: [
+				{
+					name: 'AllowedGuildRoleBuckets',
+					context: {
+						buckets: ['allowedTagRoles', 'allowedStaffRoles'] as const,
+						allowManageGuild: false,
+						errorMessage: 'You need an allowed tag role or allowed staff role to show tags.'
+					}
+				}
+			]
+		},
+		{
+			name: 'use',
+			chatInputRun: 'chatInputTagUse',
+			preconditions: [
+				{
+					name: 'AllowedGuildRoleBuckets',
+					context: {
+						buckets: ['allowedTagRoles', 'allowedStaffRoles'] as const,
+						allowManageGuild: false,
+						errorMessage: 'You need an allowed tag role or allowed staff role to use tags.'
+					}
+				}
+			]
+		}
+	]
 })
 export class SupportTagCommand extends Subcommand {
 	private readonly integrationTypes: ApplicationIntegrationType[] = [ApplicationIntegrationType.GuildInstall];

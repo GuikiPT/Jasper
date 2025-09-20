@@ -5,11 +5,16 @@ import {
 	InteractionContextType,
 	MessageFlags,
 	ChannelType,
+	ContainerBuilder,
+	TextDisplayBuilder,
+	SeparatorBuilder,
+	SeparatorSpacingSize,
 	type ThreadChannel,
 	type ForumChannel,
 	type SlashCommandBuilder,
 	type SlashCommandStringOption
 } from 'discord.js';
+import { replyWithComponent, editReplyWithComponent } from '../../lib/components.js';
 
 @ApplyOptions<Command.Options>({
 	name: 'resolve',
@@ -38,14 +43,14 @@ export class ResolveCommand extends Command {
 					option
 						.setName('question')
 						.setDescription('Summarized question that was asked')
-						.setRequired(true)
+						.setRequired(false)
 						.setMaxLength(1000)
 				)
 				.addStringOption((option: SlashCommandStringOption) =>
 					option
 						.setName('answer')
 						.setDescription('Summarized answer/solution provided')
-						.setRequired(true)
+						.setRequired(false)
 						.setMaxLength(2000)
 				)
 		);
@@ -53,49 +58,37 @@ export class ResolveCommand extends Command {
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.guildId) {
-			return interaction.reply({
-				content: 'This command can only be used inside a server.',
-				flags: MessageFlags.Ephemeral
-			});
+			return replyWithComponent(interaction, 'This command can only be used inside a server.', true);
 		}
 
-		const question = interaction.options.getString('question', true);
-		const answer = interaction.options.getString('answer', true);
+		const question = interaction.options.getString('question', false);
+		const answer = interaction.options.getString('answer', false);
 
 		// Check if we're in a thread
 		if (!interaction.channel || interaction.channel.type !== ChannelType.PublicThread) {
-			return interaction.reply({
-				content: 'This command can only be used in a forum thread.',
-				flags: MessageFlags.Ephemeral
-			});
+			return replyWithComponent(interaction, 'This command can only be used in a forum thread.', true);
 		}
 
 		const thread = interaction.channel as ThreadChannel;
 
 		// Check if the thread is from a forum channel
 		if (!thread.parent || thread.parent.type !== ChannelType.GuildForum) {
-			return interaction.reply({
-				content: 'This command can only be used in a support forum thread.',
-				flags: MessageFlags.Ephemeral
-			});
+			return replyWithComponent(interaction, 'This command can only be used in a support forum thread.', true);
 		}
 
 		try {
 			return await this.resolveThread(interaction, thread, question, answer);
 		} catch (error) {
 			this.container.logger.error('Failed to resolve thread:', error);
-			return interaction.reply({
-				content: 'An error occurred while resolving the thread. Please try again.',
-				flags: MessageFlags.Ephemeral
-			});
+			return replyWithComponent(interaction, 'An error occurred while resolving the thread. Please try again.', true);
 		}
 	}
 
 	private async resolveThread(
 		interaction: Command.ChatInputCommandInteraction,
 		thread: ThreadChannel,
-		question: string,
-		answer: string
+		question: string | null,
+		answer: string | null
 	) {
 		const guildId = interaction.guildId!;
 		const forumChannel = thread.parent as ForumChannel;
@@ -107,17 +100,11 @@ export class ResolveCommand extends Command {
 
 		// Validate this is the configured support forum
 		if (!supportSettings?.supportForumChannelId || supportSettings.supportForumChannelId !== forumChannel.id) {
-			return interaction.reply({
-				content: 'This thread is not in the configured support forum channel.',
-				flags: MessageFlags.Ephemeral
-			});
+			return replyWithComponent(interaction, 'This thread is not in the configured support forum channel.', true);
 		}
 
 		if (!supportSettings.resolvedTagId) {
-			return interaction.reply({
-				content: 'No resolved tag is configured for this server. Please ask an admin to configure it using `/settings support set`.',
-				flags: MessageFlags.Ephemeral
-			});
+			return replyWithComponent(interaction, 'No resolved tag is configured for this server. Please ask an admin to configure it using `/settings support set`.', true);
 		}
 
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -125,9 +112,7 @@ export class ResolveCommand extends Command {
 		// Check if the resolved tag exists in the forum
 		const resolvedTag = forumChannel.availableTags.find(tag => tag.id === supportSettings.resolvedTagId);
 		if (!resolvedTag) {
-			return interaction.editReply({
-				content: 'The configured resolved tag no longer exists in the forum. Please ask an admin to update the configuration.'
-			});
+			return editReplyWithComponent(interaction, 'The configured resolved tag no longer exists in the forum. Please ask an admin to update the configuration.');
 		}
 
 		// Manage thread tags - remove existing if 5+ and add resolved tag
@@ -158,37 +143,78 @@ export class ResolveCommand extends Command {
 			// Apply the resolved tag
 			await freshThread.setAppliedTags(newTags, 'Thread resolved by support staff');
 
-			// Send resolution message
-			const resolutionMessage = this.formatResolutionMessage(question, answer, interaction.user.username);
-			await freshThread.send(resolutionMessage);
+			// Send resolution message as component
+			const resolutionComponent = this.createResolutionComponent(question, answer, interaction.user.id);
+			await freshThread.send({
+				components: [resolutionComponent],
+				flags: MessageFlags.IsComponentsV2,
+				allowedMentions: { users: [] } // Prevent pinging the resolver
+			});
 
 			// Archive and lock the thread
 			await freshThread.setLocked(true, 'Thread resolved');
 			await freshThread.setArchived(true, 'Thread resolved');
 
-			return interaction.editReply({
-				content: `✅ Thread resolved successfully!\n\n**Question:** ${question}\n**Answer:** ${answer}\n\nThe thread has been tagged, archived, and locked.`
-			});
+			// Simple success response
+			return editReplyWithComponent(interaction, '✅ Thread resolved successfully!');
 
 		} catch (error) {
 			this.container.logger.error('Failed to apply thread resolution:', error);
-			return interaction.editReply({
-				content: 'Failed to apply thread resolution. I might not have the necessary permissions.'
-			});
+			return editReplyWithComponent(interaction, 'Failed to apply thread resolution. I might not have the necessary permissions.');
 		}
 	}
 
-	private formatResolutionMessage(question: string, answer: string, resolverUsername: string): string {
-		return [
-			'## 🔒 Thread Resolved',
-			'',
-			`**Question:** ${question}`,
-			'',
-			`**Solution:** ${answer}`,
-			'',
-			`*Resolved by ${resolverUsername}*`,
-			'',
-			'This thread has been marked as resolved and will be archived. If you need further assistance, please create a new thread.'
-		].join('\n');
+	private createResolutionComponent(question: string | null, answer: string | null, resolverUserId: string): ContainerBuilder {
+		const container = new ContainerBuilder();
+
+		// Add title with resolver mention
+		container.addTextDisplayComponents(
+			new TextDisplayBuilder().setContent(`## Thread marked as resolved by <@${resolverUserId}>`)
+		);
+
+		// Add separator
+		container.addSeparatorComponents(
+			new SeparatorBuilder()
+				.setSpacing(SeparatorSpacingSize.Small)
+				.setDivider(true)
+		);
+
+		// Add question section if provided
+		if (question) {
+			container.addTextDisplayComponents(
+				new TextDisplayBuilder().setContent('### Question')
+			);
+			container.addTextDisplayComponents(
+				new TextDisplayBuilder().setContent(question)
+			);
+			container.addSeparatorComponents(
+				new SeparatorBuilder()
+					.setSpacing(SeparatorSpacingSize.Small)
+					.setDivider(true)
+			);
+		}
+
+		// Add answer section if provided
+		if (answer) {
+			container.addTextDisplayComponents(
+				new TextDisplayBuilder().setContent('### Answer')
+			);
+			container.addTextDisplayComponents(
+				new TextDisplayBuilder().setContent(answer)
+			);
+			container.addSeparatorComponents(
+				new SeparatorBuilder()
+					.setSpacing(SeparatorSpacingSize.Small)
+					.setDivider(true)
+			);
+		}
+
+		// Add footer notice
+		container.addTextDisplayComponents(
+			new TextDisplayBuilder().setContent('-# This thread has been marked as resolved. If you need further assistance, please create a new thread.')
+		);
+
+		return container;
 	}
+
 }
