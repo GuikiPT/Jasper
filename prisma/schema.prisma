@@ -77,4 +77,6 @@ model GuildSupportSettings {
     supportForumChannelId String?
     resolvedTagId         String?
     guild                 GuildConfig @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+    @@map("GuildSupportSettings")
 }
