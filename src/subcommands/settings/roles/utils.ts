@@ -215,17 +215,19 @@ export async function executeRoleList({
 			const roles = getStringArray(settings[bucket]);
 			const label = bucketLabel(bucket);
 			const items = roles.length === 0 ? [] : roles.map((id) => `<@&${id}>`);
-			const component = createListComponent(label, items, 'No roles configured yet.');
+			const component = createListComponent(label, items, 'No roles configured yet.', false); // Role mentions are short, use commas
 			return respondComponents([component]);
 		} else {
-			// Multiple buckets - use multi-section component
+			// Multiple buckets - use multi-section component with proper sections and separators
 			const sections = buckets.map((key) => {
 				const roles = getStringArray(settings[key]);
 				const label = bucketLabel(key);
+				const items = roles.length === 0 ? ['*(none)*'] : roles.map((id) => `<@&${id}>`);
 				return {
 					title: label,
-					items: roles.map((id) => `<@&${id}>`),
-					emptyMessage: '*(none)*'
+					items,
+					emptyMessage: '*(none)*',
+					forceNewlines: false // Role mentions are short, use commas
 				};
 			});
 			const component = createMultiSectionComponent(sections);

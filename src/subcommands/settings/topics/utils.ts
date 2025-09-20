@@ -8,6 +8,10 @@ export const MAX_TOPIC_LENGTH = 256;
 export const MAX_TOPICS_PER_IMPORT = 500;
 export const MAX_IMPORT_FILE_SIZE = 256_000; // 250 KB safety guard
 
+export const TOPIC_LIST_CUSTOM_ID = 'discussion_topics';
+export const TOPIC_LIST_ITEMS_PER_PAGE = 10;
+export const TOPIC_LIST_EMPTY_MESSAGE = 'No topics configured yet. Add one with `/settings topic add`.';
+
 export const registerTopicSubcommandGroup = (group: SlashCommandSubcommandGroupBuilder) =>
 	group
 		.setName('topic')

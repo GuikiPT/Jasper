@@ -2,7 +2,6 @@ import type { Args } from '@sapphire/framework';
 import type { Subcommand } from '@sapphire/plugin-subcommands';
 import { MessageFlags, type SlashCommandSubcommandGroupBuilder } from 'discord.js';
 import type { GuildChannelSettings, Prisma } from '@prisma/client';
-import { createMultiSectionComponent } from '../../../lib/components';
 
 export type ChannelCommand = Subcommand;
 export type ChannelChatInputInteraction = Subcommand.ChatInputCommandInteraction;
@@ -202,22 +201,35 @@ export async function executeChannelList({
 
 	// Use components if available, otherwise fallback to text
 	if (respondComponents) {
-		const sections = buckets.map((key) => {
-			const chans = getStringArray(settings[key]);
-			const label = bucketLabel(key);
-			const items = chans.length === 0 ? ['*(none)*'] : chans.map((id) => `<#${id}>`);
-			return {
-				title: label,
-				items,
-				emptyMessage: '*(none)*'
-			};
-		});
+		const { createListComponent, createMultiSectionComponent } = await import('../../../lib/components.js');
 
-		const component = createMultiSectionComponent(sections);
-		if (component) {
+		if (bucket) {
+			// Single bucket - use simple list component
+			const chans = getStringArray(settings[bucket]);
+			const label = bucketLabel(bucket);
+			const items = chans.length === 0 ? [] : chans.map((id) => `<#${id}>`);
+			const component = createListComponent(label, items, 'No channels configured yet.', false); // Channel mentions are short, use commas
 			return respondComponents([component]);
+		} else {
+			// Multiple buckets - use multi-section component with proper sections and separators
+			const sections = buckets.map((key) => {
+				const chans = getStringArray(settings[key]);
+				const label = bucketLabel(key);
+				const items = chans.length === 0 ? ['*(none)*'] : chans.map((id) => `<#${id}>`);
+				return {
+					title: label,
+					items,
+					emptyMessage: '*(none)*',
+					forceNewlines: false // Channel mentions are short, use commas
+				};
+			});
+
+			const component = createMultiSectionComponent(sections);
+			if (component) {
+				return respondComponents([component]);
+			}
+			// Fallback to plain text if the component would exceed Discord limits
 		}
-		// Fallback to plain text if the component would exceed Discord limits
 	}
 
 	// Fallback to text for message commands
