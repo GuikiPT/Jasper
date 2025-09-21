@@ -90,7 +90,7 @@ export async function chatInputTagEdit(command: TagCommand, interaction: TagChat
 		.setLabel('Footer (optional)')
 		.setStyle(TextInputStyle.Short)
 		.setRequired(false)
-		.setMaxLength(MAX_EMBED_FOOTER_LENGTH);
+		.setMaxLength(Math.min(MAX_EMBED_FOOTER_LENGTH, 4_000));
 
 	if (tag.embedFooter) {
 		footerInput.setValue(tag.embedFooter);
