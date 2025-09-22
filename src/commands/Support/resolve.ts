@@ -24,7 +24,16 @@ import { replyWithComponent, editReplyWithComponent } from '../../lib/components
 	cooldownLimit: 1,
 	cooldownDelay: 10_000,
 	cooldownScope: BucketScope.Channel,
-	preconditions: ['SupportRoles'],
+	preconditions: [
+		{
+			name: 'AllowedGuildRoleBuckets',
+			context: {
+				buckets: ['allowedTagRoles', 'allowedStaffRoles'] as const,
+				allowManageGuild: false,
+				errorMessage: 'You need an allowed tag role or allowed staff role to view tag information.'
+			}
+		}
+	],
 	requiredClientPermissions: ['SendMessages', 'ManageThreads']
 })
 export class ResolveCommand extends Command {
