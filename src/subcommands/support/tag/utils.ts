@@ -176,8 +176,24 @@ export const findTag = async (command: TagCommand, guildId: string, name: string
 	}
 };
 
-const toStringArray = (value: unknown): string[] =>
-	Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+const toStringArray = (value: unknown): string[] => {
+	if (Array.isArray(value)) {
+		return value.filter((entry): entry is string => typeof entry === 'string');
+	}
+
+	if (typeof value === 'string') {
+		try {
+			const parsed = JSON.parse(value);
+			return Array.isArray(parsed)
+				? parsed.filter((entry): entry is string => typeof entry === 'string')
+				: [];
+		} catch {
+			return [];
+		}
+	}
+
+	return [];
+};
 
 export const fetchAllowedTagChannels = async (context: ContainerAccessor, guildId: string) => {
 	try {
