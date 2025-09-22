@@ -28,9 +28,9 @@ import { replyWithComponent, editReplyWithComponent } from '../../lib/components
 		{
 			name: 'AllowedGuildRoleBuckets',
 			context: {
-				buckets: ['allowedTagRoles', 'allowedStaffRoles'] as const,
+				buckets: ['allowedTagRoles', 'allowedStaffRoles', 'allowedAdminRoles'] as const,
 				allowManageGuild: false,
-				errorMessage: 'You need an allowed tag role or allowed staff role to view tag information.'
+				errorMessage: 'You need an allowed tag role, staff role, or admin role to use this command.'
 			}
 		}
 	],

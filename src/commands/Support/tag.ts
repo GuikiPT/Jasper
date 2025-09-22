@@ -44,9 +44,48 @@ import {
 	requiredClientPermissions: ['SendMessages'],
 	runIn: [CommandOptionsRunTypeEnum.GuildAny],
 	subcommands: [
-		{ name: 'create', chatInputRun: 'chatInputTagCreate', preconditions: ['AllowedTagRoles'] },
-		{ name: 'delete', chatInputRun: 'chatInputTagDelete', preconditions: ['AllowedTagRoles'] },
-		{ name: 'edit', chatInputRun: 'chatInputTagEdit', preconditions: ['AllowedTagRoles'] },
+		{
+			name: 'create',
+			chatInputRun: 'chatInputTagCreate',
+			preconditions: [
+				{
+					name: 'AllowedGuildRoleBuckets',
+					context: {
+						buckets: ['allowedTagRoles', 'allowedStaffRoles', 'allowedAdminRoles'] as const,
+						allowManageGuild: false,
+						errorMessage: 'You need an allowed tag role, staff role, or admin role to create tags.'
+					}
+				}
+			]
+		},
+		{
+			name: 'delete',
+			chatInputRun: 'chatInputTagDelete',
+			preconditions: [
+				{
+					name: 'AllowedGuildRoleBuckets',
+					context: {
+						buckets: ['allowedTagRoles', 'allowedStaffRoles', 'allowedAdminRoles'] as const,
+						allowManageGuild: false,
+						errorMessage: 'You need an allowed tag role, staff role, or admin role to delete tags.'
+					}
+				}
+			]
+		},
+		{
+			name: 'edit',
+			chatInputRun: 'chatInputTagEdit',
+			preconditions: [
+				{
+					name: 'AllowedGuildRoleBuckets',
+					context: {
+						buckets: ['allowedTagRoles', 'allowedStaffRoles', 'allowedAdminRoles'] as const,
+						allowManageGuild: false,
+						errorMessage: 'You need an allowed tag role, staff role, or admin role to edit tags.'
+					}
+				}
+			]
+		},
 		{ name: 'export', chatInputRun: 'chatInputTagExport', preconditions: ['AllowedTagAdminRoles'] },
 		{ name: 'import', chatInputRun: 'chatInputTagImport', preconditions: ['AllowedTagAdminRoles'] },
 		{
@@ -56,9 +95,9 @@ import {
 				{
 					name: 'AllowedGuildRoleBuckets',
 					context: {
-						buckets: ['allowedTagRoles', 'allowedStaffRoles'] as const,
+						buckets: ['allowedTagRoles', 'allowedStaffRoles', 'allowedAdminRoles'] as const,
 						allowManageGuild: false,
-						errorMessage: 'You need an allowed tag role or allowed staff role to view tag information.'
+						errorMessage: 'You need an allowed tag role, staff role, or admin role to view tag information.'
 					}
 				}
 			]
@@ -70,9 +109,9 @@ import {
 				{
 					name: 'AllowedGuildRoleBuckets',
 					context: {
-						buckets: ['allowedTagRoles', 'allowedStaffRoles'] as const,
+						buckets: ['allowedTagRoles', 'allowedStaffRoles', 'allowedAdminRoles'] as const,
 						allowManageGuild: false,
-						errorMessage: 'You need an allowed tag role or allowed staff role to list tags.'
+						errorMessage: 'You need an allowed tag role, staff role, or admin role to list tags.'
 					}
 				}
 			]
@@ -85,9 +124,9 @@ import {
 				{
 					name: 'AllowedGuildRoleBuckets',
 					context: {
-						buckets: ['allowedTagRoles', 'allowedStaffRoles'] as const,
+						buckets: ['allowedTagRoles', 'allowedStaffRoles', 'allowedAdminRoles'] as const,
 						allowManageGuild: false,
-						errorMessage: 'You need an allowed tag role or allowed staff role to show tags.'
+						errorMessage: 'You need an allowed tag role, staff role, or admin role to show tags.'
 					}
 				}
 			]
@@ -99,9 +138,9 @@ import {
 				{
 					name: 'AllowedGuildRoleBuckets',
 					context: {
-						buckets: ['allowedTagRoles', 'allowedStaffRoles'] as const,
+						buckets: ['allowedTagRoles', 'allowedStaffRoles', 'allowedAdminRoles'] as const,
 						allowManageGuild: false,
-						errorMessage: 'You need an allowed tag role or allowed staff role to use tags.'
+						errorMessage: 'You need an allowed tag role, staff role, or admin role to use tags.'
 					}
 				}
 			]
