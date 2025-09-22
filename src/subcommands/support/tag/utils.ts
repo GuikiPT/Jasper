@@ -155,7 +155,7 @@ export const isSupportTagPrismaTableMissingError = (error: unknown): error is Pr
 	isPrismaTableMissingError(error);
 
 export const SUPPORT_TAG_TABLE_MISSING_MESSAGE =
-	'Support tag storage has not been initialised yet. Run the pending Prisma migration to create the `GuildSupportTag` table.';
+	'Support tag storage has not been initialised yet. Run the pending Prisma migration to create the `GuildSupportTagSettings` table.';
 
 export const isSupportTagTableMissingError = (error: unknown): error is GuildSupportTagTableMissingError =>
 	error instanceof GuildSupportTagTableMissingError;
