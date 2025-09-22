@@ -21,10 +21,10 @@ const client = new SapphireClient({
 		if (!message.guildId) return fallback;
 
 		try {
-			const guildConfig = await container.database.guildConfig.findUnique({
+			const guildSettings = await container.database.guildSettings.findUnique({
 				where: { id: message.guildId }
 			});
-			if (guildConfig?.prefix) return guildConfig.prefix;
+			if (guildSettings?.prefix) return guildSettings.prefix;
 		} catch (error) {
 			sapphireClient.logger.error('Failed to fetch prefix from database', error);
 		}

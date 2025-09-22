@@ -35,9 +35,9 @@ import {
 		{
 			name: 'AllowedGuildRoleBuckets',
 			context: {
-				buckets: ['supportRoles', 'allowedStaffRoles'] as const,
+				buckets: ['supportRoles', 'allowedStaffRoles', 'allowedAdminRoles'] as const,
 				allowManageGuild: false,
-				errorMessage: 'Support commands may only be used by users with "Support Roles" or "Staff Roles".'
+				errorMessage: 'Support commands may only be used by users with "Support Roles", "Staff Roles", or "Admin Roles".'
 			}
 		}
 	],

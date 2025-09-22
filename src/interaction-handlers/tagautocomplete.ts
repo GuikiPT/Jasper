@@ -56,7 +56,7 @@ export class SupportTagsAutocompleteHandler extends InteractionHandler {
 		const normalizedQuery = query ? normalizeTagName(query) : '';
 
 		try {
-			const tags = await this.container.database.guildSupportTag.findMany({
+			const tags = await this.container.database.guildSupportTagSettings.findMany({
 				where: { guildId: interaction.guildId },
 				select: { name: true },
 				orderBy: { name: 'asc' }

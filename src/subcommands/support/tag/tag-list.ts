@@ -1,4 +1,4 @@
-import type { GuildSupportTag } from '@prisma/client';
+import type { GuildSupportTagSettings } from '@prisma/client';
 import { MessageFlags } from 'discord.js';
 
 import {
@@ -9,17 +9,20 @@ import {
 	isSupportTagTableMissingError,
 	replyEphemeral
 } from './utils';
-import { SUPPORT_TAG_LIST_CUSTOM_ID, SUPPORT_TAG_LIST_ITEMS_PER_PAGE } from './constants';
+
+import {
+	SUPPORT_TAG_LIST_CUSTOM_ID,
+	SUPPORT_TAG_LIST_ITEMS_PER_PAGE
+} from './constants';
+
+const SUPPORT_TAG_LIST_EMPTY_MESSAGE = 'No support tags have been created yet.';
 
 export async function chatInputTagList(command: TagCommand, interaction: TagChatInputInteraction) {
-	const guildId = interaction.guildId;
-	if (!guildId) {
-		return replyEphemeral(interaction, 'This command can only be used inside a server.');
-	}
+	const guildId = interaction.guildId!;
 
-	let tags: GuildSupportTag[];
+	let tags: GuildSupportTagSettings[];
 	try {
-		tags = await command.container.database.guildSupportTag.findMany({
+		tags = await command.container.database.guildSupportTagSettings.findMany({
 			where: { guildId },
 			orderBy: { name: 'asc' }
 		});
@@ -27,35 +30,34 @@ export async function chatInputTagList(command: TagCommand, interaction: TagChat
 		if (isSupportTagTableMissingError(error) || isSupportTagPrismaTableMissingError(error)) {
 			return replyEphemeral(interaction, SUPPORT_TAG_TABLE_MISSING_MESSAGE);
 		}
-		throw error;
+		command.container.logger.error('Failed to load tag list (chat input)', error);
+		return replyEphemeral(interaction, 'Failed to load tags. Please try again later.');
 	}
 
 	if (tags.length === 0) {
-		return replyEphemeral(interaction, 'No support tags have been created yet.');
+		return replyEphemeral(interaction, SUPPORT_TAG_LIST_EMPTY_MESSAGE);
 	}
 
-	const tagNames = tags.map((tag) => tag.name);
+	const tagNames = tags.map((tag: GuildSupportTagSettings) => tag.name);
 
-	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
+	// Import components dynamically to avoid circular dependencies
 	const { createPaginatedComponentWithButtons, createPaginationButtons } = await import('../../../lib/components.js');
 
+	// Create paginated component with navigation buttons
 	const { component, totalPages, currentPage } = createPaginatedComponentWithButtons(
 		'Support Tags',
 		tagNames,
-		'No support tags have been created yet.',
+		SUPPORT_TAG_LIST_EMPTY_MESSAGE,
 		SUPPORT_TAG_LIST_ITEMS_PER_PAGE
 	);
 
 	const buttons = createPaginationButtons(currentPage, totalPages, SUPPORT_TAG_LIST_CUSTOM_ID, {
 		ownerId: interaction.user.id
 	});
-	const components = buttons.length > 0 ? [component, ...buttons] : [component];
 
-	await interaction.editReply({
-		components,
-		flags: MessageFlags.IsComponentsV2
+	return interaction.reply({
+		components: [component, ...buttons],
+		flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+		allowedMentions: { users: [], roles: [] }
 	});
-
-	return interaction.fetchReply();
 }

@@ -91,7 +91,7 @@ export async function chatInputTopicList(command: TopicCommand, interaction: Top
 }
 
 async function fetchTopics(command: TopicCommand, guildId: string) {
-	return command.container.database.guildTopic.findMany({
+	return command.container.database.guildTopicSettings.findMany({
 		where: { guildId },
 		orderBy: { id: 'asc' }
 	});

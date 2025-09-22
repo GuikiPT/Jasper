@@ -42,7 +42,7 @@ async function handleTopicExport({ command, guildId, deny, respond, defer }: Top
 
 	let topics: { value: string }[] = [];
 	try {
-		topics = await command.container.database.guildTopic.findMany({
+		topics = await command.container.database.guildTopicSettings.findMany({
 			where: { guildId },
 			orderBy: { id: 'asc' }
 		});

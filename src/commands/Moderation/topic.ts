@@ -3,7 +3,7 @@ import { BucketScope, Command, CommandOptionsRunTypeEnum } from '@sapphire/frame
 import { ApplicationIntegrationType, InteractionContextType, MessageFlags } from 'discord.js';
 import type { Message } from 'discord.js';
 
-interface GuildTopic {
+interface GuildTopicSettings {
 	id: number;
 	value: string;
 }
@@ -96,9 +96,9 @@ export class TopicCommand extends Command {
 		});
 	}
 
-	private async fetchRandomTopic(guildId: string): Promise<GuildTopic | null> {
+	private async fetchRandomTopic(guildId: string): Promise<GuildTopicSettings | null> {
 		try {
-			const total = await this.container.database.guildTopic.count({
+			const total = await this.container.database.guildTopicSettings.count({
 				where: { guildId }
 			});
 
@@ -107,7 +107,7 @@ export class TopicCommand extends Command {
 			}
 
 			const skip = Math.floor(Math.random() * total);
-			const entry = await this.container.database.guildTopic.findFirst({
+			const entry = await this.container.database.guildTopicSettings.findFirst({
 				where: { guildId },
 				skip,
 				take: 1
@@ -117,14 +117,14 @@ export class TopicCommand extends Command {
 				return null;
 			}
 
-			return { id: entry.id, value: entry.value } satisfies GuildTopic;
+			return { id: entry.id, value: entry.value } satisfies GuildTopicSettings;
 		} catch (error) {
 			this.container.logger.error('Failed to fetch random topic', error);
 			return null;
 		}
 	}
 
-	private formatTopic(topic: GuildTopic) {
+	private formatTopic(topic: GuildTopicSettings) {
 		return `## ${topic.value}`;
 	}
 }

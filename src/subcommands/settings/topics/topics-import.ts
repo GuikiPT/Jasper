@@ -136,7 +136,7 @@ async function handleTopicImport({ command, guildId, payload, deny, respond, def
 	let existingSkipped = 0;
 
 	try {
-		const existing = await command.container.database.guildTopic.findMany({
+		const existing = await command.container.database.guildTopicSettings.findMany({
 			where: { guildId, value: { in: unique } },
 			select: { value: true }
 		});
@@ -154,7 +154,7 @@ async function handleTopicImport({ command, guildId, payload, deny, respond, def
 
 	if (toInsert.length > 0) {
 		try {
-			const result = await command.container.database.guildTopic.createMany({
+			const result = await command.container.database.guildTopicSettings.createMany({
 				data: toInsert.map((value) => ({ guildId, value }))
 			});
 			created = result.count;

@@ -103,7 +103,7 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 
 		let tag;
 		try {
-			tag = await this.container.database.guildSupportTag.findUnique({
+			tag = await this.container.database.guildSupportTagSettings.findUnique({
 				where: { id: tagId }
 			});
 		} catch (error) {
@@ -119,7 +119,7 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 
 		if (updatedName !== tag.name) {
 			try {
-				const collision = await this.container.database.guildSupportTag.findFirst({
+				const collision = await this.container.database.guildSupportTagSettings.findFirst({
 					where: { guildId, name: updatedName }
 				});
 
@@ -135,7 +135,7 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 		}
 
 		try {
-			const updated = await this.container.database.guildSupportTag.update({
+			const updated = await this.container.database.guildSupportTagSettings.update({
 				where: { id: tag.id },
 				data: {
 					name: updatedName,

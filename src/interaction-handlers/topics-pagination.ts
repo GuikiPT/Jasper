@@ -59,7 +59,7 @@ export class TopicListPaginationHandler extends InteractionHandler {
 
 		let topics;
 		try {
-			topics = await this.container.database.guildTopic.findMany({
+			topics = await this.container.database.guildTopicSettings.findMany({
 				where: { guildId },
 				orderBy: { id: 'asc' }
 			});

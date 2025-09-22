@@ -94,7 +94,7 @@ async function handlePrefixCommon(
 		}
 
 		try {
-			await command.container.database.guildConfig.upsert({
+			await command.container.database.guildSettings.upsert({
 				where: { id: guildId },
 				create: { id: guildId, prefix: trimmedPrefix },
 				update: { prefix: trimmedPrefix }
@@ -108,12 +108,10 @@ async function handlePrefixCommon(
 	}
 
 	try {
-		const guildConfig = await command.container.database.guildConfig.findUnique({
+		const guildSettings = await command.container.database.guildSettings.findUnique({
 			where: { id: guildId }
 		});
-		const resolvedPrefix = guildConfig?.prefix ?? defaultPrefix;
-
-		if (resolvedPrefix) {
+		const resolvedPrefix = guildSettings?.prefix ?? defaultPrefix; if (resolvedPrefix) {
 			return { content: `The current prefix is \`${resolvedPrefix}\`.` };
 		}
 

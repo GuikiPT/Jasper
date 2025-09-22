@@ -35,7 +35,7 @@ export async function chatInputTagDelete(command: TagCommand, interaction: TagCh
 	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 	try {
-		await command.container.database.guildSupportTag.delete({ where: { id: tag.id } });
+		await command.container.database.guildSupportTagSettings.delete({ where: { id: tag.id } });
 		return interaction.editReply({ content: `Deleted tag **${tag.name}**.` });
 	} catch (error) {
 		if (isSupportTagTableMissingError(error) || isSupportTagPrismaTableMissingError(error)) {

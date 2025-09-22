@@ -1,7 +1,7 @@
 import type { Args } from '@sapphire/framework';
 import type { Subcommand } from '@sapphire/plugin-subcommands';
 import { MessageFlags, type SlashCommandSubcommandGroupBuilder } from 'discord.js';
-import type { GuildRoleSettings, Prisma } from '@prisma/client';
+import type { GuildRoleSettings } from '@prisma/client';
 
 export type RoleMutationContext = {
 	command: RoleCommand;
@@ -178,10 +178,10 @@ export async function executeRoleMutation({
 			where: { guildId },
 			create: {
 				...blankRoleSettings(guildId),
-				[bucket]: current as unknown as Prisma.JsonArray
+				[bucket]: JSON.stringify(current)
 			},
 			update: {
-				[bucket]: current as unknown as Prisma.JsonArray
+				[bucket]: JSON.stringify(current)
 			}
 		});
 	} catch {
@@ -274,8 +274,8 @@ export async function ensureRoleSettings(command: RoleCommand, guildId: string):
 
 	if (existing) return existing;
 
-	// Ensure GuildConfig exists first (required for foreign key constraint)
-	await command.container.database.guildConfig.upsert({
+	// Ensure GuildSettings exists first (required for foreign key constraint)
+	await command.container.database.guildSettings.upsert({
 		where: { id: guildId },
 		create: { id: guildId },
 		update: {}
@@ -289,18 +289,24 @@ export async function ensureRoleSettings(command: RoleCommand, guildId: string):
 export function blankRoleSettings(guildId: string) {
 	return {
 		guildId,
-		allowedAdminRoles: [] as unknown as Prisma.JsonArray,
-		allowedFunCommandRoles: [] as unknown as Prisma.JsonArray,
-		allowedStaffRoles: [] as unknown as Prisma.JsonArray,
-		allowedTagAdminRoles: [] as unknown as Prisma.JsonArray,
-		allowedTagRoles: [] as unknown as Prisma.JsonArray,
-		ignoredSnipedRoles: [] as unknown as Prisma.JsonArray,
-		supportRoles: [] as unknown as Prisma.JsonArray
+		allowedAdminRoles: JSON.stringify([]),
+		allowedFunCommandRoles: JSON.stringify([]),
+		allowedStaffRoles: JSON.stringify([]),
+		allowedTagAdminRoles: JSON.stringify([]),
+		allowedTagRoles: JSON.stringify([]),
+		ignoredSnipedRoles: JSON.stringify([]),
+		supportRoles: JSON.stringify([])
 	};
 }
 
-export function getStringArray(value: Prisma.JsonValue | null | undefined): string[] {
-	return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+export function getStringArray(value: string | null | undefined): string[] {
+	if (!value) return [];
+	try {
+		const parsed = JSON.parse(value);
+		return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+	} catch {
+		return [];
+	}
 }
 
 export function bucketLabel(bucket: RoleBucketKey) {

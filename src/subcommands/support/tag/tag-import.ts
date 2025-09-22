@@ -109,13 +109,13 @@ export async function chatInputTagImport(command: TagCommand, interaction: TagCh
 	try {
 		await command.container.database.$transaction(async (tx: TransactionClient) => {
 			if (overwrite) {
-				await tx.guildSupportTag.deleteMany({ where: { guildId } });
+				await tx.guildSupportTagSettings.deleteMany({ where: { guildId } });
 			}
 
 			for (const entry of entries) {
 				const existing = overwrite
 					? null
-					: await tx.guildSupportTag.findFirst({
+					: await tx.guildSupportTagSettings.findFirst({
 						where: {
 							guildId,
 							name: entry.name
@@ -123,7 +123,7 @@ export async function chatInputTagImport(command: TagCommand, interaction: TagCh
 					});
 
 				if (!existing) {
-					await tx.guildSupportTag.create({
+					await tx.guildSupportTagSettings.create({
 						data: {
 							guildId,
 							name: entry.name,
@@ -139,7 +139,7 @@ export async function chatInputTagImport(command: TagCommand, interaction: TagCh
 					continue;
 				}
 
-				await tx.guildSupportTag.update({
+				await tx.guildSupportTagSettings.update({
 					where: { id: existing.id },
 					data: {
 						name: entry.name,

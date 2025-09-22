@@ -1,7 +1,7 @@
 import type { Args } from '@sapphire/framework';
 import type { Subcommand } from '@sapphire/plugin-subcommands';
 import { MessageFlags, type SlashCommandSubcommandGroupBuilder } from 'discord.js';
-import type { GuildChannelSettings, Prisma } from '@prisma/client';
+import type { GuildChannelSettings } from '@prisma/client';
 
 export type ChannelCommand = Subcommand;
 export type ChannelChatInputInteraction = Subcommand.ChatInputCommandInteraction;
@@ -171,10 +171,10 @@ export async function executeChannelMutation({
 			where: { guildId },
 			create: {
 				...blankChannelSettings(guildId),
-				[bucket]: current as unknown as Prisma.JsonArray
+				[bucket]: JSON.stringify(current)
 			},
 			update: {
-				[bucket]: current as unknown as Prisma.JsonArray
+				[bucket]: JSON.stringify(current)
 			}
 		});
 	} catch (error) {
@@ -261,8 +261,8 @@ export async function ensureChannelSettings(command: ChannelCommand, guildId: st
 	const existing = await command.container.database.guildChannelSettings.findUnique({ where: { guildId } });
 	if (existing) return existing;
 
-	// Ensure GuildConfig exists first (required for foreign key constraint)
-	await command.container.database.guildConfig.upsert({
+	// Ensure GuildSettings exists first (required for foreign key constraint)
+	await command.container.database.guildSettings.upsert({
 		where: { id: guildId },
 		create: { id: guildId },
 		update: {}
@@ -274,15 +274,21 @@ export async function ensureChannelSettings(command: ChannelCommand, guildId: st
 export function blankChannelSettings(guildId: string) {
 	return {
 		guildId,
-		allowedSkullboardChannels: [] as unknown as Prisma.JsonArray,
-		allowedSnipeChannels: [] as unknown as Prisma.JsonArray,
-		allowedTagChannels: [] as unknown as Prisma.JsonArray,
-		automaticSlowmodeChannels: [] as unknown as Prisma.JsonArray
+		allowedSkullboardChannels: JSON.stringify([]),
+		allowedSnipeChannels: JSON.stringify([]),
+		allowedTagChannels: JSON.stringify([]),
+		automaticSlowmodeChannels: JSON.stringify([])
 	};
 }
 
-export function getStringArray(value: Prisma.JsonValue | null | undefined): string[] {
-	return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+export function getStringArray(value: string | null | undefined): string[] {
+	if (!value) return [];
+	try {
+		const parsed = JSON.parse(value);
+		return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+	} catch {
+		return [];
+	}
 }
 
 export function bucketLabel(bucket: ChannelBucketKey) {

@@ -63,7 +63,7 @@ export class SupportTagListPaginationHandler extends InteractionHandler {
 
 		let tags;
 		try {
-			tags = await this.container.database.guildSupportTag.findMany({
+			tags = await this.container.database.guildSupportTagSettings.findMany({
 				where: { guildId },
 				orderBy: { name: 'asc' }
 			});

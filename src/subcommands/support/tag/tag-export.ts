@@ -46,7 +46,7 @@ async function handleTagExport({ command, guildId, deny, respond, defer }: TagEx
 	}
 
 	try {
-		const tags = await command.container.database.guildSupportTag.findMany({
+		const tags = await command.container.database.guildSupportTagSettings.findMany({
 			where: { guildId },
 			orderBy: { name: 'asc' }
 		});

@@ -179,7 +179,20 @@ export class AllowedGuildRoleBucketsPrecondition extends AllFlowsPrecondition {
 
 			for (const bucket of buckets) {
 				const value = settings[bucket] as unknown;
-				if (Array.isArray(value)) {
+				if (typeof value === 'string') {
+					try {
+						const parsed = JSON.parse(value);
+						if (Array.isArray(parsed)) {
+							for (const entry of parsed) {
+								if (typeof entry === 'string') {
+									roles.add(entry);
+								}
+							}
+						}
+					} catch (error) {
+						this.container.logger.warn(`[AllowedGuildRoleBuckets] Failed to parse ${bucket} for guild ${guildId}:`, error);
+					}
+				} else if (Array.isArray(value)) {
 					for (const entry of value) {
 						if (typeof entry === 'string') {
 							roles.add(entry);

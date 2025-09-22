@@ -11,12 +11,12 @@ export const database = new PrismaClient({
 });
 
 const expectedTables = [
-	'GuildConfig',
+	'GuildSettings',
 	'GuildRoleSettings',
 	'GuildChannelSettings',
 	'GuildSupportSettings',
-	'GuildSupportTags',
-	'GuildTopics'
+	'GuildSupportTagSettings',
+	'GuildTopicSettings'
 ];
 
 let isDatabaseReady = false;

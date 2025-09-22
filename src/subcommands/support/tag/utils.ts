@@ -1,7 +1,7 @@
 import type { Subcommand } from '@sapphire/plugin-subcommands';
 import type { APIInteractionGuildMember, GuildMember } from 'discord.js';
 import { EmbedBuilder, MessageFlags, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize, MediaGalleryBuilder, MediaGalleryItemBuilder } from 'discord.js';
-import { Prisma, type GuildSupportTag } from '@prisma/client';
+import { Prisma, type GuildSupportTagSettings } from '@prisma/client';
 
 export type TagCommand = Subcommand;
 export type TagChatInputInteraction = Subcommand.ChatInputCommandInteraction;
@@ -56,7 +56,7 @@ type SupportRoleAwareInteraction = {
 	member: GuildMember | APIInteractionGuildMember | null;
 };
 
-export const buildTagEmbed = (tag: GuildSupportTag) => {
+export const buildTagEmbed = (tag: GuildSupportTagSettings) => {
 	const embed = new EmbedBuilder().setTitle(tag.embedTitle).setColor(0x5865f2);
 
 	if (tag.embedDescription) {
@@ -74,7 +74,7 @@ export const buildTagEmbed = (tag: GuildSupportTag) => {
 	return embed;
 };
 
-export const buildTagComponents = (tag: GuildSupportTag, user?: { id: string }) => {
+export const buildTagComponents = (tag: GuildSupportTagSettings, user?: { id: string }) => {
 	const components = [];
 
 	// Add user mention as separate component outside container if provided
@@ -162,7 +162,7 @@ export const isSupportTagTableMissingError = (error: unknown): error is GuildSup
 
 export const findTag = async (command: TagCommand, guildId: string, name: string) => {
 	try {
-		return await command.container.database.guildSupportTag.findFirst({
+		return await command.container.database.guildSupportTagSettings.findFirst({
 			where: {
 				guildId,
 				name

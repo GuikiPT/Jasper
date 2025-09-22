@@ -91,7 +91,7 @@ export class SupportTagCreateModalHandler extends InteractionHandler {
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		try {
-			const existing = await this.container.database.guildSupportTag.findFirst({
+			const existing = await this.container.database.guildSupportTagSettings.findFirst({
 				where: { guildId, name }
 			});
 
@@ -106,7 +106,7 @@ export class SupportTagCreateModalHandler extends InteractionHandler {
 		}
 
 		try {
-			const tag = await this.container.database.guildSupportTag.create({
+			const tag = await this.container.database.guildSupportTagSettings.create({
 				data: {
 					guildId,
 					name,

@@ -159,9 +159,9 @@ export async function executeSupportSet({
 		}
 	}
 
-	// Ensure GuildConfig exists first (required for foreign key constraint)
+	// Ensure GuildSettings exists first (required for foreign key constraint)
 	try {
-		await command.container.database.guildConfig.upsert({
+		await command.container.database.guildSettings.upsert({
 			where: { id: guildId },
 			create: { id: guildId },
 			update: {}

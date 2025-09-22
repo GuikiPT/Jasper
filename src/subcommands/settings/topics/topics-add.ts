@@ -63,7 +63,7 @@ async function handleTopicAdd({ command, guildId, value, deny, respond, defer }:
 	}
 
 	try {
-		const created = await command.container.database.guildTopic.create({
+		const created = await command.container.database.guildTopicSettings.create({
 			data: { guildId, value: normalized }
 		});
 
