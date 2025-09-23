@@ -6,6 +6,7 @@ import { envParseString } from '@skyra/env-utilities';
 import { GatewayIntentBits, Partials } from 'discord.js';
 import { ensureDatabaseReady } from './lib/database';
 import { Logger } from './lib/logger';
+import { SlowmodeManager } from './services/slowmodeManager';
 
 const client = new SapphireClient({
 	defaultPrefix: 'j!',
@@ -52,6 +53,8 @@ const client = new SapphireClient({
 	partials: [Partials.Channel],
 	loadMessageCommandListeners: true
 });
+
+container.slowmodeManager = new SlowmodeManager(client, container.database);
 
 const main = async () => {
 	try {

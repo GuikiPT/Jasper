@@ -32,6 +32,14 @@ import {
 	messageChannelRemove as handleMessageChannelRemove
 } from '../../subcommands/settings/channels';
 import {
+	slowmodeSubcommandMapping,
+	registerSlowmodeSubcommandGroup,
+	chatInputSlowmodeView as handleChatInputSlowmodeView,
+	chatInputSlowmodeConfigure as handleChatInputSlowmodeConfigure,
+	messageSlowmodeView as handleMessageSlowmodeView,
+	messageSlowmodeConfigure as handleMessageSlowmodeConfigure
+} from '../../subcommands/settings/slowmode';
+import {
 	topicSubcommandMapping,
 	registerTopicSubcommandGroup,
 	chatInputTopicAdd as handleChatInputTopicAdd,
@@ -63,7 +71,14 @@ import {
 	cooldownDelay: 5_000,
 	cooldownScope: BucketScope.User,
 	requiredClientPermissions: ['SendMessages'],
-	subcommands: [prefixSubcommandMapping, roleSubcommandMapping, channelSubcommandMapping, topicSubcommandMapping, supportSubcommandMapping]
+	subcommands: [
+		prefixSubcommandMapping,
+		roleSubcommandMapping,
+		channelSubcommandMapping,
+		topicSubcommandMapping,
+		supportSubcommandMapping,
+		slowmodeSubcommandMapping
+	]
 })
 export class SettingsCommand extends Subcommand {
 	private readonly integrationTypes: ApplicationIntegrationType[] = [ApplicationIntegrationType.GuildInstall];
@@ -82,6 +97,7 @@ export class SettingsCommand extends Subcommand {
 				.addSubcommandGroup(registerChannelSubcommandGroup)
 				.addSubcommandGroup(registerTopicSubcommandGroup)
 				.addSubcommandGroup(registerSupportSubcommandGroup)
+				.addSubcommandGroup(registerSlowmodeSubcommandGroup)
 		);
 	}
 
@@ -147,6 +163,22 @@ export class SettingsCommand extends Subcommand {
 
 	public async chatInputChannelList(interaction: Subcommand.ChatInputCommandInteraction) {
 		return handleChatInputChannelList(this, interaction);
+	}
+
+	public async messageSlowmodeView(message: Message) {
+		return handleMessageSlowmodeView(this, message);
+	}
+
+	public async messageSlowmodeConfigure(message: Message, args: Args) {
+		return handleMessageSlowmodeConfigure(this, message, args);
+	}
+
+	public async chatInputSlowmodeView(interaction: Subcommand.ChatInputCommandInteraction) {
+		return handleChatInputSlowmodeView(this, interaction);
+	}
+
+	public async chatInputSlowmodeConfigure(interaction: Subcommand.ChatInputCommandInteraction) {
+		return handleChatInputSlowmodeConfigure(this, interaction);
 	}
 
 	public async messageTopicAdd(message: Message, args: Args) {

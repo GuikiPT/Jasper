@@ -16,7 +16,8 @@ const expectedTables = [
 	'GuildChannelSettings',
 	'GuildSupportSettings',
 	'GuildSupportTagSettings',
-	'GuildTopicSettings'
+	'GuildTopicSettings',
+	'GuildSlowmodeSettings'
 ];
 
 let isDatabaseReady = false;
