@@ -322,7 +322,6 @@ export class SlowmodeManager {
 			if (!settings) return null;
 
 			const enabledChannels = new Set<string>();
-			this.parseStringArray(settings.enabledChannels).forEach((id) => enabledChannels.add(id));
 			if (channels) {
 				this.parseStringArray(channels.automaticSlowmodeChannels).forEach((id) => enabledChannels.add(id));
 			}

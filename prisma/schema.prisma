@@ -1,97 +1,96 @@
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+    provider = "mysql"
+    url      = env("DATABASE_URL")
 }
 
 model GuildSettings {
-  id                    String                    @id
-  prefix                String?
-  createdAt             DateTime                  @default(now())
-  updatedAt             DateTime                  @updatedAt
-  channels              GuildChannelSettings?
-  roles                 GuildRoleSettings?
-  GuildSlowmodeSettings GuildSlowmodeSettings?
-  supportSettings       GuildSupportSettings?
-  supportTags           GuildSupportTagSettings[]
-  topics                GuildTopicSettings[]
+    id                    String                    @id
+    prefix                String?
+    createdAt             DateTime                  @default(now())
+    updatedAt             DateTime                  @updatedAt
+    channels              GuildChannelSettings?
+    roles                 GuildRoleSettings?
+    GuildSlowmodeSettings GuildSlowmodeSettings?
+    supportSettings       GuildSupportSettings?
+    supportTags           GuildSupportTagSettings[]
+    topics                GuildTopicSettings[]
 
-  @@map("GuildSettings")
+    @@map("GuildSettings")
 }
 
 model GuildRoleSettings {
-  guildId                String        @id
-  allowedAdminRoles      String        @db.LongText
-  allowedFunCommandRoles String        @db.LongText
-  allowedStaffRoles      String        @db.LongText
-  allowedTagAdminRoles   String        @db.LongText
-  allowedTagRoles        String        @db.LongText
-  ignoredSnipedRoles     String        @db.LongText
-  supportRoles           String        @db.LongText
-  guild                  GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
+    guildId                String        @id
+    allowedAdminRoles      String        @db.LongText
+    allowedFunCommandRoles String        @db.LongText
+    allowedStaffRoles      String        @db.LongText
+    allowedTagAdminRoles   String        @db.LongText
+    allowedTagRoles        String        @db.LongText
+    ignoredSnipedRoles     String        @db.LongText
+    supportRoles           String        @db.LongText
+    guild                  GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
 }
 
 model GuildChannelSettings {
-  guildId                   String        @id
-  allowedSkullboardChannels String        @db.LongText
-  allowedSnipeChannels      String        @db.LongText
-  allowedTagChannels        String        @db.LongText
-  automaticSlowmodeChannels String        @db.LongText
-  guild                     GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
+    guildId                   String        @id
+    allowedSkullboardChannels String        @db.LongText
+    allowedSnipeChannels      String        @db.LongText
+    allowedTagChannels        String        @db.LongText
+    automaticSlowmodeChannels String        @db.LongText
+    guild                     GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
 }
 
 model GuildSupportSettings {
-  guildId               String        @id
-  supportForumChannelId String?
-  resolvedTagId         String?
-  guild                 GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
+    guildId               String        @id
+    supportForumChannelId String?
+    resolvedTagId         String?
+    guild                 GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
-  @@map("GuildSupportSettings")
+    @@map("GuildSupportSettings")
 }
 
 model GuildSlowmodeSettings {
-  guildId           String        @id
-  enabled           Boolean       @default(false)
-  messageThreshold  Int           @default(10)
-  messageTimeWindow Int           @default(30)
-  cooldownDuration  Int           @default(20)
-  resetTime         Int           @default(300)
-  maxSlowmode       Int           @default(21600)
-  enabledChannels   String        @db.LongText
-  GuildSettings     GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
+    guildId           String        @id
+    enabled           Boolean       @default(false)
+    messageThreshold  Int           @default(10)
+    messageTimeWindow Int           @default(30)
+    cooldownDuration  Int           @default(20)
+    resetTime         Int           @default(300)
+    maxSlowmode       Int           @default(21600)
+    GuildSettings     GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
 }
 
 model GuildSupportTagSettings {
-  id               Int           @id @default(autoincrement())
-  guildId          String
-  name             String
-  authorId         String
-  editedBy         String?
-  embedTitle       String        @db.VarChar(512)
-  embedDescription String?       @db.Text
-  embedFooter      String?       @db.Text
-  embedImageUrl    String?       @db.VarChar(1024)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  GuildSettings    GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
+    id               Int           @id @default(autoincrement())
+    guildId          String
+    name             String
+    authorId         String
+    editedBy         String?
+    embedTitle       String        @db.VarChar(512)
+    embedDescription String?       @db.Text
+    embedFooter      String?       @db.Text
+    embedImageUrl    String?       @db.VarChar(1024)
+    createdAt        DateTime      @default(now())
+    updatedAt        DateTime      @updatedAt
+    GuildSettings    GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
-  @@unique([guildId, name])
-  @@index([guildId])
-  @@map("GuildSupportTagSettings")
+    @@unique([guildId, name])
+    @@index([guildId])
+    @@map("GuildSupportTagSettings")
 }
 
 model GuildTopicSettings {
-  id            Int           @id @default(autoincrement())
-  guildId       String
-  value         String
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  GuildSettings GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
+    id            Int           @id @default(autoincrement())
+    guildId       String
+    value         String
+    createdAt     DateTime      @default(now())
+    updatedAt     DateTime      @updatedAt
+    GuildSettings GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
-  @@unique([guildId, value])
-  @@index([guildId])
-  @@map("GuildTopicSettings")
+    @@unique([guildId, value])
+    @@index([guildId])
+    @@map("GuildTopicSettings")
 }

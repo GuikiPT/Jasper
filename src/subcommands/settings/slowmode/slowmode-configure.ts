@@ -1,5 +1,6 @@
 import type { Args } from '@sapphire/framework';
 import type { Message } from 'discord.js';
+import { MessageFlags } from 'discord.js';
 
 import {
 	executeSlowmodeUpdate,
@@ -61,7 +62,12 @@ export async function chatInputSlowmodeConfigure(
 		command,
 		guildId: interaction.guildId ?? null,
 		updates,
-		respond: (content) => interaction.editReply({ content }),
+		respond: (content) => interaction.editReply({ content, allowedMentions: { users: [], roles: [] } }),
+		respondComponents: (components) => interaction.editReply({
+			components,
+			flags: MessageFlags.IsComponentsV2,
+			allowedMentions: { users: [], roles: [] }
+		}),
 		deny: (content) => denyInteraction(interaction, content),
 		defer: () => deferInteraction(interaction)
 	});

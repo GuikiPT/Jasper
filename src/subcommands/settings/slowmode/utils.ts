@@ -11,6 +11,7 @@ export type SlowmodeViewContext = {
 	command: SlowmodeCommand;
 	guildId: string | null;
 	respond: (content: string) => Promise<unknown>;
+	respondComponents?: (components: any[]) => Promise<unknown>;
 	deny: (content: string) => Promise<unknown>;
 	defer?: () => Promise<unknown>;
 };
@@ -96,7 +97,7 @@ export const slowmodeSubcommandMapping: SubcommandMappingGroup = {
 	]
 };
 
-export async function executeSlowmodeView({ command, guildId, respond, deny, defer }: SlowmodeViewContext) {
+export async function executeSlowmodeView({ command, guildId, respond, respondComponents, deny, defer }: SlowmodeViewContext) {
 	if (!guildId) {
 		return deny('This command can only be used inside a server.');
 	}
@@ -108,21 +109,60 @@ export async function executeSlowmodeView({ command, guildId, respond, deny, def
 	const settings = await ensureSlowmodeSettings(command, guildId);
 	const channelSettings = await command.container.database.guildChannelSettings.findUnique({ where: { guildId } });
 
-	const manualChannels = getStringArray(settings.enabledChannels);
-	const unionChannels = new Set(manualChannels);
-	if (channelSettings) {
-		getStringArray(channelSettings.automaticSlowmodeChannels).forEach((id) => unionChannels.add(id));
+	const trackedChannels = channelSettings ? getStringArray(channelSettings.automaticSlowmodeChannels) : [];
+
+	// If we have component support, use it
+	if (respondComponents) {
+		try {
+			command.container.logger.debug('[Slowmode] Using component response');
+			const { createMultiSectionComponent } = await import('../../../lib/components.js');
+
+			const formatChannels = (channels: string[]) => (channels.length ? channels.map((id) => `<#${id}>`) : ['*(none)*']);
+
+			const sections = [
+				{
+					title: 'General Settings',
+					items: [
+						`**Enabled:** ${settings.enabled ? 'Yes' : 'No'}`,
+						`**Message Threshold:** ${settings.messageThreshold} message${settings.messageThreshold === 1 ? '' : 's'}`,
+						`**Activity Window:** ${settings.messageTimeWindow} second${settings.messageTimeWindow === 1 ? '' : 's'}`,
+						`**Cooldown Between Adjustments:** ${settings.cooldownDuration} second${settings.cooldownDuration === 1 ? '' : 's'}`,
+						`**Reset After Inactivity:** ${settings.resetTime} second${settings.resetTime === 1 ? '' : 's'}`,
+						`**Maximum Slowmode:** ${settings.maxSlowmode} second${settings.maxSlowmode === 1 ? '' : 's'}`
+					],
+					emptyMessage: '*(none)*',
+					forceNewlines: true
+				},
+				{
+					title: 'Tracked Channels',
+					items: formatChannels(trackedChannels),
+					emptyMessage: '*(none)*',
+					forceNewlines: false
+				}
+			];
+
+			const component = createMultiSectionComponent(sections);
+			if (component) {
+				command.container.logger.debug('[Slowmode] Component created successfully');
+				return respondComponents([component]);
+			} else {
+				command.container.logger.debug('[Slowmode] Component creation failed, falling back to text');
+			}
+			// Fallback to plain text if the component would exceed Discord limits
+		} catch (error) {
+			command.container.logger.error('[Slowmode] Error creating component', error);
+		}
+	} else {
+		command.container.logger.debug('[Slowmode] No component support, using text response');
 	}
 
-	const lines = formatSlowmodeSettings(settings, {
-		manualChannels,
-		allChannels: [...unionChannels]
-	});
+	// Fallback to plain text for message commands
+	const lines = formatSlowmodeSettings(settings, { trackedChannels });
 
 	return respond(lines);
 }
 
-export async function executeSlowmodeUpdate({ command, guildId, updates, respond, deny, defer }: SlowmodeUpdateContext) {
+export async function executeSlowmodeUpdate({ command, guildId, updates, respond, respondComponents, deny, defer }: SlowmodeUpdateContext) {
 	if (!guildId) {
 		return deny('This command can only be used inside a server.');
 	}
@@ -168,17 +208,46 @@ export async function executeSlowmodeUpdate({ command, guildId, updates, respond
 	void command.container.slowmodeManager?.handleSettingsUpdated(guildId);
 
 	const channelSettings = await command.container.database.guildChannelSettings.findUnique({ where: { guildId } });
-	const manualChannels = getStringArray(updated.enabledChannels);
-	const unionChannels = new Set(manualChannels);
-	if (channelSettings) {
-		getStringArray(channelSettings.automaticSlowmodeChannels).forEach((id) => unionChannels.add(id));
+	const trackedChannels = channelSettings ? getStringArray(channelSettings.automaticSlowmodeChannels) : [];
+
+	// If we have component support, use it
+	if (respondComponents) {
+		const { createMultiSectionComponent } = await import('../../../lib/components.js');
+
+		const formatChannels = (channels: string[]) => (channels.length ? channels.map((id) => `<#${id}>`) : ['*(none)*']);
+
+		const sections = [
+			{
+				title: 'Updated Slowmode Settings',
+				items: [
+					`**Enabled:** ${updated.enabled ? 'Yes' : 'No'}`,
+					`**Message Threshold:** ${updated.messageThreshold} message${updated.messageThreshold === 1 ? '' : 's'}`,
+					`**Activity Window:** ${updated.messageTimeWindow} second${updated.messageTimeWindow === 1 ? '' : 's'}`,
+					`**Cooldown Between Adjustments:** ${updated.cooldownDuration} second${updated.cooldownDuration === 1 ? '' : 's'}`,
+					`**Reset After Inactivity:** ${updated.resetTime} second${updated.resetTime === 1 ? '' : 's'}`,
+					`**Maximum Slowmode:** ${updated.maxSlowmode} second${updated.maxSlowmode === 1 ? '' : 's'}`
+				],
+				emptyMessage: '*(none)*',
+				forceNewlines: true
+			},
+			{
+				title: 'Tracked Channels',
+				items: formatChannels(trackedChannels),
+				emptyMessage: '*(none)*',
+				forceNewlines: false
+			}
+		];
+
+		const component = createMultiSectionComponent(sections);
+		if (component) {
+			return respondComponents([component]);
+		}
+		// Fallback to plain text if the component would exceed Discord limits
 	}
 
+	// Fallback to plain text for message commands
 	return respond(
-		`Updated slowmode settings:\n${formatSlowmodeSettings(updated, {
-			manualChannels,
-			allChannels: [...unionChannels]
-		})}`
+		`Updated slowmode settings:\n${formatSlowmodeSettings(updated, { trackedChannels })}`
 	);
 }
 
@@ -187,7 +256,7 @@ export function formatSlowmodeSettings(
 		GuildSlowmodeSettings,
 		'enabled' | 'messageThreshold' | 'messageTimeWindow' | 'cooldownDuration' | 'resetTime' | 'maxSlowmode'
 	>,
-	channelData: { manualChannels: string[]; allChannels: string[] }
+	channelData: { trackedChannels: string[] }
 ) {
 	const formatChannels = (channels: string[]) => (channels.length ? channels.map((id) => `<#${id}>`).join(', ') : '*(none)*');
 
@@ -198,8 +267,7 @@ export function formatSlowmodeSettings(
 		`Cooldown Between Adjustments: ${settings.cooldownDuration} second${settings.cooldownDuration === 1 ? '' : 's'}`,
 		`Reset After Inactivity: ${settings.resetTime} second${settings.resetTime === 1 ? '' : 's'}`,
 		`Maximum Slowmode: ${settings.maxSlowmode} second${settings.maxSlowmode === 1 ? '' : 's'}`,
-		`Manually Enabled Channels: ${formatChannels(channelData.manualChannels)}`,
-		`All Tracked Channels: ${formatChannels(channelData.allChannels)}`
+		`Tracked Channels: ${formatChannels(channelData.trackedChannels)}`
 	];
 
 	return lines.join('\n');
@@ -216,10 +284,8 @@ export async function ensureSlowmodeSettings(command: SlowmodeCommand, guildId: 
 	});
 
 	const created = await command.container.database.guildSlowmodeSettings.create({
-		data: {
-			guildId,
-			enabledChannels: JSON.stringify([])
-		}
+		// Cast to any to avoid stale Prisma types until `prisma generate` runs
+		data: ({ guildId } as any)
 	});
 
 	command.container.logger.info('[Settings:Slowmode] Created default slowmode settings', { guildId });
