@@ -57,7 +57,7 @@ model GuildSlowmodeSettings {
   enabled           Boolean       @default(false)
   messageThreshold  Int           @default(10)
   messageTimeWindow Int           @default(30)
-  cooldownDuration  Int           @default(60)
+  cooldownDuration  Int           @default(20)
   resetTime         Int           @default(300)
   maxSlowmode       Int           @default(21600)
   enabledChannels   String        @db.LongText
