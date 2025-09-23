@@ -15,7 +15,7 @@ interface SlowmodeConfig {
 interface ChannelActivityState {
 	messageTimestamps: number[];
 	lastSlowmodeUpdate: number;
-	activeSlowmode: number | null;
+	activeSlowmode: number;
 	resetTimer: NodeJS.Timeout | null;
 }
 
@@ -24,7 +24,7 @@ type SlowmodeCapableChannel = Channel & {
 	setRateLimitPerUser(seconds: number, reason?: string): Promise<unknown>;
 };
 
-const MIN_SLOWMODE_SECONDS = 3;
+const MIN_SLOWMODE_SECONDS = 1;
 
 interface GuildState {
 	configKey: string | null;
@@ -119,7 +119,7 @@ export class SlowmodeManager {
 		const slowmodeSeconds = this.calculateSlowmodeSeconds(messageCount, config);
 		const typedChannel = channel as SlowmodeCapableChannel;
 		const currentSlowmode = typedChannel.rateLimitPerUser ?? 0;
-		const activeSlowmode = state.activeSlowmode ?? currentSlowmode;
+		const activeSlowmode = state.activeSlowmode;
 		const cooldownMs = Math.max(config.cooldownDuration, 1) * 1000;
 
 		this.client.logger.debug('[Slowmode] Threshold reached - calculating slowmode', {
@@ -149,7 +149,7 @@ export class SlowmodeManager {
 		}
 
 		if (currentSlowmode >= slowmodeSeconds) {
-			state.activeSlowmode = currentSlowmode > 0 ? currentSlowmode : null;
+			state.activeSlowmode = Math.max(currentSlowmode, MIN_SLOWMODE_SECONDS);
 			this.scheduleReset(message.guildId, channel.id, config.resetTime);
 			this.client.logger.debug('[Slowmode] Existing rate limit sufficient', {
 				guildId: message.guildId,
@@ -221,16 +221,17 @@ export class SlowmodeManager {
 			state.resetTimer = null;
 		}
 
-		if (!state.activeSlowmode) {
+		if (!state.activeSlowmode || state.activeSlowmode <= MIN_SLOWMODE_SECONDS) {
 			state.messageTimestamps.length = 0;
 			state.lastSlowmodeUpdate = 0;
 			if (options.prune) {
 				guildState.channels.delete(channelId);
 			}
 			if (options.reason) {
-				this.client.logger.debug('[Slowmode] Channel state cleared without active rate limit', {
+				this.client.logger.debug('[Slowmode] Channel state cleared without significant rate limit', {
 					guildId,
 					channelId,
+					activeSlowmode: state.activeSlowmode,
 					reason: options.reason
 				});
 			}
@@ -239,7 +240,7 @@ export class SlowmodeManager {
 
 		const channel = await this.fetchSlowmodeChannel(channelId);
 		if (!channel) {
-			state.activeSlowmode = null;
+			state.activeSlowmode = MIN_SLOWMODE_SECONDS;
 			state.lastSlowmodeUpdate = 0;
 			state.messageTimestamps.length = 0;
 			if (options.prune) {
@@ -250,24 +251,25 @@ export class SlowmodeManager {
 
 		const currentSlowmode = channel.rateLimitPerUser ?? 0;
 		if (currentSlowmode !== state.activeSlowmode) {
-			state.activeSlowmode = currentSlowmode > 0 ? currentSlowmode : null;
-			if (options.prune && state.activeSlowmode === null) {
+			state.activeSlowmode = Math.max(currentSlowmode, MIN_SLOWMODE_SECONDS);
+			if (options.prune && currentSlowmode <= MIN_SLOWMODE_SECONDS) {
 				guildState.channels.delete(channelId);
 			}
 			return;
 		}
 
 		try {
-			await channel.setRateLimitPerUser(0, options.reason ?? 'Automatic slowmode reset after inactivity.');
-			state.activeSlowmode = null;
+			await channel.setRateLimitPerUser(MIN_SLOWMODE_SECONDS, options.reason ?? 'Automatic slowmode reset to minimum after inactivity.');
+			state.activeSlowmode = MIN_SLOWMODE_SECONDS;
 			state.lastSlowmodeUpdate = 0;
 			state.messageTimestamps.length = 0;
 			if (options.prune) {
 				guildState.channels.delete(channelId);
 			}
-			this.client.logger.info('[Slowmode] Slowmode cleared', {
+			this.client.logger.info('[Slowmode] Slowmode reset to minimum', {
 				guildId,
 				channelId,
+				slowmode: MIN_SLOWMODE_SECONDS,
 				reason: options.reason ?? 'inactivity'
 			});
 		} catch (error) {
@@ -282,7 +284,7 @@ export class SlowmodeManager {
 		const threshold = Math.max(config.messageThreshold, 1);
 		const ratio = messageCount / threshold;
 		const overThresholdRatio = Math.max(0, ratio - 1);
-		const scaled = MIN_SLOWMODE_SECONDS + Math.ceil(overThresholdRatio * 4);
+		const scaled = MIN_SLOWMODE_SECONDS + Math.ceil(overThresholdRatio * 2);
 		const slowmode = Math.max(MIN_SLOWMODE_SECONDS, scaled);
 		return Math.min(config.maxSlowmode, slowmode);
 	}
@@ -303,7 +305,7 @@ export class SlowmodeManager {
 			channelState = {
 				messageTimestamps: [],
 				lastSlowmodeUpdate: 0,
-				activeSlowmode: null,
+				activeSlowmode: MIN_SLOWMODE_SECONDS,
 				resetTimer: null
 			};
 			guildState.channels.set(channelId, channelState);
@@ -381,7 +383,7 @@ export class SlowmodeManager {
 
 				state.messageTimestamps.length = 0;
 				state.lastSlowmodeUpdate = 0;
-				state.activeSlowmode = null;
+				state.activeSlowmode = MIN_SLOWMODE_SECONDS;
 			})
 		);
 	}

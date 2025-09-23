@@ -66,7 +66,7 @@ export const registerSlowmodeSubcommandGroup = (group: SlashCommandSubcommandGro
 				.addIntegerOption((option) =>
 					option
 						.setName('reset')
-						.setDescription('Seconds of inactivity before slowmode is cleared.')
+						.setDescription('Seconds of inactivity before slowmode is reset to minimum (1 second).')
 						.setMinValue(1)
 				)
 				.addIntegerOption((option) =>
