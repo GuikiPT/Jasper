@@ -7,6 +7,7 @@ import { GatewayIntentBits, Partials } from 'discord.js';
 import { ensureDatabaseReady } from './lib/database';
 import { Logger } from './lib/logger';
 import { SlowmodeManager } from './services/slowmodeManager';
+import { SnipeManager } from './services/snipeManager';
 
 const client = new SapphireClient({
 	defaultPrefix: 'j!',
@@ -55,6 +56,7 @@ const client = new SapphireClient({
 });
 
 container.slowmodeManager = new SlowmodeManager(client, container.database);
+container.snipeManager = new SnipeManager(client, container.database);
 
 const main = async () => {
 	try {
