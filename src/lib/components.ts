@@ -201,8 +201,8 @@ export function createMultiSectionComponent(
 ): ContainerBuilder | null {
 	const container = new ContainerBuilder();
 
-	// Limit to 5 sections max to avoid hitting component limits
-	const limitedSections = sections.slice(0, 5);
+	// Increase limit to 7 sections to accommodate all role types (was 5)
+	const limitedSections = sections.slice(0, 7);
 
 	let componentCount = 0;
 
@@ -218,34 +218,14 @@ export function createMultiSectionComponent(
 	for (let index = 0; index < limitedSections.length; index += 1) {
 		const section = limitedSections[index];
 		const truncatedTitle = truncateTitle(section.title);
-		if (!addComponent(() =>
-			container.addTextDisplayComponents(
-				new TextDisplayBuilder().setContent(`### ${truncatedTitle}`)
-			)
-		)) {
-			return null;
-		}
-
-		if (!addComponent(() =>
-			container.addSeparatorComponents(
-				new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-			)
-		)) {
-			return null;
-		}
 
 		// Don't truncate individual items aggressively, let the join handle the overall length
 		const truncatedItems = section.items;
 
+		let sectionContent: string;
 		if (truncatedItems.length === 0) {
 			const emptyMsg = section.emptyMessage || 'No items found.';
-			if (!addComponent(() =>
-				container.addTextDisplayComponents(
-					new TextDisplayBuilder().setContent(`*${truncateText(emptyMsg, 1900)}*`)
-				)
-			)) {
-				return null;
-			}
+			sectionContent = `### ${truncatedTitle}\n*${truncateText(emptyMsg, 1800)}*`;
 		} else {
 			// Determine separator based on content length or force
 			const averageItemLength = truncatedItems.reduce((sum, item) => sum + item.length, 0) / truncatedItems.length;
@@ -253,17 +233,21 @@ export function createMultiSectionComponent(
 
 			const separator = useNewlines ? '\n' : ', ';
 			const joinedItems = truncatedItems.join(separator);
-			const truncatedContent = truncateText(joinedItems, 1900);
+			const truncatedContent = truncateText(joinedItems, 1800);
 
-			if (!addComponent(() =>
-				container.addTextDisplayComponents(
-					new TextDisplayBuilder().setContent(truncatedContent)
-				)
-			)) {
-				return null;
-			}
+			sectionContent = `### ${truncatedTitle}\n${truncatedContent}`;
 		}
 
+		// Combine title and content in a single component to save component count
+		if (!addComponent(() =>
+			container.addTextDisplayComponents(
+				new TextDisplayBuilder().setContent(sectionContent)
+			)
+		)) {
+			return null;
+		}
+
+		// Only add separator between sections (not after each section)
 		const isLastSection = index === limitedSections.length - 1;
 		if (!isLastSection) {
 			if (!addComponent(() =>
