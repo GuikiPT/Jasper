@@ -94,7 +94,18 @@ const main = async () => {
 		await client.login(envParseString('DISCORD_TOKEN'));
 		client.logger.info('logged in');
 	} catch (error) {
-		Logger.fatal('Fatal error during startup', error);
+		if (error instanceof Error) {
+			Logger.fatal('Fatal error during startup', {
+				ts: new Date().toISOString(),
+				error: {
+					name: error.name,
+					message: error.message,
+					stack: error.stack ?? ''
+				}
+			});
+		} else {
+			Logger.fatal('Fatal error during startup', String(error));
+		}
 		await client.destroy();
 		process.exit(1);
 	}

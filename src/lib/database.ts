@@ -67,7 +67,11 @@ export async function ensureDatabaseReady() {
 				isDatabaseReady = true;
 				Logger.info('Database schema validated');
 			} catch (error) {
-				Logger.error('Database readiness check failed', error);
+				if (error instanceof Error) {
+					Logger.error('Database readiness check failed', error.message);
+				} else {
+					Logger.error('Database readiness check failed', undefined, { error });
+				}
 				throw error;
 			}
 		})();

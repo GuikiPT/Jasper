@@ -8,21 +8,34 @@ function timestamp() {
 
 function normalizeError(error: unknown) {
 	if (error instanceof Error) {
-		return { name: error.name, message: error.message, stack: error.stack };
+		const normalized: Record<string, unknown> = {
+			errorName: error.name,
+			errorMessage: error.message
+		};
+		if (error.stack) normalized.errorStack = error.stack;
+		return normalized;
 	}
-	if (typeof error === 'string') return { message: error };
+
+	if (typeof error === 'string') {
+		return { errorMessage: error };
+	}
+
 	try {
-		return { message: JSON.stringify(error) };
+		return { errorMessage: JSON.stringify(error) };
 	} catch {
-		return { message: String(error) };
+		return { errorMessage: String(error) };
 	}
 }
 
 function log(level: LogLevel, message: string, error?: unknown, meta?: Record<string, unknown>) {
 	const logger = container.logger as any;
-	const payload = { ts: timestamp(), ...(meta ?? {}) };
+	const payload: Record<string, unknown> = { ts: timestamp(), ...(meta ?? {}) };
 	if (error !== undefined) {
-		Object.assign(payload, { error: normalizeError(error) });
+		const normalizedError = normalizeError(error);
+		for (const [key, value] of Object.entries(normalizedError)) {
+			if (value === undefined || value === null) continue;
+			payload[key] = value;
+		}
 	}
 
 	if (logger?.[level]) {
