@@ -10,7 +10,8 @@ import {
 	SeparatorSpacingSize,
 	SectionBuilder,
 	ThumbnailBuilder,
-	type Message
+	type Message,
+	type GuildTextBasedChannel
 } from 'discord.js';
 import { replyWithComponent, editReplyWithComponent } from '../../lib/components.js';
 
@@ -79,9 +80,16 @@ export class SnipeCommand extends Command {
 		// Create component with sniped message information
 		const component = this.createSnipeComponent(snipedMessage);
 
-		return interaction.editReply({
+		// Send the snipe content to the channel
+		const channel = interaction.channel as GuildTextBasedChannel;
+		await channel.send({
 			components: [component],
 			flags: MessageFlags.IsComponentsV2
+		});
+
+		// Send ephemeral confirmation to the user
+		return interaction.editReply({
+			content: `✅ <@${interaction.user.id}> got sniped.`
 		});
 	}
 
@@ -140,9 +148,7 @@ export class SnipeCommand extends Command {
 
 		// Add attachments if they exist
 		if (snipedMessage.attachments && snipedMessage.attachments.length > 0) {
-			const attachmentTexts = snipedMessage.attachments.map((att: any) =>
-				`📎 [${att.name}](${att.url}) (${this.formatFileSize(att.size)})`
-			);
+			const attachmentTexts = snipedMessage.attachments.map((att: any) => `📎 [${att.name}](${att.url}) (${this.formatFileSize(att.size)})`);
 			contentParts.push(`\n**Attachments:**\n${attachmentTexts.join('\n')}`);
 		}
 
@@ -159,34 +165,25 @@ export class SnipeCommand extends Command {
 		}
 
 		// Add message content and profile picture together using a Section with a thumbnail accessory
-		const finalContent = contentParts.length > 0
-			? contentParts.join('\n')
-			: '*Message had no text content*';
+		const finalContent = contentParts.length > 0 ? contentParts.join('\n') : '*Message had no text content*';
 
-		const section = new SectionBuilder()
-			.addTextDisplayComponents(
-				new TextDisplayBuilder().setContent(finalContent.length > 1900 ? finalContent.substring(0, 1897) + '...' : finalContent)
-			);
+		const section = new SectionBuilder().addTextDisplayComponents(
+			new TextDisplayBuilder().setContent(finalContent.length > 1900 ? finalContent.substring(0, 1897) + '...' : finalContent)
+		);
 
 		if (snipedMessage.author?.avatarURL) {
-			section.setThumbnailAccessory(
-				new ThumbnailBuilder().setURL(snipedMessage.author.avatarURL)
-			);
+			section.setThumbnailAccessory(new ThumbnailBuilder().setURL(snipedMessage.author.avatarURL));
 		}
 
 		container.addSectionComponents(section);
 
 		// Add separator
-		container.addSeparatorComponents(
-			new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-		);
+		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 
 		// Add author info with small text formatting (below separator)
 		const createdTimestamp = Math.floor(snipedMessage.createdAt.getTime() / 1000);
 		const authorInfo = `-# Original Author (${snipedMessage.author.id} / <@${snipedMessage.author.id}>) sent <t:${createdTimestamp}:R>`;
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(authorInfo)
-		);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(authorInfo));
 
 		return container;
 	}
