@@ -1,6 +1,8 @@
+// slowmodeManager module within services
 import type { PrismaClient } from '@prisma/client';
 import type { SapphireClient } from '@sapphire/framework';
 import type { Channel, Message } from 'discord.js';
+import { parseJsonStringArray } from '../lib/utils';
 
 interface SlowmodeConfig {
 	enabled: boolean;
@@ -325,7 +327,7 @@ export class SlowmodeManager {
 
 			const enabledChannels = new Set<string>();
 			if (channels) {
-				this.parseStringArray(channels.automaticSlowmodeChannels).forEach((id) => enabledChannels.add(id));
+				parseJsonStringArray(channels.automaticSlowmodeChannels).forEach((id) => enabledChannels.add(id));
 			}
 
 			return {
@@ -407,17 +409,6 @@ export class SlowmodeManager {
 			channelId,
 			reason: options.reason
 		});
-	}
-
-	private parseStringArray(value: string | null | undefined): string[] {
-		if (!value) return [];
-		try {
-			const parsed = JSON.parse(value);
-			if (!Array.isArray(parsed)) return [];
-			return parsed.filter((entry): entry is string => typeof entry === 'string');
-		} catch {
-			return [];
-		}
 	}
 
 	private createConfigKey(config: SlowmodeConfig | null): string {

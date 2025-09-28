@@ -1,3 +1,4 @@
+// slowmode-view module within subcommands/settings/slowmode
 import type { Message } from 'discord.js';
 import { MessageFlags } from 'discord.js';
 

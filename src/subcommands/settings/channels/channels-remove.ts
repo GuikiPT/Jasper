@@ -1,3 +1,4 @@
+// channels-remove module within subcommands/settings/channels
 import type { Args } from '@sapphire/framework';
 import type { GuildBasedChannel, Message } from 'discord.js';
 import { MessageFlags } from 'discord.js';

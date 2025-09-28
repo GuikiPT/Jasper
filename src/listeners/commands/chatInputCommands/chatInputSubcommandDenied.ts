@@ -1,3 +1,4 @@
+// chatInputSubcommandDenied module within listeners/commands/chatInputCommands
 import { Listener, UserError } from '@sapphire/framework';
 import { MessageFlags } from 'discord.js';
 import type { ChatInputSubcommandDeniedPayload } from '@sapphire/plugin-subcommands';

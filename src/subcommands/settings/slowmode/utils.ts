@@ -1,3 +1,4 @@
+// utils module within subcommands/settings/slowmode
 import type { GuildSlowmodeSettings } from '@prisma/client';
 import type { Subcommand, SubcommandMappingGroup } from '@sapphire/plugin-subcommands';
 import type { Args } from '@sapphire/framework';

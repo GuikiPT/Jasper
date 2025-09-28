@@ -1,3 +1,4 @@
+// resolve module within commands/Support
 import { ApplyOptions } from '@sapphire/decorators';
 import { BucketScope, Command, CommandOptionsRunTypeEnum } from '@sapphire/framework';
 import {
@@ -16,9 +17,22 @@ import {
 } from 'discord.js';
 import { replyWithComponent, editReplyWithComponent } from '../../lib/components.js';
 
+// Implements the `/resolve` workflow for closing support threads with a summary.
+
 @ApplyOptions<Command.Options>({
 	name: 'resolve',
 	description: 'Resolve a support thread with a summary and apply resolved tag.',
+	detailedDescription: {
+		summary: 'Summarises the current support forum thread, applies the configured resolved tag, and archives the thread.',
+		chatInputUsage: '/resolve [question] [answer]',
+		examples: [
+			"/resolve question:'How do I reset my password?' answer:'Use `/settings > Account` and choose Reset Password.'"
+		],
+		notes: [
+			'Only works inside the configured support forum thread.',
+			'Requires an allowed support, staff, or admin role and the Manage Threads permission.'
+		]
+	},
 	fullCategory: ['Support'],
 	runIn: [CommandOptionsRunTypeEnum.GuildAny],
 	cooldownLimit: 1,

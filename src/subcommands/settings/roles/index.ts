@@ -1,3 +1,4 @@
+// index module within subcommands/settings/roles
 import type { SubcommandMappingGroup } from '@sapphire/plugin-subcommands';
 
 import { ROLE_BUCKETS, registerRoleSubcommandGroup } from './utils';

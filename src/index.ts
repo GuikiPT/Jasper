@@ -1,4 +1,7 @@
+// index module within root
 import './lib/setup';
+
+// Entrypoint wires services, shared managers, and bootstraps Sapphire client lifecycle.
 
 import { LogLevel, SapphireClient } from '@sapphire/framework';
 import { container } from '@sapphire/pieces';
@@ -92,6 +95,7 @@ container.supportTagService = new SupportTagService(container.database);
 container.slowmodeManager = new SlowmodeManager(client, container.database);
 container.snipeManager = new SnipeManager(client, container.database);
 
+// Handles the startup pipeline of verifying dependencies and logging into Discord.
 const main = async () => {
 	try {
 		client.logger.info('Checking database connectivity');

@@ -1,3 +1,4 @@
+// setup module within lib
 import { ApplicationCommandRegistries, RegisterBehavior } from '@sapphire/framework';
 import '@sapphire/plugin-api/register';
 import '@sapphire/plugin-editable-commands/register';
@@ -9,6 +10,8 @@ import { join } from 'path';
 import { inspect } from 'util';
 import { rootDir } from './constants';
 import './database';
+
+// Runtime bootstrap: configures env parsing, command registry behaviour, and shared utilities.
 
 // Set default behavior to bulk overwrite
 ApplicationCommandRegistries.setDefaultBehaviorWhenNotIdentical(RegisterBehavior.BulkOverwrite);

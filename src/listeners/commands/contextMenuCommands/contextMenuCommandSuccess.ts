@@ -1,3 +1,4 @@
+// contextMenuCommandSuccess module within listeners/commands/contextMenuCommands
 import { Listener, LogLevel, type ContextMenuCommandSuccessPayload } from '@sapphire/framework';
 import type { Logger } from '@sapphire/plugin-logger';
 import { logSuccessCommand } from '../../../lib/utils';

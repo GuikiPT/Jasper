@@ -1,3 +1,4 @@
+// support-view module within subcommands/settings/support
 import type { Args } from '@sapphire/framework';
 import type { Message } from 'discord.js';
 import { MessageFlags } from 'discord.js';

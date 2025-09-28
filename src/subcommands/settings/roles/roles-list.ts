@@ -1,6 +1,8 @@
+// roles-list module within subcommands/settings/roles
 import type { Args } from '@sapphire/framework';
 import type { Message } from 'discord.js';
 import { MessageFlags } from 'discord.js';
+import { createErrorTextComponent, createTextComponent } from '../../../lib/components.js';
 
 import {
 	executeRoleList,
@@ -20,8 +22,18 @@ export async function messageRoleList(command: RoleCommand, message: Message, ar
 			command,
 			guildId: message.guildId ?? null,
 			bucket,
-			deny: (content) => message.reply({ content, allowedMentions: { users: [], roles: [] } }),
-			respond: (content) => message.reply({ content, allowedMentions: { users: [], roles: [] } }),
+			deny: (content) =>
+				message.reply({
+					components: [createErrorTextComponent(content)],
+					flags: MessageFlags.IsComponentsV2,
+					allowedMentions: { users: [], roles: [] }
+				}),
+			respond: (content) =>
+				message.reply({
+					components: [createTextComponent(content)],
+					flags: MessageFlags.IsComponentsV2,
+					allowedMentions: { users: [], roles: [] }
+				}),
 			respondComponents: (components) => message.reply({
 				components,
 				flags: MessageFlags.IsComponentsV2,
@@ -29,7 +41,11 @@ export async function messageRoleList(command: RoleCommand, message: Message, ar
 			})
 		});
 	} catch (error) {
-		return message.reply({ content: formatError(error), allowedMentions: { users: [], roles: [] } });
+		return message.reply({
+			components: [createErrorTextComponent(formatError(error))],
+			flags: MessageFlags.IsComponentsV2,
+			allowedMentions: { users: [], roles: [] }
+		});
 	}
 }
 
@@ -43,7 +59,11 @@ export async function chatInputRoleList(command: RoleCommand, interaction: RoleC
 		guildId: interaction.guildId ?? null,
 		bucket,
 		deny: (content) => denyInteraction(interaction, content),
-		respond: (content) => interaction.editReply({ content, allowedMentions: { users: [], roles: [] } }),
+		respond: (content) => interaction.editReply({
+			components: [createTextComponent(content)],
+			flags: MessageFlags.IsComponentsV2,
+			allowedMentions: { users: [], roles: [] }
+		}),
 		respondComponents: (components) => interaction.editReply({
 			components,
 			flags: MessageFlags.IsComponentsV2,

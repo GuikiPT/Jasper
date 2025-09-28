@@ -1,3 +1,4 @@
+// snipe module within commands/Moderation
 import { ApplyOptions } from '@sapphire/decorators';
 import { BucketScope, Command, CommandOptionsRunTypeEnum } from '@sapphire/framework';
 import {
@@ -14,10 +15,22 @@ import {
 	type GuildTextBasedChannel
 } from 'discord.js';
 import { replyWithComponent, editReplyWithComponent } from '../../lib/components.js';
+import type { SnipedMessage } from '../../services/snipeManager';
+
+// Implements the moderation `snipe` command for recalling recently deleted messages.
 
 @ApplyOptions<Command.Options>({
 	name: 'snipe',
 	description: 'Show the last deleted message in this channel.',
+	detailedDescription: {
+		summary: 'Retrieves the most recent deleted message, including attachments and embeds, if the channel allows sniping.',
+		chatInputUsage: '/snipe',
+		messageUsage: '{{prefix}}snipe',
+		examples: ['/snipe', '{{prefix}}snipe'],
+		notes: [
+			'Only staff and admin buckets can use this command.',
+			'Channel must be added to the allowed snipe channels bucket via `/settings channels add`.']
+	},
 	fullCategory: ['Moderation'],
 	runIn: [CommandOptionsRunTypeEnum.GuildAny],
 	cooldownLimit: 3,
@@ -48,6 +61,7 @@ export class SnipeCommand extends Command {
 		});
 	}
 
+	/** Handles the slash command entry-point for sniping deleted messages. */
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.guildId) {
 			return replyWithComponent(interaction, 'This command can only be used in a server.', true);
@@ -81,10 +95,22 @@ export class SnipeCommand extends Command {
 
 		// Send the snipe content to the channel
 		const channel = interaction.channel as GuildTextBasedChannel;
-		await channel.send({
-			components: [component],
-			flags: MessageFlags.IsComponentsV2
-		});
+		try {
+			await channel.send({
+				components: [component],
+				flags: ['IsComponentsV2'],
+				allowedMentions: { parse: [] }
+			});
+		} catch (error) {
+			this.container.logger.warn('[Snipe] Failed to broadcast sniped message', error, {
+				guildId: interaction.guildId,
+				channelId: interaction.channel.id
+			});
+			return editReplyWithComponent(
+				interaction,
+				'I could not post the sniped message, likely due to missing permissions. Please review my channel permissions.'
+			);
+		}
 
 		// Send ephemeral confirmation to the user
 		return interaction.editReply({
@@ -92,6 +118,7 @@ export class SnipeCommand extends Command {
 		});
 	}
 
+	/** Supports the legacy message-command trigger for `j!snipe`. */
 	public override async messageRun(message: Message) {
 		if (!message.guildId) {
 			return message.reply('This command can only be used in a server.');
@@ -126,15 +153,27 @@ export class SnipeCommand extends Command {
 
 		// Create component with sniped message information
 		const component = this.createSnipeComponent(snipedMessage);
-		const channel = message.channel as any;
-		return channel.send({
-			components: [component],
-			flags: MessageFlags.IsComponentsV2,
-			allowMentions: {}
-		});
+		const channel = message.channel as GuildTextBasedChannel;
+		try {
+			return await channel.send({
+				components: [component],
+				flags: ['IsComponentsV2'],
+				allowedMentions: { parse: [] }
+			});
+		} catch (error) {
+			this.container.logger.warn('[Snipe] Failed to broadcast sniped message (prefix command)', error, {
+				guildId: message.guildId,
+				channelId: message.channelId
+			});
+			return channel.send({
+				content: 'I could not post the sniped message. Please verify my channel permissions and try again.',
+				allowedMentions: { parse: [] }
+			});
+		}
 	}
 
-	private createSnipeComponent(snipedMessage: any): ContainerBuilder {
+	/** Builds a V2 component payload containing the sniped message contents. */
+	private createSnipeComponent(snipedMessage: SnipedMessage): ContainerBuilder {
 		const container = new ContainerBuilder();
 
 		// Build content parts
@@ -187,6 +226,7 @@ export class SnipeCommand extends Command {
 		return container;
 	}
 
+	/** Formats an attachment size into a short, human-readable string. */
 	private formatFileSize(bytes: number): string {
 		if (bytes < 1024) return `${bytes} B`;
 		if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;

@@ -1,3 +1,4 @@
+// guildChannelSettingsService module within services
 import type { GuildChannelSettings, PrismaClient } from '@prisma/client';
 import { GuildSettingsService } from './guildSettingsService';
 

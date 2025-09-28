@@ -1,3 +1,4 @@
+// messageDelete module within listeners
 import { ApplyOptions } from '@sapphire/decorators';
 import { Events, Listener } from '@sapphire/framework';
 import type { Message, PartialMessage } from 'discord.js';

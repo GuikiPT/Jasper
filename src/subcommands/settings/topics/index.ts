@@ -1,3 +1,4 @@
+// index module within subcommands/settings/topics
 import type { SubcommandMappingGroup } from '@sapphire/plugin-subcommands';
 
 import { registerTopicSubcommandGroup } from './utils';

@@ -1,3 +1,4 @@
+// contextMenuCommandDenied module within listeners/commands/contextMenuCommands
 import type { ContextMenuCommandDeniedPayload, Events } from '@sapphire/framework';
 import { Listener, UserError } from '@sapphire/framework';
 import { MessageFlags } from 'discord.js';

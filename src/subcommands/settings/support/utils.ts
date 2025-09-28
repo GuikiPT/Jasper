@@ -1,3 +1,4 @@
+// utils module within subcommands/settings/support
 import type { Args } from '@sapphire/framework';
 import type { Subcommand } from '@sapphire/plugin-subcommands';
 import { ChannelType, MessageFlags, type SlashCommandSubcommandGroupBuilder } from 'discord.js';

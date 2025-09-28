@@ -1,7 +1,10 @@
+// AllowedTagRoles module within preconditions
 import { AllFlowsPrecondition } from '@sapphire/framework';
 import type { ChatInputCommandInteraction, ContextMenuCommandInteraction, GuildMember, Message } from 'discord.js';
 import type { APIInteractionGuildMember } from 'discord.js';
 
+// Restricts tag usage to configured role buckets, logging denials for visibility.
+// Precondition enforcing AllowedTagRoles access rules.
 export class AllowedTagRolesPrecondition extends AllFlowsPrecondition {
 	public override messageRun(message: Message) {
 		return this.checkMemberAccess(message.guildId, message.member, true);

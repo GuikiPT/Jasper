@@ -1,3 +1,4 @@
+// index module within subcommands/settings/channels
 import type { SubcommandMappingGroup } from '@sapphire/plugin-subcommands';
 
 import { CHANNEL_BUCKETS, registerChannelSubcommandGroup } from './utils';

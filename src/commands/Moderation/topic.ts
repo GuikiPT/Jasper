@@ -1,8 +1,10 @@
+// topic module within commands/Moderation
 import { ApplyOptions } from '@sapphire/decorators';
 import { BucketScope, Command, CommandOptionsRunTypeEnum } from '@sapphire/framework';
 import { ApplicationIntegrationType, InteractionContextType, MessageFlags } from 'discord.js';
 import type { Message } from 'discord.js';
 
+// Surfaces configured moderation topics either via prefix or slash command.
 interface GuildTopicSettings {
 	id: number;
 	value: string;
@@ -11,6 +13,13 @@ interface GuildTopicSettings {
 @ApplyOptions<Command.Options>({
 	name: 'topic',
 	description: "Send a random discussion topic from this server's database.",
+	detailedDescription: {
+		summary: 'Posts a random topic saved for this guild so staff can reopen conversations quickly.',
+		chatInputUsage: '/topic',
+		messageUsage: '{{prefix}}topic',
+		examples: ['/topic', '{{prefix}}topic'],
+		notes: ['Topics are configured through `/settings topics`, and only allowed staff or admins can call this command.']
+	},
 	fullCategory: ['General'],
 	runIn: [CommandOptionsRunTypeEnum.GuildAny],
 	cooldownLimit: 2,

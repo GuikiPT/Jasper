@@ -1,3 +1,4 @@
+// index module within subcommands/settings/slowmode
 import type { SubcommandMappingGroup } from '@sapphire/plugin-subcommands';
 
 import { chatInputSlowmodeConfigure, messageSlowmodeConfigure } from './slowmode-configure';

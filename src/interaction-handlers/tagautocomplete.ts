@@ -1,3 +1,4 @@
+// tagautocomplete module within interaction-handlers
 import { ApplyOptions } from '@sapphire/decorators';
 import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
 import type { ApplicationCommandOptionChoiceData, AutocompleteInteraction } from 'discord.js';

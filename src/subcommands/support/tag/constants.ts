@@ -1,3 +1,4 @@
+// constants module within subcommands/support/tag
 export const SUPPORT_TAG_CREATE_MODAL_ID = 'support-tag-create';
 export const SUPPORT_TAG_EDIT_MODAL_ID_PREFIX = 'support-tag-edit';
 

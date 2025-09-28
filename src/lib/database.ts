@@ -1,6 +1,9 @@
+// database module within lib
 import { Prisma, PrismaClient } from '@prisma/client';
 import { container } from '@sapphire/pieces';
 import { Logger } from './logger';
+
+// Prisma client bootstrap with readiness checks and graceful shutdown hooks.
 
 export const database = new PrismaClient({
 	log: [

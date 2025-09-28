@@ -1,3 +1,4 @@
+// logger module within lib
 import { LogLevel } from '@sapphire/framework';
 import { container } from '@sapphire/pieces';
 import { Logger as BaseLogger, type LoggerOptions } from '@sapphire/plugin-logger';
@@ -5,6 +6,8 @@ import { appendFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { inspect } from 'node:util';
 import { rootDir } from './constants';
+
+// Custom logger implementation that mirrors Sapphire logging while persisting structured files.
 
 const LEVEL_LABELS: Record<number, string> = {
 	[LogLevel.Trace]: 'TRACE',

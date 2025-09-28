@@ -1,3 +1,4 @@
+// tag module within commands/Support
 import { ApplyOptions } from '@sapphire/decorators';
 import { BucketScope, CommandOptionsRunTypeEnum } from '@sapphire/framework';
 import { Subcommand } from '@sapphire/plugin-subcommands';
@@ -24,9 +25,85 @@ import {
 	type TagChatInputInteraction
 } from '../../subcommands/support/tag/tag-index';
 
+// Aggregates the entire `/tag` feature set into a single subcommand-driven command.
+
 @ApplyOptions<Subcommand.Options>({
 	name: 'tag',
 	description: 'Manage reusable support tags.',
+	detailedDescription: {
+		summary: 'Create, edit, and drop reusable support tags so staff can respond to questions consistently.',
+		chatInputUsage: '/tag <subcommand>',
+		notes: [
+			'Most actions require an allowed tag role in addition to support, staff, or admin permissions.',
+			'Use `/tag list` to review available tags and `/tag use` to send one into the current channel.'
+		],
+		subcommands: [
+			{
+				name: 'create',
+				description: 'Open an interactive modal to capture a new support tag embed.',
+				chatInputUsage: '/tag create',
+				notes: ['Requires an allowed tag role, staff role, or admin role.'],
+				aliases: ['new tag']
+			},
+			{
+				name: 'delete',
+				description: 'Remove an existing tag by name.',
+				chatInputUsage: '/tag delete name:<tag>',
+				notes: ['Requires an allowed tag admin role or the configured admin buckets.'],
+				aliases: ['remove tag']
+			},
+			{
+				name: 'edit',
+				description: 'Update the embed details for an existing tag.',
+				chatInputUsage: '/tag edit name:<tag>',
+				notes: ['Requires an allowed tag role, staff role, or admin role.']
+			},
+			{
+				name: 'export',
+				description: 'Export every tag in the guild as a JSON attachment.',
+				chatInputUsage: '/tag export',
+				notes: ['Restricted to allowed tag admin roles.']
+			},
+			{
+				name: 'import',
+				description: 'Import tags from provided JSON text or an uploaded file.',
+				chatInputUsage: '/tag import [payload|file] [overwrite]',
+				notes: ['Restricted to allowed tag admin roles.']
+			},
+			{
+				name: 'info',
+				description: 'Show metadata, authorship, and usage stats for a tag.',
+				chatInputUsage: '/tag info name:<tag>',
+				notes: ['Requires an allowed tag role, staff role, or admin role.']
+			},
+			{
+				name: 'list',
+				description: 'List tags that you are allowed to use, grouped by channel restrictions.',
+				chatInputUsage: '/tag list',
+				notes: ['Requires an allowed tag role, staff role, or admin role.']
+			},
+			{
+				name: 'raw',
+				description: 'Display the raw embed payload for a tag for debugging.',
+				chatInputUsage: '/tag raw name:<tag>',
+				notes: ['Restricted to allowed tag admin roles.']
+			},
+			{
+				name: 'show',
+				description: 'Preview how a tag embed will render, optionally only to yourself.',
+				chatInputUsage: '/tag show name:<tag> [ephemeral]',
+				notes: ['Requires an allowed tag role, staff role, or admin role.'],
+				aliases: ['preview tag']
+			},
+			{
+				name: 'use',
+				description: 'Send a tag into the current channel, optionally mentioning a user or making it ephemeral.',
+				chatInputUsage: '/tag use name:<tag> [user] [ephemeral]',
+				notes: ['Requires an allowed tag role, staff role, or admin role.'],
+				aliases: ['send tag']
+			}
+		]
+	},
 	fullCategory: ['Support'],
 	cooldownLimit: 2,
 	cooldownDelay: 5_000,

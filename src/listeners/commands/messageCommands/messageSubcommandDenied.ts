@@ -1,3 +1,4 @@
+// messageSubcommandDenied module within listeners/commands/messageCommands
 import { Listener, type UserError } from '@sapphire/framework';
 import type { MessageSubcommandDeniedPayload } from '@sapphire/plugin-subcommands';
 import { SubcommandPluginEvents } from '@sapphire/plugin-subcommands';

@@ -1,3 +1,4 @@
+// index module within subcommands/settings/prefix
 import type { SubcommandMappingGroup } from '@sapphire/plugin-subcommands';
 import type { SlashCommandSubcommandGroupBuilder } from 'discord.js';
 

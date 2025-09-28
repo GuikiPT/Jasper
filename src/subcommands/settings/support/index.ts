@@ -1,3 +1,4 @@
+// index module within subcommands/settings/support
 import type { SubcommandMappingGroup } from '@sapphire/plugin-subcommands';
 
 import { registerSupportSubcommandGroup } from './utils';

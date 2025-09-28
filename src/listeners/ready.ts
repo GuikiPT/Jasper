@@ -1,3 +1,4 @@
+// ready module within listeners
 import { ApplyOptions } from '@sapphire/decorators';
 import { Events, Listener } from '@sapphire/framework';
 import type { StoreRegistryValue } from '@sapphire/pieces';

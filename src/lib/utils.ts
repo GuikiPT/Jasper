@@ -1,9 +1,12 @@
+// utils module within lib
 import type { ChatInputCommandSuccessPayload, Command, ContextMenuCommandSuccessPayload, MessageCommandSuccessPayload } from '@sapphire/framework';
 import { container } from '@sapphire/framework';
 import { send } from '@sapphire/plugin-editable-commands';
 import { cyan } from 'colorette';
 import { EmbedBuilder, type APIUser, type Guild, type Message, type User } from 'discord.js';
 import { RandomLoadingMessage } from './constants';
+
+// Miscellaneous shared helpers for messaging and command logging.
 
 /**
  * Picks a random item from an array
@@ -22,6 +25,20 @@ export function pickRandom<T>(array: readonly T[]): T {
  */
 export function sendLoadingMessage(message: Message): Promise<typeof message> {
 	return send(message, { embeds: [new EmbedBuilder().setDescription(pickRandom(RandomLoadingMessage)).setColor('#FF0000')] });
+}
+
+/**
+ * Safely parses a JSON-encoded string array column coming from the database
+ */
+export function parseJsonStringArray(value: string | null | undefined): string[] {
+	if (!value) return [];
+	try {
+		const parsed = JSON.parse(value);
+		return Array.isArray(parsed) ? parsed.filter((entry): entry is string => typeof entry === 'string') : [];
+	} catch (error) {
+		container.logger.debug('[Utils] Failed to parse JSON string array', { error });
+		return [];
+	}
 }
 
 export function logSuccessCommand(payload: ContextMenuCommandSuccessPayload | ChatInputCommandSuccessPayload | MessageCommandSuccessPayload): void {

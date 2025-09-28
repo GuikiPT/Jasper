@@ -1,9 +1,11 @@
+// OwnerOnly module within preconditions
 import { AllFlowsPrecondition } from '@sapphire/framework';
 import { envParseArray } from '@skyra/env-utilities';
 import type { CommandInteraction, ContextMenuCommandInteraction, Message, Snowflake } from 'discord.js';
 
 const OWNERS = envParseArray('OWNERS');
 
+// Precondition enforcing OwnerOnly access rules.
 export class UserPrecondition extends AllFlowsPrecondition {
 	#message = 'Owner commands may only be used by the bot owner.';
 

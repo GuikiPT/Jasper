@@ -1,4 +1,7 @@
+// constants module within lib
 import { join } from 'path';
+
+// Centralised path and message constants reused throughout the project.
 
 export const rootDir = join(__dirname, '..', '..');
 export const srcDir = join(rootDir, 'src');

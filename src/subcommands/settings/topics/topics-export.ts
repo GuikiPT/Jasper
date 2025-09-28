@@ -1,3 +1,4 @@
+// topics-export module within subcommands/settings/topics
 import type { Args } from '@sapphire/framework';
 import type { Message } from 'discord.js';
 import { AttachmentBuilder, MessageFlags } from 'discord.js';

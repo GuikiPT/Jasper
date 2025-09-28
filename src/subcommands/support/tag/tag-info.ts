@@ -1,3 +1,4 @@
+// tag-info module within subcommands/support/tag
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 
 import {

@@ -1,8 +1,10 @@
+// AllowedAdminRoles module within preconditions
 import { AllFlowsPrecondition } from '@sapphire/framework';
 import type { ChatInputCommandInteraction, ContextMenuCommandInteraction, GuildMember, Message } from 'discord.js';
 import { PermissionFlagsBits } from 'discord.js';
 import type { APIInteractionGuildMember } from 'discord.js';
 
+// Precondition enforcing AllowedAdminRoles access rules.
 export class AllowedAdminRolesPrecondition extends AllFlowsPrecondition {
 	public override messageRun(message: Message) {
 		return this.checkMemberAccess(

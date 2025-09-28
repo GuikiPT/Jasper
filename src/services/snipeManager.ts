@@ -1,8 +1,10 @@
+// snipeManager module within services
 import type { PrismaClient } from '@prisma/client';
 import type { SapphireClient } from '@sapphire/framework';
 import type { Message, PartialMessage, GuildMember, APIInteractionGuildMember } from 'discord.js';
+import { parseJsonStringArray } from '../lib/utils';
 
-interface SnipedMessage {
+export interface SnipedMessage {
 	id: string;
 	content: string;
 	author: {
@@ -187,8 +189,8 @@ export class SnipeManager {
 			if (!settings) return false;
 
 			// Check for staff roles
-			const staffRoles = this.parseStringArray(settings.allowedStaffRoles);
-			const adminRoles = this.parseStringArray(settings.allowedAdminRoles);
+			const staffRoles = parseJsonStringArray(settings.allowedStaffRoles);
+			const adminRoles = parseJsonStringArray(settings.allowedAdminRoles);
 			const allowedRoles = [...staffRoles, ...adminRoles];
 
 			if (allowedRoles.length === 0) return false;
@@ -208,7 +210,7 @@ export class SnipeManager {
 
 			if (!settings) return false;
 
-			const allowedChannels = this.parseStringArray(settings.allowedSnipeChannels);
+			const allowedChannels = parseJsonStringArray(settings.allowedSnipeChannels);
 			return allowedChannels.includes(channelId);
 		} catch (error) {
 			this.client.logger.error('[Snipe] Failed to check allowed channels', error, { guildId });
@@ -224,7 +226,7 @@ export class SnipeManager {
 
 			if (!settings) return false;
 
-			const ignoredRoles = this.parseStringArray(settings.ignoredSnipedRoles);
+			const ignoredRoles = parseJsonStringArray(settings.ignoredSnipedRoles);
 			return this.memberHasAllowedRole(member, ignoredRoles);
 		} catch (error) {
 			this.client.logger.error('[Snipe] Failed to check ignored roles', error, { guildId });
@@ -241,16 +243,6 @@ export class SnipeManager {
 			this.guildStates.set(guildId, state);
 		}
 		return state;
-	}
-
-	private parseStringArray(value: string | null | undefined): string[] {
-		if (!value) return [];
-		try {
-			const parsed = JSON.parse(value);
-			return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
-		} catch {
-			return [];
-		}
 	}
 
 	private memberHasAllowedRole(member: GuildMember | APIInteractionGuildMember, allowedRoles: string[]): boolean {

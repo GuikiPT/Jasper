@@ -1,3 +1,4 @@
+// tag-index module within subcommands/support/tag
 export type {
 	NormalizedImportEntry,
 	NormalizedImportResult,

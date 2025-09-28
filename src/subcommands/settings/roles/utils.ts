@@ -1,6 +1,8 @@
+// utils module within subcommands/settings/roles
 import type { Args } from '@sapphire/framework';
 import type { Subcommand } from '@sapphire/plugin-subcommands';
 import { MessageFlags, type SlashCommandSubcommandGroupBuilder } from 'discord.js';
+import { createErrorTextComponent, createTextComponent } from '../../../lib/components.js';
 import type { RoleBucketKey as RoleBucketKeyBase } from '../../../services/guildRoleSettingsService';
 export type RoleBucketKey = RoleBucketKeyBase;
 
@@ -12,6 +14,7 @@ export type RoleMutationContext = {
 	operation: 'add' | 'remove';
 	deny: (content: string) => Promise<unknown>;
 	respond: (content: string) => Promise<unknown>;
+	respondComponents?: (components: any[]) => Promise<unknown>;
 	defer?: () => Promise<unknown>;
 };
 
@@ -139,6 +142,7 @@ export async function executeRoleMutation({
 	operation,
 	deny,
 	respond,
+	respondComponents,
 	defer
 }: RoleMutationContext) {
 	if (!guildId) {
@@ -151,24 +155,24 @@ export async function executeRoleMutation({
 
 	const service = command.container.guildRoleSettingsService;
 	if (!service) {
-		return respond('Role settings are not available right now.');
+		return respondWithComponent(respond, respondComponents, 'Role settings are not available right now.', true);
 	}
 	const label = bucketLabel(bucket);
 
 	if (operation === 'add') {
 		const { added } = await service.addRole(guildId, bucket, roleId);
 		if (!added) {
-			return respond(`That role is already part of **${label}**.`);
+			return respondWithComponent(respond, respondComponents, `That role is already part of **${label}**.`, true);
 		}
 
-		return respond(`Added <@&${roleId}> to **${label}**.`);
+		return respondWithComponent(respond, respondComponents, `Added <@&${roleId}> to **${label}**.`);
 	} else {
 		const { removed } = await service.removeRole(guildId, bucket, roleId);
 		if (!removed) {
-			return respond(`That role is not configured for **${label}**.`);
+			return respondWithComponent(respond, respondComponents, `That role is not configured for **${label}**.`, true);
 		}
 
-		return respond(`Removed <@&${roleId}> from **${label}**.`);
+		return respondWithComponent(respond, respondComponents, `Removed <@&${roleId}> from **${label}**.`);
 	}
 }
 
@@ -191,7 +195,7 @@ export async function executeRoleList({
 
 	const service = command.container.guildRoleSettingsService;
 	if (!service) {
-		return respond('Role settings are not available right now.');
+		return respondWithComponent(respond, respondComponents, 'Role settings are not available right now.', true);
 	}
 	const buckets = bucket ? [bucket] : ROLE_BUCKETS.map((entry) => entry.key);
 	const allBuckets = await service.getAllBuckets(guildId);
@@ -240,7 +244,7 @@ export async function executeRoleList({
 		return `**${label}:** ${roles.map((id) => `<@&${id}>`).join(', ')}`;
 	});
 
-	return respond(lines.join('\n'));
+	return respondWithComponent(respond, respondComponents, lines.join('\n'));
 }
 
 export function bucketLabel(bucket: RoleBucketKey) {
@@ -249,4 +253,22 @@ export function bucketLabel(bucket: RoleBucketKey) {
 
 
 export const denyInteraction = (interaction: RoleChatInputInteraction, content: string) =>
-	interaction.reply({ content, flags: MessageFlags.Ephemeral });
+	interaction.reply({
+		components: [createErrorTextComponent(content)],
+		flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+		allowedMentions: { users: [], roles: [] }
+	});
+
+function respondWithComponent(
+	respond: (content: string) => Promise<unknown>,
+	respondComponents: RoleMutationContext['respondComponents'],
+	content: string,
+	isError: boolean = false
+) {
+	if (respondComponents) {
+		const component = isError ? createErrorTextComponent(content) : createTextComponent(content);
+		return respondComponents([component]);
+	}
+
+	return respond(content);
+}

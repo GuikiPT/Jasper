@@ -1,3 +1,4 @@
+// settings module within commands/Settings
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, BucketScope, CommandOptionsRunTypeEnum } from '@sapphire/framework';
 import { Subcommand } from '@sapphire/plugin-subcommands';
@@ -62,9 +63,239 @@ import {
 	messageSupportView as handleMessageSupportView
 } from '../../subcommands/settings/support';
 
+// Coordinates the `/settings` umbrella command, delegating to specific handlers per feature area.
+
 @ApplyOptions<Subcommand.Options>({
 	name: 'settings',
 	description: 'Configure server-specific settings.',
+	detailedDescription: {
+		summary: 'Administer Jasper\'s guild configuration including prefixes, role buckets, channel allow lists, support forum options, and automatic slowmode.',
+		chatInputUsage: '/settings <group> <action>',
+		messageUsage: '{{prefix}}settings <group> <action>',
+		notes: [
+			'These subcommands are limited to the configured admin or staff buckets unless noted otherwise.',
+			'Autocomplete will suggest every group and action combination to speed up navigation.'
+		],
+		subcommands: [
+				{
+					group: 'prefixes',
+					name: 'set',
+					description: 'Set the message-command prefix used in this guild.',
+					chatInputUsage: '/settings prefixes set value:<prefix>',
+					messageUsage: '{{prefix}}settings prefixes set <prefix>',
+					notes: [
+						'Permissions: Administrator permission or members in Allowed Admin Roles.',
+						'Provide a prefix up to 16 characters; setting applies immediately.'
+					],
+					aliases: ['prefix set']
+				},
+				{
+					group: 'prefixes',
+					name: 'view',
+					description: 'Display the current message-command prefix.',
+					chatInputUsage: '/settings prefixes view',
+					messageUsage: '{{prefix}}settings prefixes view',
+					notes: [
+						'Permissions: Administrator permission or members in Allowed Admin Roles.',
+						'Returns the custom prefix when configured; otherwise the default prefix.'
+					],
+					aliases: ['prefix view']
+				},
+				{
+					group: 'roles',
+					name: 'add',
+					description: 'Add a role to an allow-list bucket.',
+					chatInputUsage: '/settings roles add setting:<bucket> role:<role>',
+					messageUsage: '{{prefix}}settings roles add <bucket> <role>',
+						notes: [
+							'Permissions: Allowed Admin Roles, Allowed Tag Admin Roles, or Manage Server permission.',
+							'Setting choices (bucket): allowedAdminRoles, allowedFunCommandRoles, allowedStaffRoles, allowedTagAdminRoles, allowedTagRoles, ignoredSnipedRoles, supportRoles.'
+						],
+						examples: [
+							'/settings roles add setting:allowedAdminRoles role:@Leadership',
+							'{{prefix}}settings roles add allowedTagRoles @Helper'
+						],
+					aliases: ['role add']
+				},
+				{
+					group: 'roles',
+					name: 'remove',
+					description: 'Remove a role from an allow-list bucket.',
+					chatInputUsage: '/settings roles remove setting:<bucket> role:<role>',
+					messageUsage: '{{prefix}}settings roles remove <bucket> <role>',
+						notes: [
+							'Permissions: Allowed Admin Roles, Allowed Tag Admin Roles, or Manage Server permission.',
+							'Setting choices (bucket): allowedAdminRoles, allowedFunCommandRoles, allowedStaffRoles, allowedTagAdminRoles, allowedTagRoles, ignoredSnipedRoles, supportRoles.'
+						],
+						examples: [
+							'/settings roles remove setting:ignoredSnipedRoles role:@Muted',
+							'{{prefix}}settings roles remove allowedTagRoles @Support'
+						],
+					aliases: ['role remove']
+				},
+				{
+					group: 'roles',
+					name: 'list',
+					description: 'List the roles configured for one or all buckets.',
+					chatInputUsage: '/settings roles list [setting]',
+					messageUsage: '{{prefix}}settings roles list [bucket]',
+						notes: [
+							'Permissions: Allowed Admin Roles, Allowed Tag Admin Roles, or Manage Server permission.',
+							'Use `setting` choices allowedAdminRoles, allowedFunCommandRoles, allowedStaffRoles, allowedTagAdminRoles, allowedTagRoles, ignoredSnipedRoles, supportRoles or omit to list every bucket.'
+						],
+						examples: [
+							'/settings roles list setting:allowedStaffRoles',
+							'{{prefix}}settings roles list'
+						],
+					aliases: ['role list']
+				},
+				{
+					group: 'channels',
+					name: 'add',
+					description: 'Add a channel to an allow-list such as snipe or tag channels.',
+					chatInputUsage: '/settings channels add setting:<bucket> channel:<channel>',
+					messageUsage: '{{prefix}}settings channels add <bucket> <channel>',
+					notes: [
+						'Permissions: Administrator permission or members in Allowed Admin Roles.',
+						'Bucket keys: allowedSkullboardChannels, allowedSnipeChannels, allowedTagChannels, automaticSlowmodeChannels.'
+					],
+					aliases: ['channel add']
+				},
+				{
+					group: 'channels',
+					name: 'remove',
+					description: 'Remove a channel from an allow-list bucket.',
+					chatInputUsage: '/settings channels remove setting:<bucket> channel:<channel>',
+					messageUsage: '{{prefix}}settings channels remove <bucket> <channel>',
+					notes: [
+						'Permissions: Administrator permission or members in Allowed Admin Roles.',
+						'Bucket keys: allowedSkullboardChannels, allowedSnipeChannels, allowedTagChannels, automaticSlowmodeChannels.'
+					],
+					aliases: ['channel remove']
+				},
+				{
+					group: 'channels',
+					name: 'list',
+					description: 'List channels configured for one bucket or every bucket.',
+					chatInputUsage: '/settings channels list [setting]',
+					messageUsage: '{{prefix}}settings channels list [bucket]',
+					notes: [
+						'Permissions: Administrator permission or members in Allowed Admin Roles.',
+						'Use bucket keys (allowedSkullboardChannels, allowedSnipeChannels, allowedTagChannels, automaticSlowmodeChannels) or omit to view every bucket.'
+					],
+					aliases: ['channel list']
+				},
+				{
+					group: 'topics',
+					name: 'add',
+					description: 'Add a moderation discussion topic to the rotation.',
+					chatInputUsage: '/settings topics add value:<topic>',
+					messageUsage: '{{prefix}}settings topics add <topic>',
+					notes: [
+						'Permissions: Administrator permission or members in Allowed Admin Roles.',
+						'Topic text must be under 256 characters; duplicates are ignored.'
+					],
+					aliases: ['topic add']
+				},
+				{
+					group: 'topics',
+					name: 'list',
+					description: 'List all configured discussion topics with their identifiers.',
+					chatInputUsage: '/settings topics list',
+					messageUsage: '{{prefix}}settings topics list',
+					notes: [
+						'Permissions: Administrator permission or members in Allowed Admin Roles.',
+						'Outputs topic IDs you can pass to `/settings topics remove` or `/settings topics export`.'
+					],
+					aliases: ['topic list']
+				},
+				{
+					group: 'topics',
+					name: 'remove',
+					description: 'Remove a topic using the identifier from the list command.',
+					chatInputUsage: '/settings topics remove id:<number>',
+					messageUsage: '{{prefix}}settings topics remove <id>',
+					notes: [
+						'Permissions: Administrator permission or members in Allowed Admin Roles.',
+						'Use the numeric ID from `/settings topics list`; deleting an ID shifts later IDs.'
+					],
+					aliases: ['topic remove']
+				},
+				{
+					group: 'topics',
+					name: 'import',
+					description: 'Import topics from JSON text or an uploaded file.',
+					chatInputUsage: '/settings topics import [file] [text]',
+					messageUsage: '{{prefix}}settings topics import [file] [text]',
+					notes: [
+						'Permissions: Administrator permission or members in Allowed Admin Roles.',
+						'Accepts a JSON array of up to 500 strings; entries longer than 256 characters are skipped.'
+					],
+					aliases: ['topic import']
+				},
+				{
+					group: 'topics',
+					name: 'export',
+					description: 'Export the configured topics as a JSON attachment.',
+					chatInputUsage: '/settings topics export',
+					messageUsage: '{{prefix}}settings topics export',
+					notes: [
+						'Permissions: Administrator permission or members in Allowed Admin Roles.',
+						'Generates a JSON file you can back up or feed back into `/settings topics import`.'
+					],
+					aliases: ['topic export']
+				},
+				{
+					group: 'support',
+					name: 'set',
+					description: 'Update support forum settings such as the forum channel or resolved tag.',
+					chatInputUsage: '/settings support set setting:<key> [value]',
+					messageUsage: '{{prefix}}settings support set <setting> [value]',
+					notes: [
+						'Permissions: allowed admin roles, allowed tag admin roles, or Manage Server permission.',
+						'Setting keys: supportForumChannelId (expects a forum channel ID) and resolvedTagId (expects a forum tag ID).',
+						'Passing an empty value removes the setting.'
+					],
+					aliases: ['support set']
+				},
+				{
+					group: 'support',
+					name: 'view',
+					description: 'Display the current support forum configuration.',
+					chatInputUsage: '/settings support view',
+					messageUsage: '{{prefix}}settings support view',
+					notes: [
+						'Permissions: Allowed Admin Roles, Allowed Tag Admin Roles, or Manage Server permission.',
+						'Shows the configured supportForumChannelId and resolvedTagId values if present.'
+					],
+					aliases: ['support view']
+				},
+				{
+					group: 'slowmode',
+					name: 'view',
+					description: 'Inspect automatic slowmode status and tracked channels.',
+					chatInputUsage: '/settings slowmode view',
+					messageUsage: '{{prefix}}settings slowmode view',
+					notes: [
+						'Permissions: Administrator permission or members in Allowed Admin Roles.',
+						'Displays thresholds, timers, and channels using automatic slowmode.'
+					],
+					aliases: ['slowmode view']
+				},
+				{
+					group: 'slowmode',
+					name: 'configure',
+					description: 'Update thresholds and timing for automatic slowmode.',
+					chatInputUsage: '/settings slowmode configure [enabled] [threshold] [window] [cooldown] [reset] [max]',
+					messageUsage: '{{prefix}}settings slowmode configure [fields...]',
+					notes: [
+						'Permissions: Administrator permission or members in Allowed Admin Roles.',
+						'Parameters map to Slowmode Manager settings: enabled (boolean), threshold/message count, window/activity seconds, cooldown/adjustment seconds, reset/inactivity seconds, max/max slowmode seconds.'
+					],
+					aliases: ['slowmode config']
+				}
+		]
+	},
 	fullCategory: ['Settings'],
 	runIn: [CommandOptionsRunTypeEnum.GuildAny],
 	cooldownLimit: 2,

@@ -1,3 +1,4 @@
+// hello-world.get module within routes
 import { Route } from '@sapphire/plugin-api';
 
 export class UserRoute extends Route {

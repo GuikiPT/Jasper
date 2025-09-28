@@ -1,7 +1,9 @@
+// SupportRoles module within preconditions
 import { AllFlowsPrecondition } from '@sapphire/framework';
 import type { ChatInputCommandInteraction, ContextMenuCommandInteraction, GuildMember, Message } from 'discord.js';
 import type { APIInteractionGuildMember } from 'discord.js';
 
+// Precondition enforcing SupportRoles access rules.
 export class SupportRolesPrecondition extends AllFlowsPrecondition {
 	public override messageRun(message: Message) {
 		return this.checkMemberAccess(message.guildId, message.member, true);

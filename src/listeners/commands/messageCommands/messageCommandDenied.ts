@@ -1,3 +1,4 @@
+// messageCommandDenied module within listeners/commands/messageCommands
 import type { Events, MessageCommandDeniedPayload } from '@sapphire/framework';
 import { Listener, type UserError } from '@sapphire/framework';
 

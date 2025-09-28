@@ -1,3 +1,4 @@
+// AllowedGuildRoleBuckets module within preconditions
 import { AllFlowsPrecondition } from '@sapphire/framework';
 import type { ChatInputCommand, ContextMenuCommand, MessageCommand, Precondition } from '@sapphire/framework';
 import type { ChatInputCommandInteraction, ContextMenuCommandInteraction, GuildMember, Message } from 'discord.js';
@@ -14,6 +15,7 @@ type AllowedGuildRoleBucketsContext = Precondition.Context & {
 
 const DEFAULT_ERROR_MESSAGE = 'This command may only be used by users with proper roles.';
 
+// Precondition enforcing AllowedGuildRoleBuckets access rules.
 export class AllowedGuildRoleBucketsPrecondition extends AllFlowsPrecondition {
 	public override messageRun(message: Message, _command: MessageCommand, context: AllowedGuildRoleBucketsContext) {
 		return this.checkMemberAccess(

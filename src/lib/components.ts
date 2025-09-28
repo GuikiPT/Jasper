@@ -1,4 +1,7 @@
+// components module within lib
 import { MessageFlags, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
+
+// Helper factories for Discord components, keeping message construction consistent.
 import type { CommandInteraction, Message } from 'discord.js';
 
 /**

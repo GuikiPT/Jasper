@@ -1,3 +1,4 @@
+// guildTopicSettingsService module within services
 import type { GuildTopicSettings, PrismaClient } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 
