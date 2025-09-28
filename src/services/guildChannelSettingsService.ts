@@ -102,16 +102,30 @@ export class GuildChannelSettingsService {
 		}, {} as Record<ChannelBucketKey, string[]>);
 	}
 
-	private parseValue(value: string | null | undefined): string[] {
-		if (!value) return [];
-		try {
-			const parsed = JSON.parse(value);
-			return Array.isArray(parsed)
-				? parsed.filter((entry): entry is string => typeof entry === 'string')
-				: [];
-		} catch {
-			return [];
+	private parseValue(value: unknown): string[] {
+		if (value === null || value === undefined) return [];
+
+		if (Array.isArray(value)) {
+			return value.filter((entry): entry is string => typeof entry === 'string');
 		}
+
+		if (typeof value === 'string') {
+			if (value.length === 0) return [];
+			try {
+				const parsed = JSON.parse(value);
+				return Array.isArray(parsed)
+					? parsed.filter((entry): entry is string => typeof entry === 'string')
+					: [];
+			} catch {
+				return [];
+			}
+		}
+
+		if (Buffer.isBuffer(value)) {
+			return this.parseValue(value.toString('utf8'));
+		}
+
+		return [];
 	}
 
 	private createBlankSettings(guildId: string) {
