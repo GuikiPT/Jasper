@@ -129,7 +129,8 @@ export class SnipeCommand extends Command {
 		const channel = message.channel as any;
 		return channel.send({
 			components: [component],
-			flags: MessageFlags.IsComponentsV2
+			flags: MessageFlags.IsComponentsV2,
+			allowMentions: {}
 		});
 	}
 
