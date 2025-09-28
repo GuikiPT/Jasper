@@ -10,7 +10,8 @@ import {
 	SeparatorSpacingSize,
 	SectionBuilder,
 	ThumbnailBuilder,
-	type Message
+	type Message,
+	type GuildTextBasedChannel
 } from 'discord.js';
 import { replyWithComponent, editReplyWithComponent } from '../../lib/components.js';
 
@@ -80,7 +81,7 @@ export class SnipeCommand extends Command {
 		const component = this.createSnipeComponent(snipedMessage);
 
 		// Send the snipe content to the channel
-		const channel = interaction.channel as any;
+		const channel = interaction.channel as GuildTextBasedChannel;
 		await channel.send({
 			components: [component],
 			flags: MessageFlags.IsComponentsV2
