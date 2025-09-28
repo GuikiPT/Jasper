@@ -55,12 +55,14 @@ export class SupportTagsAutocompleteHandler extends InteractionHandler {
 		const query = rawQuery.trim();
 		const normalizedQuery = query ? normalizeTagName(query) : '';
 
+		const service = this.container.supportTagService;
+		if (!service) {
+			this.container.logger.error('Support tag service is not initialised');
+			return this.some([]);
+		}
+
 		try {
-			const tags = await this.container.database.guildSupportTagSettings.findMany({
-				where: { guildId: interaction.guildId },
-				select: { name: true },
-				orderBy: { name: 'asc' }
-			});
+			const tags = await service.listTags(interaction.guildId);
 
 			const startsWith: string[] = [];
 			const contains: string[] = [];

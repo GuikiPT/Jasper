@@ -91,8 +91,11 @@ export async function chatInputTopicList(command: TopicCommand, interaction: Top
 }
 
 async function fetchTopics(command: TopicCommand, guildId: string) {
-	return command.container.database.guildTopicSettings.findMany({
-		where: { guildId },
-		orderBy: { id: 'asc' }
-	});
+	const service = command.container.guildTopicSettingsService;
+	if (!service) {
+		command.container.logger.error('Topic settings service is not available');
+		return [];
+	}
+
+	return service.listTopics(guildId);
 }

@@ -48,17 +48,20 @@ export class AllowedStaffRolesPrecondition extends AllFlowsPrecondition {
 		}
 
 		return 'Staff commands may only be used by users with "Allowed Staff Roles".';
-	} private async fetchAllowedRoles(guildId: string) {
-		try {
-			const settings = await this.container.database.guildRoleSettings.findUnique({
-				where: { guildId }
-			});
+	}
 
-			const value = settings?.allowedStaffRoles as unknown;
-			return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+	private async fetchAllowedRoles(guildId: string) {
+		const service = this.container.guildRoleSettingsService;
+		if (!service) {
+			this.container.logger.error('[AllowedStaffRoles] Role settings service is unavailable');
+			return [];
+		}
+
+		try {
+			return await service.listBucket(guildId, 'allowedStaffRoles');
 		} catch (error) {
 			this.container.logger.error('[AllowedStaffRoles] Failed to load guild role settings', error);
-			return [] as string[];
+			return [];
 		}
 	}
 

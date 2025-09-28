@@ -40,12 +40,15 @@ async function handleTopicExport({ command, guildId, deny, respond, defer }: Top
 		await defer();
 	}
 
+	const service = command.container.guildTopicSettingsService;
+	if (!service) {
+		command.container.logger.error('Topic settings service is not available');
+		return respond('Topics are not available right now. Please try again later.');
+	}
+
 	let topics: { value: string }[] = [];
 	try {
-		topics = await command.container.database.guildTopicSettings.findMany({
-			where: { guildId },
-			orderBy: { id: 'asc' }
-		});
+		topics = await service.exportTopics(guildId);
 	} catch (error) {
 		command.container.logger.error('Failed to export topics', error);
 		return respond('Failed to export topics. Please try again later.');

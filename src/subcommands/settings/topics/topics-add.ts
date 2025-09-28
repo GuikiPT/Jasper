@@ -1,8 +1,7 @@
 import type { Args } from '@sapphire/framework';
 import type { Message } from 'discord.js';
 import { MessageFlags } from 'discord.js';
-import { Prisma } from '@prisma/client';
-
+import { TopicAlreadyExistsError } from '../../../services/guildTopicSettingsService';
 import { type TopicCommand, type TopicChatInputInteraction, denyInteraction, normalizeTopicValue, MAX_TOPIC_LENGTH } from './utils';
 
 type TopicAddContext = {
@@ -62,14 +61,17 @@ async function handleTopicAdd({ command, guildId, value, deny, respond, defer }:
 		await defer();
 	}
 
-	try {
-		const created = await command.container.database.guildTopicSettings.create({
-			data: { guildId, value: normalized }
-		});
+	const service = command.container.guildTopicSettingsService;
+	if (!service) {
+		command.container.logger.error('Topic settings service is not available');
+		return respond('Topics are not available right now. Please try again later.');
+	}
 
+	try {
+		const created = await service.addTopic(guildId, normalized);
 		return respond(`Saved topic #${created.id}.`);
 	} catch (error) {
-		if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+		if (error instanceof TopicAlreadyExistsError) {
 			return respond('That topic already exists.');
 		}
 

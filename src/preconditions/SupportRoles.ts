@@ -56,17 +56,20 @@ export class SupportRolesPrecondition extends AllFlowsPrecondition {
 		}
 
 		return 'Support commands may only be used by users with "Support Roles".';
-	} private async fetchRoles(guildId: string) {
-		try {
-			const settings = await this.container.database.guildRoleSettings.findUnique({
-				where: { guildId }
-			});
+	}
 
-			const value = settings?.supportRoles as unknown;
-			return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+	private async fetchRoles(guildId: string) {
+		const service = this.container.guildRoleSettingsService;
+		if (!service) {
+			this.container.logger.error('[SupportRoles] Role settings service is unavailable');
+			return [];
+		}
+
+		try {
+			return await service.listBucket(guildId, 'supportRoles');
 		} catch (error) {
 			this.container.logger.error('[SupportRoles] Failed to load support roles', error);
-			return [] as string[];
+			return [];
 		}
 	}
 

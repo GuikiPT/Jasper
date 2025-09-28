@@ -1,4 +1,3 @@
-import type { GuildSupportTagSettings } from '@prisma/client';
 import { MessageFlags } from 'discord.js';
 
 import {
@@ -20,12 +19,15 @@ const SUPPORT_TAG_LIST_EMPTY_MESSAGE = 'No support tags have been created yet.';
 export async function chatInputTagList(command: TagCommand, interaction: TagChatInputInteraction) {
 	const guildId = interaction.guildId!;
 
-	let tags: GuildSupportTagSettings[];
+	const service = command.container.supportTagService;
+	if (!service) {
+		command.container.logger.error('Support tag service is not initialised');
+		return replyEphemeral(interaction, 'Support tags are not available right now. Please try again later.');
+	}
+
+	let tags;
 	try {
-		tags = await command.container.database.guildSupportTagSettings.findMany({
-			where: { guildId },
-			orderBy: { name: 'asc' }
-		});
+		tags = await service.listTags(guildId);
 	} catch (error) {
 		if (isSupportTagTableMissingError(error) || isSupportTagPrismaTableMissingError(error)) {
 			return replyEphemeral(interaction, SUPPORT_TAG_TABLE_MISSING_MESSAGE);
@@ -38,7 +40,7 @@ export async function chatInputTagList(command: TagCommand, interaction: TagChat
 		return replyEphemeral(interaction, SUPPORT_TAG_LIST_EMPTY_MESSAGE);
 	}
 
-	const tagNames = tags.map((tag: GuildSupportTagSettings) => tag.name);
+	const tagNames = tags.map((tag) => tag.name);
 
 	// Import components dynamically to avoid circular dependencies
 	const { createPaginatedComponentWithButtons, createPaginationButtons } = await import('../../../lib/components.js');

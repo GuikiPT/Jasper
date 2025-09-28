@@ -56,16 +56,19 @@ async function handleTopicRemove({ command, guildId, id, deny, respond, defer }:
 		await defer();
 	}
 
-	try {
-		const topic = await command.container.database.guildTopicSettings.findFirst({
-			where: { guildId, id }
-		});
+	const service = command.container.guildTopicSettingsService;
+	if (!service) {
+		Logger.error('Topic settings service is not available', undefined, { guildId: guildId ?? 'unknown', id });
+		return respond('Topics are not available right now. Please try again later.');
+	}
 
+	try {
+		const topic = await service.removeTopic(guildId, id);
 		if (!topic) {
-			return 'No matching topic found.';
+			return respond('No matching topic found.');
 		}
 
-		await command.container.database.guildTopicSettings.delete({ where: { id } }); const preview = topic.value.length > 80 ? `${topic.value.slice(0, 77)}…` : topic.value;
+		const preview = topic.value.length > 80 ? `${topic.value.slice(0, 77)}…` : topic.value;
 		return respond(`Removed topic #${topic.id}: ${preview}`);
 	} catch (error) {
 		Logger.error('Failed to remove topic', error, { guildId: guildId ?? 'unknown', id });

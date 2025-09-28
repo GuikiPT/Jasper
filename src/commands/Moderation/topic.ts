@@ -97,27 +97,19 @@ export class TopicCommand extends Command {
 	}
 
 	private async fetchRandomTopic(guildId: string): Promise<GuildTopicSettings | null> {
+		const service = this.container.guildTopicSettingsService;
+		if (!service) {
+			this.container.logger.error('Topic service not initialised');
+			return null;
+		}
+
 		try {
-			const total = await this.container.database.guildTopicSettings.count({
-				where: { guildId }
-			});
-
-			if (total === 0) {
-				return null;
-			}
-
-			const skip = Math.floor(Math.random() * total);
-			const entry = await this.container.database.guildTopicSettings.findFirst({
-				where: { guildId },
-				skip,
-				take: 1
-			});
-
+			const entry = await service.getRandomTopic(guildId);
 			if (!entry) {
 				return null;
 			}
 
-			return { id: entry.id, value: entry.value } satisfies GuildTopicSettings;
+			return { id: entry.id, value: entry.value };
 		} catch (error) {
 			this.container.logger.error('Failed to fetch random topic', error);
 			return null;

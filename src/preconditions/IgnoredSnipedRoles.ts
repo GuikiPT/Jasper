@@ -51,16 +51,17 @@ export class IgnoredSnipedRolesPrecondition extends AllFlowsPrecondition {
 	}
 
 	private async fetchRoles(guildId: string) {
-		try {
-			const settings = await this.container.database.guildRoleSettings.findUnique({
-				where: { guildId }
-			});
+		const service = this.container.guildRoleSettingsService;
+		if (!service) {
+			this.container.logger.error('[IgnoredSnipedRoles] Role settings service is unavailable');
+			return [];
+		}
 
-			const value = settings?.ignoredSnipedRoles as unknown;
-			return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+		try {
+			return await service.listBucket(guildId, 'ignoredSnipedRoles');
 		} catch (error) {
 			this.container.logger.error('[IgnoredSnipedRoles] Failed to load guild role settings', error);
-			return [] as string[];
+			return [];
 		}
 	}
 

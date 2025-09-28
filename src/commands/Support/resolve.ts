@@ -102,13 +102,20 @@ export class ResolveCommand extends Command {
 		const guildId = interaction.guildId!;
 		const forumChannel = thread.parent as ForumChannel;
 
-		// Get support settings from database
-		const supportSettings = await this.container.database.guildSupportSettings.findUnique({
-			where: { guildId }
-		});
+		const supportService = this.container.guildSupportSettingsService;
+		if (!supportService) {
+			this.container.logger.error('Support settings service is not available');
+			return replyWithComponent(interaction, 'Support settings are not available right now. Please try again later.', true);
+		}
+
+		const supportSettings = await supportService.getSettings(guildId);
+
+		if (!supportSettings) {
+			return replyWithComponent(interaction, 'Support settings have not been configured yet. Please ask an admin to run `/settings support set`.', true);
+		}
 
 		// Validate this is the configured support forum
-		if (!supportSettings?.supportForumChannelId || supportSettings.supportForumChannelId !== forumChannel.id) {
+		if (!supportSettings.supportForumChannelId || supportSettings.supportForumChannelId !== forumChannel.id) {
 			return replyWithComponent(interaction, 'This thread is not in the configured support forum channel.', true);
 		}
 

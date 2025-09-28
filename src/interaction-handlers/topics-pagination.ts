@@ -57,12 +57,18 @@ export class TopicListPaginationHandler extends InteractionHandler {
 			});
 		}
 
+		const service = this.container.guildTopicSettingsService;
+		if (!service) {
+			this.container.logger.error('Topic settings service is not available');
+			return interaction.reply({
+				content: 'Topics are not available right now. Please try again later.',
+				flags: MessageFlags.Ephemeral
+			});
+		}
+
 		let topics;
 		try {
-			topics = await this.container.database.guildTopicSettings.findMany({
-				where: { guildId },
-				orderBy: { id: 'asc' }
-			});
+			topics = await service.listTopics(guildId);
 		} catch (error) {
 			this.container.logger.error('Failed to load topics for pagination', error);
 			return interaction.reply({

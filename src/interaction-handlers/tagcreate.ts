@@ -17,11 +17,13 @@ import {
 	ensureTagChannelAccess,
 	formatTagChannelRestrictionMessage,
 	isSupportTagPrismaTableMissingError,
+	isSupportTagTableMissingError,
 	normalizeOptional,
 	normalizeTagName,
 	validateName,
 	validateUrl
 } from '../subcommands/support/tag/utils';
+import { SupportTagDuplicateNameError } from '../services/supportTagService';
 
 @ApplyOptions<InteractionHandler.Options>({
 	interactionHandlerType: InteractionHandlerTypes.ModalSubmit
@@ -90,38 +92,42 @@ export class SupportTagCreateModalHandler extends InteractionHandler {
 
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
+		const service = this.container.supportTagService;
+		if (!service) {
+			this.container.logger.error('Support tag service is not initialised');
+			return interaction.editReply({ content: 'Support tags are not available right now. Please try again later.' });
+		}
+
 		try {
-			const existing = await this.container.database.guildSupportTagSettings.findFirst({
-				where: { guildId, name }
-			});
+			const existing = await service.findTagByName(guildId, name);
 
 			if (existing) {
 				return interaction.editReply({ content: `A tag named **${existing.name}** already exists.` });
 			}
 		} catch (error) {
-			if (isSupportTagPrismaTableMissingError(error)) {
+			if (isSupportTagTableMissingError(error) || isSupportTagPrismaTableMissingError(error)) {
 				return interaction.editReply({ content: SUPPORT_TAG_TABLE_MISSING_MESSAGE });
 			}
 			throw error;
 		}
 
 		try {
-			const tag = await this.container.database.guildSupportTagSettings.create({
-				data: {
-					guildId,
-					name,
-					authorId: interaction.user.id,
-					editedBy: null,
-					embedTitle: title,
-					embedDescription: description,
-					embedFooter: footer,
-					embedImageUrl: image
-				}
+			const tag = await service.createTag(guildId, {
+				name,
+				authorId: interaction.user.id,
+				editedBy: null,
+				embedTitle: title,
+				embedDescription: description,
+				embedFooter: footer,
+				embedImageUrl: image
 			});
 
 			return interaction.editReply({ content: `Created tag **${tag.name}**.` });
 		} catch (error) {
-			if (isSupportTagPrismaTableMissingError(error)) {
+			if (error instanceof SupportTagDuplicateNameError) {
+				return interaction.editReply({ content: 'A tag with that name already exists.' });
+			}
+			if (isSupportTagTableMissingError(error) || isSupportTagPrismaTableMissingError(error)) {
 				return interaction.editReply({ content: SUPPORT_TAG_TABLE_MISSING_MESSAGE });
 			}
 			this.container.logger.error('Failed to create support tag', error);

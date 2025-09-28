@@ -2,8 +2,7 @@ export type {
 	NormalizedImportEntry,
 	NormalizedImportResult,
 	TagChatInputInteraction,
-	TagCommand,
-	TransactionClient
+	TagCommand
 } from './utils';
 
 export {

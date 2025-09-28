@@ -17,11 +17,13 @@ import {
 	ensureTagChannelAccess,
 	formatTagChannelRestrictionMessage,
 	isSupportTagPrismaTableMissingError,
+	isSupportTagTableMissingError,
 	normalizeOptional,
 	normalizeTagName,
 	validateName,
 	validateUrl
 } from '../subcommands/support/tag/utils';
+import { SupportTagDuplicateNameError } from '../services/supportTagService';
 
 type ParsedEditModalData = {
 	tagId: number;
@@ -101,13 +103,17 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
+		const service = this.container.supportTagService;
+		if (!service) {
+			this.container.logger.error('Support tag service is not initialised');
+			return interaction.editReply({ content: 'Support tags are not available right now. Please try again later.' });
+		}
+
 		let tag;
 		try {
-			tag = await this.container.database.guildSupportTagSettings.findUnique({
-				where: { id: tagId }
-			});
+			tag = await service.findTagById(tagId);
 		} catch (error) {
-			if (isSupportTagPrismaTableMissingError(error)) {
+			if (isSupportTagTableMissingError(error) || isSupportTagPrismaTableMissingError(error)) {
 				return interaction.editReply({ content: SUPPORT_TAG_TABLE_MISSING_MESSAGE });
 			}
 			throw error;
@@ -119,15 +125,13 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 
 		if (updatedName !== tag.name) {
 			try {
-				const collision = await this.container.database.guildSupportTagSettings.findFirst({
-					where: { guildId, name: updatedName }
-				});
+				const collision = await service.findTagByName(guildId, updatedName);
 
 				if (collision && collision.id !== tag.id) {
 					return interaction.editReply({ content: `A different tag named **${collision.name}** already exists.` });
 				}
 			} catch (error) {
-				if (isSupportTagPrismaTableMissingError(error)) {
+				if (isSupportTagTableMissingError(error) || isSupportTagPrismaTableMissingError(error)) {
 					return interaction.editReply({ content: SUPPORT_TAG_TABLE_MISSING_MESSAGE });
 				}
 				throw error;
@@ -135,21 +139,21 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 		}
 
 		try {
-			const updated = await this.container.database.guildSupportTagSettings.update({
-				where: { id: tag.id },
-				data: {
-					name: updatedName,
-					embedTitle: updatedTitle,
-					embedDescription: updatedDescription,
-					embedFooter: updatedFooter,
-					embedImageUrl: updatedImage,
-					editedBy: interaction.user.id
-				}
+			const updated = await service.updateTag(tag.id, {
+				name: updatedName,
+				embedTitle: updatedTitle,
+				embedDescription: updatedDescription,
+				embedFooter: updatedFooter,
+				embedImageUrl: updatedImage,
+				editedBy: interaction.user.id
 			});
 
 			return interaction.editReply({ content: `Updated tag **${updated.name}**.` });
 		} catch (error) {
-			if (isSupportTagPrismaTableMissingError(error)) {
+			if (error instanceof SupportTagDuplicateNameError) {
+				return interaction.editReply({ content: 'A different tag with that name already exists.' });
+			}
+			if (isSupportTagTableMissingError(error) || isSupportTagPrismaTableMissingError(error)) {
 				return interaction.editReply({ content: SUPPORT_TAG_TABLE_MISSING_MESSAGE });
 			}
 			this.container.logger.error('Failed to update support tag', error);

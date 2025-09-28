@@ -61,12 +61,18 @@ export class SupportTagListPaginationHandler extends InteractionHandler {
 			});
 		}
 
+		const service = this.container.supportTagService;
+		if (!service) {
+			this.container.logger.error('Support tag service is not initialised');
+			return interaction.reply({
+				content: 'Support tags are not available right now. Please try again later.',
+				flags: MessageFlags.Ephemeral
+			});
+		}
+
 		let tags;
 		try {
-			tags = await this.container.database.guildSupportTagSettings.findMany({
-				where: { guildId },
-				orderBy: { name: 'asc' }
-			});
+			tags = await service.listTags(guildId);
 		} catch (error) {
 			if (isSupportTagTableMissingError(error) || isSupportTagPrismaTableMissingError(error)) {
 				return interaction.reply({ content: SUPPORT_TAG_TABLE_MISSING_MESSAGE, flags: MessageFlags.Ephemeral });

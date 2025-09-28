@@ -45,11 +45,14 @@ async function handleTagExport({ command, guildId, deny, respond, defer }: TagEx
 		await defer();
 	}
 
+	const service = command.container.supportTagService;
+	if (!service) {
+		command.container.logger.error('Support tag service is not initialised');
+		return respond('Support tags are not available right now. Please try again later.');
+	}
+
 	try {
-		const tags = await command.container.database.guildSupportTagSettings.findMany({
-			where: { guildId },
-			orderBy: { name: 'asc' }
-		});
+		const tags = await service.listTags(guildId);
 
 		if (tags.length === 0) {
 			return respond('No tags configured yet. Create one with `/tag create`.');

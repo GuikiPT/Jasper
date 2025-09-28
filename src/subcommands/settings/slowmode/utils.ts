@@ -2,7 +2,6 @@ import type { GuildSlowmodeSettings } from '@prisma/client';
 import type { Subcommand, SubcommandMappingGroup } from '@sapphire/plugin-subcommands';
 import type { Args } from '@sapphire/framework';
 import { MessageFlags, type SlashCommandSubcommandGroupBuilder } from 'discord.js';
-import { getStringArray } from '../channels/utils';
 
 export type SlowmodeCommand = Subcommand;
 export type SlowmodeChatInputInteraction = Subcommand.ChatInputCommandInteraction;
@@ -106,10 +105,15 @@ export async function executeSlowmodeView({ command, guildId, respond, respondCo
 		await defer();
 	}
 
-	const settings = await ensureSlowmodeSettings(command, guildId);
-	const channelSettings = await command.container.database.guildChannelSettings.findUnique({ where: { guildId } });
+	const slowmodeService = command.container.guildSlowmodeSettingsService;
+	const channelService = command.container.guildChannelSettingsService;
 
-	const trackedChannels = channelSettings ? getStringArray(channelSettings.automaticSlowmodeChannels) : [];
+	if (!slowmodeService || !channelService) {
+		return respond('Slowmode settings are not available right now.');
+	}
+
+	const settings = await slowmodeService.getOrCreateSettings(guildId);
+	const trackedChannels = await channelService.listBucket(guildId, 'automaticSlowmodeChannels');
 
 	// If we have component support, use it
 	if (respondComponents) {
@@ -176,9 +180,16 @@ export async function executeSlowmodeUpdate({ command, guildId, updates, respond
 		await defer();
 	}
 
+	const slowmodeService = command.container.guildSlowmodeSettingsService;
+	const channelService = command.container.guildChannelSettingsService;
+
+	if (!slowmodeService || !channelService) {
+		return respond('Slowmode settings are not available right now.');
+	}
+
 	let settings: GuildSlowmodeSettings;
 	try {
-		settings = await ensureSlowmodeSettings(command, guildId);
+		settings = await slowmodeService.getOrCreateSettings(guildId);
 	} catch (error) {
 		command.container.logger.error('Failed to ensure slowmode settings', error, { guildId });
 		return respond('Something went wrong while loading slowmode settings. Please try again.');
@@ -191,10 +202,7 @@ export async function executeSlowmodeUpdate({ command, guildId, updates, respond
 
 	let updated: GuildSlowmodeSettings;
 	try {
-		updated = await command.container.database.guildSlowmodeSettings.update({
-			where: { guildId },
-			data: updatePayload
-		});
+		updated = await slowmodeService.updateSettings(guildId, updatePayload);
 	} catch (error) {
 		command.container.logger.error('Failed to update slowmode settings', error, { guildId });
 		return respond('Failed to update slowmode settings. Please try again later.');
@@ -207,8 +215,7 @@ export async function executeSlowmodeUpdate({ command, guildId, updates, respond
 
 	void command.container.slowmodeManager?.handleSettingsUpdated(guildId);
 
-	const channelSettings = await command.container.database.guildChannelSettings.findUnique({ where: { guildId } });
-	const trackedChannels = channelSettings ? getStringArray(channelSettings.automaticSlowmodeChannels) : [];
+	const trackedChannels = await channelService.listBucket(guildId, 'automaticSlowmodeChannels');
 
 	// If we have component support, use it
 	if (respondComponents) {
@@ -271,26 +278,6 @@ export function formatSlowmodeSettings(
 	];
 
 	return lines.join('\n');
-}
-
-export async function ensureSlowmodeSettings(command: SlowmodeCommand, guildId: string): Promise<GuildSlowmodeSettings> {
-	const existing = await command.container.database.guildSlowmodeSettings.findUnique({ where: { guildId } });
-	if (existing) return existing;
-
-	await command.container.database.guildSettings.upsert({
-		where: { id: guildId },
-		create: { id: guildId },
-		update: {}
-	});
-
-	const created = await command.container.database.guildSlowmodeSettings.create({
-		// Cast to any to avoid stale Prisma types until `prisma generate` runs
-		data: ({ guildId } as any)
-	});
-
-	command.container.logger.info('[Settings:Slowmode] Created default slowmode settings', { guildId });
-
-	return created;
 }
 
 export async function parseMessageConfigureArgs(args: Args): Promise<SlowmodeUpdateInput> {

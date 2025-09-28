@@ -1,7 +1,8 @@
 import type { Args } from '@sapphire/framework';
 import type { Subcommand } from '@sapphire/plugin-subcommands';
 import { MessageFlags, type SlashCommandSubcommandGroupBuilder } from 'discord.js';
-import type { GuildChannelSettings } from '@prisma/client';
+import type { ChannelBucketKey as ChannelBucketKeyBase } from '../../../services/guildChannelSettingsService';
+export type ChannelBucketKey = ChannelBucketKeyBase;
 
 export type ChannelCommand = Subcommand;
 export type ChannelChatInputInteraction = Subcommand.ChatInputCommandInteraction;
@@ -32,9 +33,7 @@ export const CHANNEL_BUCKETS = [
 	{ key: 'allowedSnipeChannels', label: 'Allowed Snipe Channels' },
 	{ key: 'allowedTagChannels', label: 'Allowed Tag Channels' },
 	{ key: 'automaticSlowmodeChannels', label: 'Automatic Slowmode Channels' }
-] as const;
-
-export type ChannelBucketKey = (typeof CHANNEL_BUCKETS)[number]['key'];
+] as const satisfies ReadonlyArray<{ key: ChannelBucketKey; label: string }>;
 
 export const bucketLookup = new Map<string, ChannelBucketKey>(
 	CHANNEL_BUCKETS.flatMap((bucket) => [bucket.key, bucket.label].map((value) => [value.toLowerCase(), bucket.key]))
@@ -145,40 +144,22 @@ export async function executeChannelMutation({
 		await defer();
 	}
 
-	let settings: GuildChannelSettings;
-	try {
-		settings = await ensureChannelSettings(command, guildId);
-	} catch (error) {
-		return respond('Failed to load channel settings. Please try again later.');
+	const service = command.container.guildChannelSettingsService;
+	if (!service) {
+		return respond('Channel settings are not available right now.');
 	}
-	const current = getStringArray(settings[bucket]);
 	const label = bucketLabel(bucket);
 
 	if (operation === 'add') {
-		if (current.includes(channelId)) {
+		const { added } = await service.addChannel(guildId, bucket, channelId);
+		if (!added) {
 			return respond(`That channel is already part of **${label}**.`);
 		}
-		current.push(channelId);
 	} else {
-		if (!current.includes(channelId)) {
+		const { removed } = await service.removeChannel(guildId, bucket, channelId);
+		if (!removed) {
 			return respond(`That channel is not configured for **${label}**.`);
 		}
-		removeInPlace(current, channelId);
-	}
-
-	try {
-		await command.container.database.guildChannelSettings.upsert({
-			where: { guildId },
-			create: {
-				...blankChannelSettings(guildId),
-				[bucket]: JSON.stringify(current)
-			},
-			update: {
-				[bucket]: JSON.stringify(current)
-			}
-		});
-	} catch (error) {
-		return respond('Failed to update channel settings. Please try again later.');
 	}
 
 	return respond(
@@ -205,13 +186,12 @@ export async function executeChannelList({
 		await defer();
 	}
 
-	let settings: GuildChannelSettings;
-	try {
-		settings = await ensureChannelSettings(command, guildId);
-	} catch (error) {
-		return respond('Failed to load channel settings. Please try again later.');
+	const service = command.container.guildChannelSettingsService;
+	if (!service) {
+		return respond('Channel settings are not available right now.');
 	}
 	const buckets = bucket ? [bucket] : CHANNEL_BUCKETS.map((entry) => entry.key);
+	const allBuckets = await service.getAllBuckets(guildId);
 
 	// Use components if available, otherwise fallback to text
 	if (respondComponents) {
@@ -219,7 +199,7 @@ export async function executeChannelList({
 
 		if (bucket) {
 			// Single bucket - use simple list component
-			const chans = getStringArray(settings[bucket]);
+			const chans = allBuckets[bucket];
 			const label = bucketLabel(bucket);
 			const items = chans.length === 0 ? [] : chans.map((id) => `<#${id}>`);
 			const component = createListComponent(label, items, 'No channels configured yet.', false); // Channel mentions are short, use commas
@@ -227,7 +207,7 @@ export async function executeChannelList({
 		} else {
 			// Multiple buckets - use multi-section component with proper sections and separators
 			const sections = buckets.map((key) => {
-				const chans = getStringArray(settings[key]);
+				const chans = allBuckets[key];
 				const label = bucketLabel(key);
 				const items = chans.length === 0 ? ['*(none)*'] : chans.map((id) => `<#${id}>`);
 				return {
@@ -248,7 +228,7 @@ export async function executeChannelList({
 
 	// Fallback to text for message commands
 	const lines = buckets.map((key) => {
-		const chans = getStringArray(settings[key]);
+		const chans = allBuckets[key];
 		const label = bucketLabel(key);
 		if (chans.length === 0) return `**${label}:** *(none)*`;
 		return `**${label}:** ${chans.map((id) => `<#${id}>`).join(', ')}`;
@@ -257,48 +237,10 @@ export async function executeChannelList({
 	return respond(lines.join('\n'));
 }
 
-export async function ensureChannelSettings(command: ChannelCommand, guildId: string): Promise<GuildChannelSettings> {
-	const existing = await command.container.database.guildChannelSettings.findUnique({ where: { guildId } });
-	if (existing) return existing;
-
-	// Ensure GuildSettings exists first (required for foreign key constraint)
-	await command.container.database.guildSettings.upsert({
-		where: { id: guildId },
-		create: { id: guildId },
-		update: {}
-	});
-
-	return command.container.database.guildChannelSettings.create({ data: blankChannelSettings(guildId) });
-}
-
-export function blankChannelSettings(guildId: string) {
-	return {
-		guildId,
-		allowedSkullboardChannels: JSON.stringify([]),
-		allowedSnipeChannels: JSON.stringify([]),
-		allowedTagChannels: JSON.stringify([]),
-		automaticSlowmodeChannels: JSON.stringify([])
-	};
-}
-
-export function getStringArray(value: string | null | undefined): string[] {
-	if (!value) return [];
-	try {
-		const parsed = JSON.parse(value);
-		return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
-	} catch {
-		return [];
-	}
-}
-
 export function bucketLabel(bucket: ChannelBucketKey) {
 	return CHANNEL_BUCKETS.find((entry) => entry.key === bucket)?.label ?? bucket;
 }
 
-export function removeInPlace(array: string[], value: string) {
-	const index = array.indexOf(value);
-	if (index !== -1) array.splice(index, 1);
-}
 
 export const denyInteraction = (interaction: ChannelChatInputInteraction, content: string) =>
 	interaction.reply({ content, flags: MessageFlags.Ephemeral });

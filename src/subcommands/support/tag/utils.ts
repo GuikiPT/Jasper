@@ -1,7 +1,20 @@
 import type { Subcommand } from '@sapphire/plugin-subcommands';
 import type { APIInteractionGuildMember, GuildMember } from 'discord.js';
-import { EmbedBuilder, MessageFlags, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize, MediaGalleryBuilder, MediaGalleryItemBuilder } from 'discord.js';
-import { Prisma, type GuildSupportTagSettings } from '@prisma/client';
+import {
+	EmbedBuilder,
+	MessageFlags,
+	ContainerBuilder,
+	TextDisplayBuilder,
+	SeparatorBuilder,
+	SeparatorSpacingSize,
+	MediaGalleryBuilder,
+	MediaGalleryItemBuilder
+} from 'discord.js';
+import type { GuildSupportTagSettings } from '@prisma/client';
+import {
+	GuildSupportTagTableMissingError,
+	type NormalizedImportEntry as SupportTagNormalizedImportEntry
+} from '../../../services/supportTagService';
 
 export type TagCommand = Subcommand;
 export type TagChatInputInteraction = Subcommand.ChatInputCommandInteraction;
@@ -138,74 +151,36 @@ export const buildTagComponents = (tag: GuildSupportTagSettings, user?: { id: st
 	return components;
 };
 
-export class GuildSupportTagTableMissingError extends Error {
-	public constructor(cause?: unknown) {
-		super(SUPPORT_TAG_TABLE_MISSING_MESSAGE);
-		this.name = 'GuildSupportTagTableMissingError';
-		if (cause instanceof Error) {
-			this.cause = cause;
-		}
-	}
-}
-
-const isPrismaTableMissingError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
-	error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2021';
-
-export const isSupportTagPrismaTableMissingError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
-	isPrismaTableMissingError(error);
-
 export const SUPPORT_TAG_TABLE_MISSING_MESSAGE =
 	'Support tag storage has not been initialised yet. Run the pending Prisma migration to create the `GuildSupportTagSettings` table.';
 
 export const isSupportTagTableMissingError = (error: unknown): error is GuildSupportTagTableMissingError =>
 	error instanceof GuildSupportTagTableMissingError;
 
+export const isSupportTagPrismaTableMissingError = (error: unknown): error is GuildSupportTagTableMissingError =>
+	isSupportTagTableMissingError(error);
+
 export const findTag = async (command: TagCommand, guildId: string, name: string) => {
-	try {
-		return await command.container.database.guildSupportTagSettings.findFirst({
-			where: {
-				guildId,
-				name
-			}
-		});
-	} catch (error) {
-		if (isPrismaTableMissingError(error)) {
-			throw new GuildSupportTagTableMissingError(error);
-		}
-		throw error;
-	}
-};
-
-const toStringArray = (value: unknown): string[] => {
-	if (Array.isArray(value)) {
-		return value.filter((entry): entry is string => typeof entry === 'string');
+	const service = command.container.supportTagService;
+	if (!service) {
+		throw new Error('Support tag service is not initialised.');
 	}
 
-	if (typeof value === 'string') {
-		try {
-			const parsed = JSON.parse(value);
-			return Array.isArray(parsed)
-				? parsed.filter((entry): entry is string => typeof entry === 'string')
-				: [];
-		} catch {
-			return [];
-		}
-	}
-
-	return [];
+	return service.findTagByName(guildId, name);
 };
 
 export const fetchAllowedTagChannels = async (context: ContainerAccessor, guildId: string) => {
-	try {
-		const settings = await context.container.database.guildChannelSettings.findUnique({
-			where: { guildId },
-			select: { allowedTagChannels: true }
-		});
+	const service = context.container.guildChannelSettingsService;
+	if (!service) {
+		context.container.logger.error('[SupportTag] Channel settings service is unavailable');
+		return [];
+	}
 
-		return toStringArray(settings?.allowedTagChannels);
+	try {
+		return await service.listBucket(guildId, 'allowedTagChannels');
 	} catch (error) {
-		context.container.logger.error('[SupportTag] Failed to load allowed tag channels', error);
-		return [] as string[];
+		context.container.logger.error('[SupportTag] Failed to load allowed tag channels', error, { guildId });
+		return [];
 	}
 };
 
@@ -272,44 +247,47 @@ export const formatTagChannelRestrictionMessage = (
 };
 
 const fetchSupportRoles = async (context: ContainerAccessor, guildId: string) => {
-	try {
-		const settings = await context.container.database.guildRoleSettings.findUnique({
-			where: { guildId },
-			select: { supportRoles: true }
-		});
+	const service = context.container.guildRoleSettingsService;
+	if (!service) {
+		context.container.logger.error('[SupportTag] Role settings service is unavailable');
+		return [];
+	}
 
-		return toStringArray(settings?.supportRoles);
+	try {
+		return await service.listBucket(guildId, 'supportRoles');
 	} catch (error) {
-		context.container.logger.error('[SupportTag] Failed to load support roles', error);
-		return [] as string[];
+		context.container.logger.error('[SupportTag] Failed to load support roles', error, { guildId });
+		return [];
 	}
 };
 
 const fetchAllowedTagRoles = async (context: ContainerAccessor, guildId: string) => {
-	try {
-		const settings = await context.container.database.guildRoleSettings.findUnique({
-			where: { guildId },
-			select: { allowedTagRoles: true }
-		});
+	const service = context.container.guildRoleSettingsService;
+	if (!service) {
+		context.container.logger.error('[SupportTag] Role settings service is unavailable');
+		return [];
+	}
 
-		return toStringArray(settings?.allowedTagRoles);
+	try {
+		return await service.listBucket(guildId, 'allowedTagRoles');
 	} catch (error) {
-		context.container.logger.error('[SupportTag] Failed to load allowed tag roles', error);
-		return [] as string[];
+		context.container.logger.error('[SupportTag] Failed to load allowed tag roles', error, { guildId });
+		return [];
 	}
 };
 
 const fetchAllowedTagAdminRoles = async (context: ContainerAccessor, guildId: string) => {
-	try {
-		const settings = await context.container.database.guildRoleSettings.findUnique({
-			where: { guildId },
-			select: { allowedTagAdminRoles: true }
-		});
+	const service = context.container.guildRoleSettingsService;
+	if (!service) {
+		context.container.logger.error('[SupportTag] Role settings service is unavailable');
+		return [];
+	}
 
-		return toStringArray(settings?.allowedTagAdminRoles);
+	try {
+		return await service.listBucket(guildId, 'allowedTagAdminRoles');
 	} catch (error) {
-		context.container.logger.error('[SupportTag] Failed to load allowed tag admin roles', error);
-		return [] as string[];
+		context.container.logger.error('[SupportTag] Failed to load allowed tag admin roles', error, { guildId });
+		return [];
 	}
 };
 
@@ -500,18 +478,8 @@ export const normalizeImportEntry = (raw: unknown, tagName?: string): Normalized
 	};
 };
 
-export type NormalizedImportEntry = {
-	name: string;
-	title: string;
-	description?: string;
-	footer?: string;
-	image?: string;
-	authorId?: string;
-	editedBy?: string;
-};
+export type NormalizedImportEntry = SupportTagNormalizedImportEntry;
 
 export type NormalizedImportResult =
 	| { ok: true; value: NormalizedImportEntry }
 	| { ok: false; reason: string };
-
-export type TransactionClient = Prisma.TransactionClient;

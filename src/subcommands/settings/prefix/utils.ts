@@ -40,7 +40,13 @@ export async function executePrefixRequest({
 	}
 
 	const defaultPrefix = getDefaultPrefix(command);
-	const result = await handlePrefixCommon(command, {
+	const service = command.container.guildSettingsService;
+
+	if (!service) {
+		return respond('Prefix settings are not available right now.');
+	}
+
+	const result = await handlePrefixCommon(command, service, {
 		guildId,
 		providedPrefix,
 		defaultPrefix
@@ -80,6 +86,7 @@ export function getDefaultPrefix(command: PrefixCommand): string | null {
 
 async function handlePrefixCommon(
 	command: PrefixCommand,
+	service: PrefixCommand['container']['guildSettingsService'],
 	{ guildId, providedPrefix, defaultPrefix }: PrefixHandlerParams
 ) {
 	if (providedPrefix !== null) {
@@ -94,11 +101,7 @@ async function handlePrefixCommon(
 		}
 
 		try {
-			await command.container.database.guildSettings.upsert({
-				where: { id: guildId },
-				create: { id: guildId, prefix: trimmedPrefix },
-				update: { prefix: trimmedPrefix }
-			});
+			await service.setPrefix(guildId, trimmedPrefix);
 		} catch (error) {
 			command.container.logger.error('Failed to update prefix in database', error);
 			return { content: 'Failed to update the prefix. Please try again later.' };
@@ -108,10 +111,9 @@ async function handlePrefixCommon(
 	}
 
 	try {
-		const guildSettings = await command.container.database.guildSettings.findUnique({
-			where: { id: guildId }
-		});
-		const resolvedPrefix = guildSettings?.prefix ?? defaultPrefix; if (resolvedPrefix) {
+		const prefix = await service.getPrefix(guildId);
+		const resolvedPrefix = prefix ?? defaultPrefix;
+		if (resolvedPrefix) {
 			return { content: `The current prefix is \`${resolvedPrefix}\`.` };
 		}
 

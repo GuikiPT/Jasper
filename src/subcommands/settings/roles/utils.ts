@@ -1,7 +1,8 @@
 import type { Args } from '@sapphire/framework';
 import type { Subcommand } from '@sapphire/plugin-subcommands';
 import { MessageFlags, type SlashCommandSubcommandGroupBuilder } from 'discord.js';
-import type { GuildRoleSettings } from '@prisma/client';
+import type { RoleBucketKey as RoleBucketKeyBase } from '../../../services/guildRoleSettingsService';
+export type RoleBucketKey = RoleBucketKeyBase;
 
 export type RoleMutationContext = {
 	command: RoleCommand;
@@ -35,9 +36,7 @@ export const ROLE_BUCKETS = [
 	{ key: 'allowedTagRoles', label: 'Allowed Tag Roles' },
 	{ key: 'ignoredSnipedRoles', label: 'Ignored Sniped Roles' },
 	{ key: 'supportRoles', label: 'Support Roles' }
-] as const;
-
-export type RoleBucketKey = (typeof ROLE_BUCKETS)[number]['key'];
+] as const satisfies ReadonlyArray<{ key: RoleBucketKey; label: string }>;
 
 export const bucketLookup = new Map<string, RoleBucketKey>(
 	ROLE_BUCKETS.flatMap((bucket) => [bucket.key, bucket.label].map((value) => [value.toLowerCase(), bucket.key]))
@@ -150,49 +149,27 @@ export async function executeRoleMutation({
 		await defer();
 	}
 
-	let settings: GuildRoleSettings;
-	try {
-		settings = await ensureRoleSettings(command, guildId);
-	} catch (error) {
-		return respond('Failed to load role settings. Please try again later.');
+	const service = command.container.guildRoleSettingsService;
+	if (!service) {
+		return respond('Role settings are not available right now.');
 	}
-	const current = getStringArray(settings[bucket]);
 	const label = bucketLabel(bucket);
 
 	if (operation === 'add') {
-		if (current.includes(roleId)) {
+		const { added } = await service.addRole(guildId, bucket, roleId);
+		if (!added) {
 			return respond(`That role is already part of **${label}**.`);
 		}
 
-		current.push(roleId);
+		return respond(`Added <@&${roleId}> to **${label}**.`);
 	} else {
-		if (!current.includes(roleId)) {
+		const { removed } = await service.removeRole(guildId, bucket, roleId);
+		if (!removed) {
 			return respond(`That role is not configured for **${label}**.`);
 		}
 
-		removeInPlace(current, roleId);
+		return respond(`Removed <@&${roleId}> from **${label}**.`);
 	}
-
-	try {
-		await command.container.database.guildRoleSettings.upsert({
-			where: { guildId },
-			create: {
-				...blankRoleSettings(guildId),
-				[bucket]: JSON.stringify(current)
-			},
-			update: {
-				[bucket]: JSON.stringify(current)
-			}
-		});
-	} catch {
-		return respond('Failed to update role settings. Please try again later.');
-	}
-
-	return respond(
-		operation === 'add'
-			? `Added <@&${roleId}> to **${label}**.`
-			: `Removed <@&${roleId}> from **${label}**.`
-	);
 }
 
 export async function executeRoleList({
@@ -212,13 +189,12 @@ export async function executeRoleList({
 		await defer();
 	}
 
-	let settings: GuildRoleSettings;
-	try {
-		settings = await ensureRoleSettings(command, guildId);
-	} catch (error) {
-		return respond('Failed to load role settings. Please try again later.');
+	const service = command.container.guildRoleSettingsService;
+	if (!service) {
+		return respond('Role settings are not available right now.');
 	}
 	const buckets = bucket ? [bucket] : ROLE_BUCKETS.map((entry) => entry.key);
+	const allBuckets = await service.getAllBuckets(guildId);
 
 	// If we have component support, use it
 	if (respondComponents) {
@@ -226,7 +202,7 @@ export async function executeRoleList({
 
 		if (bucket) {
 			// Single bucket - use simple list component
-			const roles = getStringArray(settings[bucket]);
+			const roles = allBuckets[bucket];
 			const label = bucketLabel(bucket);
 			const items = roles.length === 0 ? [] : roles.map((id) => `<@&${id}>`);
 			const component = createListComponent(label, items, 'No roles configured yet.', false); // Role mentions are short, use commas
@@ -234,7 +210,7 @@ export async function executeRoleList({
 		} else {
 			// Multiple buckets - use multi-section component with proper sections and separators
 			const sections = buckets.map((key) => {
-				const roles = getStringArray(settings[key]);
+				const roles = allBuckets[key];
 				const label = bucketLabel(key);
 				const items = roles.length === 0 ? ['*(none)*'] : roles.map((id) => `<@&${id}>`);
 				return {
@@ -254,7 +230,7 @@ export async function executeRoleList({
 
 	// Fallback to plain text for message commands
 	const lines = buckets.map((key) => {
-		const roles = getStringArray(settings[key]);
+		const roles = allBuckets[key];
 		const label = bucketLabel(key);
 
 		if (roles.length === 0) {
@@ -267,56 +243,10 @@ export async function executeRoleList({
 	return respond(lines.join('\n'));
 }
 
-export async function ensureRoleSettings(command: RoleCommand, guildId: string): Promise<GuildRoleSettings> {
-	const existing = await command.container.database.guildRoleSettings.findUnique({
-		where: { guildId }
-	});
-
-	if (existing) return existing;
-
-	// Ensure GuildSettings exists first (required for foreign key constraint)
-	await command.container.database.guildSettings.upsert({
-		where: { id: guildId },
-		create: { id: guildId },
-		update: {}
-	});
-
-	return command.container.database.guildRoleSettings.create({
-		data: blankRoleSettings(guildId)
-	});
-}
-
-export function blankRoleSettings(guildId: string) {
-	return {
-		guildId,
-		allowedAdminRoles: JSON.stringify([]),
-		allowedFunCommandRoles: JSON.stringify([]),
-		allowedStaffRoles: JSON.stringify([]),
-		allowedTagAdminRoles: JSON.stringify([]),
-		allowedTagRoles: JSON.stringify([]),
-		ignoredSnipedRoles: JSON.stringify([]),
-		supportRoles: JSON.stringify([])
-	};
-}
-
-export function getStringArray(value: string | null | undefined): string[] {
-	if (!value) return [];
-	try {
-		const parsed = JSON.parse(value);
-		return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
-	} catch {
-		return [];
-	}
-}
-
 export function bucketLabel(bucket: RoleBucketKey) {
 	return ROLE_BUCKETS.find((entry) => entry.key === bucket)?.label ?? bucket;
 }
 
-export function removeInPlace(array: string[], value: string) {
-	const index = array.indexOf(value);
-	if (index !== -1) array.splice(index, 1);
-}
 
 export const denyInteraction = (interaction: RoleChatInputInteraction, content: string) =>
 	interaction.reply({ content, flags: MessageFlags.Ephemeral });

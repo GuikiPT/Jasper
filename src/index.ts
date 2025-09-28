@@ -8,6 +8,13 @@ import { ensureDatabaseReady } from './lib/database';
 import { Logger } from './lib/logger';
 import { SlowmodeManager } from './services/slowmodeManager';
 import { SnipeManager } from './services/snipeManager';
+import { GuildSettingsService } from './services/guildSettingsService';
+import { GuildRoleSettingsService } from './services/guildRoleSettingsService';
+import { GuildChannelSettingsService } from './services/guildChannelSettingsService';
+import { GuildSupportSettingsService } from './services/guildSupportSettingsService';
+import { GuildSlowmodeSettingsService } from './services/guildSlowmodeSettingsService';
+import { GuildTopicSettingsService } from './services/guildTopicSettingsService';
+import { SupportTagService } from './services/supportTagService';
 
 const client = new SapphireClient({
 	defaultPrefix: 'j!',
@@ -54,6 +61,26 @@ const client = new SapphireClient({
 	partials: [Partials.Channel],
 	loadMessageCommandListeners: true
 });
+
+container.guildSettingsService = new GuildSettingsService(container.database);
+container.guildRoleSettingsService = new GuildRoleSettingsService(
+	container.database,
+	container.guildSettingsService
+);
+container.guildChannelSettingsService = new GuildChannelSettingsService(
+	container.database,
+	container.guildSettingsService
+);
+container.guildSupportSettingsService = new GuildSupportSettingsService(
+	container.database,
+	container.guildSettingsService
+);
+container.guildSlowmodeSettingsService = new GuildSlowmodeSettingsService(
+	container.database,
+	container.guildSettingsService
+);
+container.guildTopicSettingsService = new GuildTopicSettingsService(container.database);
+container.supportTagService = new SupportTagService(container.database);
 
 container.slowmodeManager = new SlowmodeManager(client, container.database);
 container.snipeManager = new SnipeManager(client, container.database);

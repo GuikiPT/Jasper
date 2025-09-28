@@ -3,7 +3,8 @@ import type { ChatInputCommand, ContextMenuCommand, MessageCommand, Precondition
 import type { ChatInputCommandInteraction, ContextMenuCommandInteraction, GuildMember, Message } from 'discord.js';
 import { PermissionFlagsBits } from 'discord.js';
 import type { APIInteractionGuildMember } from 'discord.js';
-import type { RoleBucketKey } from '../subcommands/settings/roles/utils';
+import type { RoleBucketKey as RoleBucketKeyBase } from '../subcommands/settings/roles/utils';
+type RoleBucketKey = RoleBucketKeyBase;
 
 type AllowedGuildRoleBucketsContext = Precondition.Context & {
 	buckets?: readonly RoleBucketKey[];
@@ -166,45 +167,27 @@ export class AllowedGuildRoleBucketsPrecondition extends AllFlowsPrecondition {
 	}
 
 	private async fetchAllowedRoles(guildId: string, buckets: readonly RoleBucketKey[]) {
+		const service = this.container.guildRoleSettingsService;
+		if (!service) {
+			this.container.logger.error('[AllowedGuildRoleBuckets] Role settings service is unavailable');
+			return [];
+		}
+
 		try {
-			const settings = await this.container.database.guildRoleSettings.findUnique({
-				where: { guildId }
-			});
-
-			if (!settings) {
-				return [] as string[];
-			}
-
+			const allBuckets = await service.getAllBuckets(guildId);
 			const roles = new Set<string>();
 
 			for (const bucket of buckets) {
-				const value = settings[bucket] as unknown;
-				if (typeof value === 'string') {
-					try {
-						const parsed = JSON.parse(value);
-						if (Array.isArray(parsed)) {
-							for (const entry of parsed) {
-								if (typeof entry === 'string') {
-									roles.add(entry);
-								}
-							}
-						}
-					} catch (error) {
-						this.container.logger.warn(`[AllowedGuildRoleBuckets] Failed to parse ${bucket} for guild ${guildId}:`, error);
-					}
-				} else if (Array.isArray(value)) {
-					for (const entry of value) {
-						if (typeof entry === 'string') {
-							roles.add(entry);
-						}
-					}
+				const entries = allBuckets[bucket] ?? [];
+				for (const entry of entries) {
+					roles.add(entry);
 				}
 			}
 
 			return [...roles];
 		} catch (error) {
 			this.container.logger.error('[AllowedGuildRoleBuckets] Failed to load guild role settings', error);
-			return [] as string[];
+			return [];
 		}
 	}
 

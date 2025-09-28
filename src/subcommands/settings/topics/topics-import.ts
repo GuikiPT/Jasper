@@ -132,14 +132,17 @@ async function handleTopicImport({ command, guildId, payload, deny, respond, def
 		return respond('No valid topics found after removing duplicates.');
 	}
 
+	const service = command.container.guildTopicSettingsService;
+	if (!service) {
+		command.container.logger.error('Topic settings service is not available');
+		return respond('Topics are not available right now. Please try again later.');
+	}
+
 	let toInsert = unique;
 	let existingSkipped = 0;
 
 	try {
-		const existing = await command.container.database.guildTopicSettings.findMany({
-			where: { guildId, value: { in: unique } },
-			select: { value: true }
-		});
+		const existing = await service.listTopics(guildId);
 		const existingSet = new Set(existing.map((entry) => entry.value));
 		if (existingSet.size > 0) {
 			toInsert = unique.filter((value) => !existingSet.has(value));
@@ -154,10 +157,7 @@ async function handleTopicImport({ command, guildId, payload, deny, respond, def
 
 	if (toInsert.length > 0) {
 		try {
-			const result = await command.container.database.guildTopicSettings.createMany({
-				data: toInsert.map((value) => ({ guildId, value }))
-			});
-			created = result.count;
+			created = await service.importTopics(guildId, toInsert);
 		} catch (error) {
 			command.container.logger.error('Failed to import topics', error);
 			return respond('Failed to import topics. Please try again later.');

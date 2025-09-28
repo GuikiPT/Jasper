@@ -34,8 +34,14 @@ export async function chatInputTagDelete(command: TagCommand, interaction: TagCh
 
 	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
+	const service = command.container.supportTagService;
+	if (!service) {
+		command.container.logger.error('Support tag service is not initialised');
+		return interaction.editReply({ content: 'Support tags are not available right now. Please try again later.' });
+	}
+
 	try {
-		await command.container.database.guildSupportTagSettings.delete({ where: { id: tag.id } });
+		await service.deleteTag(tag.id);
 		return interaction.editReply({ content: `Deleted tag **${tag.name}**.` });
 	} catch (error) {
 		if (isSupportTagTableMissingError(error) || isSupportTagPrismaTableMissingError(error)) {

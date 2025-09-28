@@ -66,11 +66,10 @@ export class SnipeCommand extends Command {
 		}
 
 		// Check if channel is allowed for sniping
-		const channelSettings = await this.container.database.guildChannelSettings.findUnique({
-			where: { guildId: interaction.guildId }
-		});
-
-		const allowedChannels = channelSettings ? this.parseStringArray(channelSettings.allowedSnipeChannels) : [];
+		const channelService = this.container.guildChannelSettingsService;
+		const allowedChannels = channelService
+			? await channelService.listBucket(interaction.guildId, 'allowedSnipeChannels')
+			: [];
 
 		if (!allowedChannels.includes(interaction.channel.id)) {
 			return editReplyWithComponent(interaction, 'Snipe is not enabled for this channel.');
@@ -107,11 +106,10 @@ export class SnipeCommand extends Command {
 		}
 
 		// Check if channel is allowed for sniping
-		const channelSettings = await this.container.database.guildChannelSettings.findUnique({
-			where: { guildId: message.guildId }
-		});
-
-		const allowedChannels = channelSettings ? this.parseStringArray(channelSettings.allowedSnipeChannels) : [];
+		const channelService = this.container.guildChannelSettingsService;
+		const allowedChannels = channelService
+			? await channelService.listBucket(message.guildId, 'allowedSnipeChannels')
+			: [];
 
 		if (!allowedChannels.includes(message.channelId)) {
 			const channel = message.channel as any;
@@ -197,13 +195,4 @@ export class SnipeCommand extends Command {
 		return `${Math.round(bytes / (1024 * 1024))} MB`;
 	}
 
-	private parseStringArray(value: string | null | undefined): string[] {
-		if (!value) return [];
-		try {
-			const parsed = JSON.parse(value);
-			return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
-		} catch {
-			return [];
-		}
-	}
 }
