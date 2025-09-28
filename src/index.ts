@@ -5,7 +5,7 @@ import { container } from '@sapphire/pieces';
 import { envParseString } from '@skyra/env-utilities';
 import { GatewayIntentBits, Partials } from 'discord.js';
 import { ensureDatabaseReady } from './lib/database';
-import { Logger } from './lib/logger';
+import { JasperLogger, Logger } from './lib/logger';
 import { SlowmodeManager } from './services/slowmodeManager';
 import { SnipeManager } from './services/snipeManager';
 import { GuildSettingsService } from './services/guildSettingsService';
@@ -15,6 +15,9 @@ import { GuildSupportSettingsService } from './services/guildSupportSettingsServ
 import { GuildSlowmodeSettingsService } from './services/guildSlowmodeSettingsService';
 import { GuildTopicSettingsService } from './services/guildTopicSettingsService';
 import { SupportTagService } from './services/supportTagService';
+
+const isProduction = process.env.NODE_ENV === 'production';
+const logLevel = isProduction ? LogLevel.Info : LogLevel.Debug;
 
 const client = new SapphireClient({
 	defaultPrefix: 'j!',
@@ -43,7 +46,11 @@ const client = new SapphireClient({
 	regexPrefix: /^(hey +)?bot[,! ]/i,
 	caseInsensitiveCommands: true,
 	logger: {
-		level: LogLevel.Debug
+		level: logLevel,
+		instance: new JasperLogger({
+			consoleLevel: logLevel,
+			fileLevel: LogLevel.Debug
+		})
 	},
 	shards: 'auto',
 	intents: [

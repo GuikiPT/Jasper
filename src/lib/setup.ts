@@ -1,6 +1,3 @@
-// Unless explicitly defined, set NODE_ENV as development:
-process.env.NODE_ENV ??= 'development';
-
 import { ApplicationCommandRegistries, RegisterBehavior } from '@sapphire/framework';
 import '@sapphire/plugin-api/register';
 import '@sapphire/plugin-editable-commands/register';
@@ -18,6 +15,9 @@ ApplicationCommandRegistries.setDefaultBehaviorWhenNotIdentical(RegisterBehavior
 
 // Read env var
 setup({ path: join(rootDir, '.env') });
+
+// Unless explicitly defined, set NODE_ENV as development:
+process.env.NODE_ENV ??= 'development';
 
 // Set default inspection depth
 inspect.defaultOptions.depth = 1;
