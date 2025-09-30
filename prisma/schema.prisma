@@ -18,6 +18,7 @@ model GuildSettings {
     supportSettings       GuildSupportSettings?
     supportTags           GuildSupportTagSettings[]
     topics                GuildTopicSettings[]
+    youtubeSettings       GuildYouTubeSettings?
 
     @@map("GuildSettings")
 }
@@ -93,4 +94,21 @@ model GuildTopicSettings {
     @@unique([guildId, value])
     @@index([guildId])
     @@map("GuildTopicSettings")
+}
+
+model GuildYouTubeSettings {
+    guildId               String        @id
+    enabled               Boolean       @default(false)
+    youtubeChannelUrl     String?
+    discordChannelId      String?
+    channelName           String?       @db.VarChar(255)
+    channelAvatarUrl      String?       @db.VarChar(512)
+    lastSubCount          String?
+    lastTimeUpdated       DateTime?
+    updateIntervalMinutes Int           @default(30)
+    createdAt             DateTime      @default(now())
+    updatedAt             DateTime      @updatedAt
+    guild                 GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+    @@map("GuildYouTubeSettings")
 }

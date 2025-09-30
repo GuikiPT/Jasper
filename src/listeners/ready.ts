@@ -3,6 +3,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Events, Listener } from '@sapphire/framework';
 import type { StoreRegistryValue } from '@sapphire/pieces';
 import { blue, gray, green, magenta, magentaBright, white, yellow } from 'colorette';
+import { YouTubeService } from '../services/youtubeService';
 
 const dev = process.env.NODE_ENV !== 'production';
 
@@ -13,6 +14,7 @@ export class UserEvent extends Listener {
 	public override run() {
 		this.printBanner();
 		this.printStoreDebugInformation();
+		this.startYouTubeManager();
 	}
 
 	private printBanner() {
@@ -48,5 +50,14 @@ ${line03}${dev ? ` ${pad}${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MO
 
 	private styleStore(store: StoreRegistryValue, last: boolean) {
 		return gray(`${last ? '└─' : '├─'} Loaded ${this.style(store.size.toString().padEnd(3, ' '))} ${store.name}.`);
+	}
+
+	private async startYouTubeManager() {
+		try {
+			const youtubeService = YouTubeService.getInstance();
+			await youtubeService.start();
+		} catch (error) {
+			this.container.logger.error('Failed to start YouTube service:', error);
+		}
 	}
 }

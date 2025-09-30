@@ -1,5 +1,5 @@
 // components module within lib
-import { MessageFlags, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
+import { MessageFlags, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize, ButtonBuilder, ButtonStyle, ActionRowBuilder, SectionBuilder, ThumbnailBuilder } from 'discord.js';
 
 // Helper factories for Discord components, keeping message construction consistent.
 import type { CommandInteraction, Message } from 'discord.js';
@@ -84,13 +84,51 @@ export function replyWithComponent(interaction: CommandInteraction, content: str
 /**
  * Creates a component-based edit reply
  */
-export function editReplyWithComponent(interaction: CommandInteraction, content: string) {
+export function editReplyWithComponent(interaction: CommandInteraction, content: string, ephemeral: boolean = false) {
 	const components = [createErrorTextComponent(content)]; // Use error text component for longer content
+
+	const flags = ephemeral
+		? MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
+		: MessageFlags.IsComponentsV2;
 
 	return interaction.editReply({
 		components,
-		flags: MessageFlags.IsComponentsV2
+		flags
 	});
+}
+
+export function createComponentDetailsSection(params: {
+	title: string;
+	summary?: string;
+	details: Array<{ label: string; value: string }>;
+	thumbnailUrl?: string;
+}) {
+	const { title, summary, details, thumbnailUrl } = params;
+	const section = new SectionBuilder();
+
+	section.addTextDisplayComponents(new TextDisplayBuilder().setContent(title));
+
+	const bodyParts: string[] = [];
+	if (summary) {
+		bodyParts.push(summary);
+	}
+
+	if (details.length > 0) {
+		const detailLines = details.map((item) => `• **${item.label}:** ${item.value}`);
+		bodyParts.push(detailLines.join('\n'));
+	}
+
+	if (bodyParts.length > 0) {
+		section.addTextDisplayComponents(
+			new TextDisplayBuilder().setContent(bodyParts.join('\n\n'))
+		);
+	}
+
+	if (thumbnailUrl) {
+		section.setThumbnailAccessory(new ThumbnailBuilder().setURL(thumbnailUrl));
+	}
+
+	return new ContainerBuilder().addSectionComponents(section);
 }
 
 /**
