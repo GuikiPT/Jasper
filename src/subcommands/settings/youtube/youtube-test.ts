@@ -10,6 +10,11 @@ import {
 	replyWithComponent,
 	editReplyWithComponent
 } from '../../../lib/components';
+import {
+	getMissingPermissionNames,
+	getMissingPermissionNamesForChannel,
+	mergePermissionNameLists
+} from './youtube-permissions';
 
 export async function chatInputYouTubeTest(command: Subcommand, interaction: ChatInputCommandInteraction) {
 	if (!interaction.guild) {
@@ -34,12 +39,44 @@ export async function chatInputYouTubeTest(command: Subcommand, interaction: Cha
 			);
 		}
 
+		const memberGuildMissingPermissions = getMissingPermissionNames(interaction.memberPermissions ?? null);
+		const botMember = interaction.guild.members.me ?? null;
+		const botGuildMissingPermissions = getMissingPermissionNames(botMember?.permissions ?? null);
+
 		// Test updating channel name
 		const channel = interaction.guild.channels.cache.get(settings.discordChannelId);
 		if (!channel) {
 			return editReplyWithComponent(
 				interaction,
 				'❌ The configured Discord channel no longer exists. Please reconfigure YouTube tracking.',
+				true
+			);
+		}
+
+		const memberMissingPermissions = mergePermissionNameLists(
+			memberGuildMissingPermissions,
+			getMissingPermissionNamesForChannel(channel, interaction.user)
+		);
+
+		const botMissingPermissions = mergePermissionNameLists(
+			botGuildMissingPermissions,
+			getMissingPermissionNamesForChannel(channel, botMember)
+		);
+
+		if (memberMissingPermissions.length > 0 || botMissingPermissions.length > 0) {
+			const issues: string[] = [];
+
+			if (memberMissingPermissions.length > 0) {
+				issues.push(`• You are missing: ${memberMissingPermissions.join(', ')}`);
+			}
+
+			if (botMissingPermissions.length > 0) {
+				issues.push(`• The bot is missing: ${botMissingPermissions.join(', ')}`);
+			}
+
+			return editReplyWithComponent(
+				interaction,
+				`❌ Missing required permissions to test YouTube tracking.\n${issues.join('\n')}\nPlease grant these permissions on the configured channel and try again.`,
 				true
 			);
 		}
@@ -94,15 +131,14 @@ export async function messageYouTubeTest(command: Subcommand, message: Message) 
 		return message.reply('❌ This command can only be used in a server.');
 	}
 
-	// // Check permissions
-	// if (!message.member?.permissions.has(PermissionFlagsBits.ManageChannels)) {
-	// 	return message.reply('❌ You need the "Manage Channels" permission to test YouTube tracking.');
-	// }
-
 	const reply = await message.reply({
 		components: [createTextComponent('🔄 Testing YouTube tracking configuration...')],
 		flags: MessageFlags.IsComponentsV2
 	});
+
+	const memberGuildMissingPermissions = getMissingPermissionNames(message.member?.permissions ?? null);
+	const botMember = message.guild.members.me ?? null;
+	const botGuildMissingPermissions = getMissingPermissionNames(botMember?.permissions ?? null);
 
 	try {
 		const settings = await GuildYouTubeSettingsService.getSettings(message.guild.id);
@@ -119,6 +155,37 @@ export async function messageYouTubeTest(command: Subcommand, message: Message) 
 		if (!channel) {
 			return reply.edit({
 				components: [createTextComponent('❌ The configured Discord channel no longer exists. Please reconfigure YouTube tracking.')],
+				flags: MessageFlags.IsComponentsV2
+			});
+		}
+
+		const memberMissingPermissions = mergePermissionNameLists(
+			memberGuildMissingPermissions,
+			getMissingPermissionNamesForChannel(channel, message.member ?? message.author)
+		);
+
+		const botMissingPermissions = mergePermissionNameLists(
+			botGuildMissingPermissions,
+			getMissingPermissionNamesForChannel(channel, botMember)
+		);
+
+		if (memberMissingPermissions.length > 0 || botMissingPermissions.length > 0) {
+			const issues: string[] = [];
+
+			if (memberMissingPermissions.length > 0) {
+				issues.push(`• You are missing: ${memberMissingPermissions.join(', ')}`);
+			}
+
+			if (botMissingPermissions.length > 0) {
+				issues.push(`• The bot is missing: ${botMissingPermissions.join(', ')}`);
+			}
+
+			return reply.edit({
+				components: [
+					createTextComponent(
+						`❌ Missing required permissions to test YouTube tracking.\n${issues.join('\n')}\nPlease grant these permissions on the configured channel and try again.`
+					)
+				],
 				flags: MessageFlags.IsComponentsV2
 			});
 		}
