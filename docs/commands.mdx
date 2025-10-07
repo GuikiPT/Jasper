@@ -549,6 +549,7 @@ The `/settings` command configures guild-specific behavior. Most actions are ava
 | Topics | `/settings topics` | `add`, `remove`, `list`, `import`, `export` |
 | Support | `/settings support` | `set`, `view` |
 | Slowmode | `/settings slowmode` | `view`, `configure` |
+| YouTube | `/settings youtube` | `enable`, `disable`, `view`, `test`, `force-update` |
 
 ### Prefixes (`/settings prefixes`)
 
@@ -1079,3 +1080,162 @@ Update the automation thresholds and timers for automatic slowmode.
 
 </details>
 
+### YouTube (`/settings youtube`)
+
+Configures automated YouTube subscriber tracking that renames a Discord channel with the live subscriber count.
+
+**Subcommands**
+- [`/settings youtube enable`](#settings-youtube-enable) - Enable tracking for a YouTube channel and target Discord channel.
+- [`/settings youtube disable`](#settings-youtube-disable) - Turn off subscriber tracking while keeping existing channel names untouched.
+- [`/settings youtube view`](#settings-youtube-view) - Display the saved tracking configuration and the most recent metrics.
+- [`/settings youtube test`](#settings-youtube-test) - Validate permissions and trigger an immediate update to confirm the setup.
+- [`/settings youtube force-update`](#settings-youtube-force-update) - Manually force the subscriber count refresh outside the normal interval.
+
+<a id="settings-youtube-enable"></a>
+#### `/settings youtube enable`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Configure Jasper to poll a YouTube channel and update a Discord channel name with the latest subscriber count.
+
+**Permissions**
+
+- Allowed Admin Roles.
+- Manage Channels (Discord permission, required for both the invoker and Jasper on the selected channel).
+
+**Options**
+
+- `youtube_url` (string, required): YouTube channel URL such as `https://www.youtube.com/@NoTextToSpeech`.
+- `discord_channel` (channel, required): Text or voice channel whose name Jasper will keep in sync.
+- `interval` (integer, optional): Minutes between updates (5-1440, defaults to 30).
+
+**Syntax**
+
+`/settings youtube enable youtube_url:<url> discord_channel:<#channel> [interval:<minutes>]` | `j!settings youtube enable <youtube_url> <#channel> [interval_minutes]`
+
+**Additional Notes**
+
+- Jasper validates both member and bot permissions before saving the configuration.
+- Voice channels provide the cleanest display; text channels are supported but will also be renamed.
+
+</details>
+
+<a id="settings-youtube-disable"></a>
+#### `/settings youtube disable`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Stop automatic subscriber tracking and scheduled updates for the guild.
+
+**Permissions**
+
+- Allowed Admin Roles.
+- Manage Channels (Discord permission).
+
+**Options**
+
+None.
+
+**Syntax**
+
+`/settings youtube disable` | `j!settings youtube disable`
+
+**Notes**
+
+- The tracked channel keeps its current name; rename it manually if you want to remove the counter.
+
+</details>
+
+<a id="settings-youtube-view"></a>
+#### `/settings youtube view`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Show the stored YouTube tracking configuration, including status, channel targets, interval, and latest subscriber count.
+
+**Permissions**
+
+- Allowed Admin Roles.
+- Manage Channels (Discord permission).
+
+**Options**
+
+None.
+
+**Syntax**
+
+`/settings youtube view` | `j!settings youtube view`
+
+**Notes**
+
+- When tracking is disabled or incomplete, the response clearly indicates which fields are missing.
+
+</details>
+
+<a id="settings-youtube-test"></a>
+#### `/settings youtube test`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Verify the saved configuration by forcing a single update, checking permissions, and attempting to rename the configured channel.
+
+**Permissions**
+
+- Allowed Admin Roles.
+- Manage Channels (Discord permission).
+
+**Options**
+
+None.
+
+**Syntax**
+
+`/settings youtube test` | `j!settings youtube test`
+
+**Notes**
+
+- The check fails if the configured Discord channel no longer exists or if either party lacks Manage Channels on it.
+- For testing to succeed, the configured channel must be a voice channel so Jasper can apply the subscriber count name.
+
+</details>
+
+<a id="settings-youtube-force-update"></a>
+#### `/settings youtube force-update`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Immediately refresh the stored subscriber count using the saved configuration without running the full diagnostic workflow.
+
+**Permissions**
+
+- Allowed Admin Roles.
+- Manage Channels (Discord permission).
+
+**Options**
+
+None.
+
+**Syntax**
+
+`/settings youtube force-update` | `j!settings youtube force-update`
+
+**Notes**
+
+- Returns the latest subscriber count and timestamp. Use this when you want a manual refresh between scheduled intervals.
+
+</details>
