@@ -2,11 +2,15 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Args, BucketScope, Command, CommandOptionsRunTypeEnum } from '@sapphire/framework';
 import {
+	ActionRowBuilder,
 	ApplicationIntegrationType,
+	ButtonBuilder,
+	ButtonStyle,
 	InteractionContextType,
 	MessageFlags,
 	SlashCommandBuilder,
 	SlashCommandStringOption,
+	type MessageActionRowComponentBuilder,
 	type ChatInputCommandInteraction,
 	type AutocompleteInteraction,
 	type Message
@@ -103,6 +107,50 @@ export class HelpCommand extends Command {
 		ApplicationIntegrationType.UserInstall
 	];
 
+	private readonly docsBaseUrl = 'https://docs.guiki.pt/docs/jasper-revamp/commands';
+
+	private readonly docsAnchorMap: Record<string, string> = {
+		help: 'help',
+		ping: 'ping',
+		topic: 'topic',
+		snipe: 'snipe',
+		resolve: 'resolve',
+		tag: 'tag',
+		'tag create': 'tag-create',
+		'tag delete': 'tag-delete',
+		'tag edit': 'tag-edit',
+		'tag export': 'tag-export',
+		'tag import': 'tag-import',
+		'tag info': 'tag-info',
+		'tag list': 'tag-list',
+		'tag raw': 'tag-raw',
+		'tag show': 'tag-show',
+		'tag use': 'tag-use',
+		settings: 'settings-commands',
+		'settings prefixes set': 'settings-prefixes-set',
+		'settings prefixes view': 'settings-prefixes-view',
+		'settings roles add': 'settings-roles-add',
+		'settings roles remove': 'settings-roles-remove',
+		'settings roles list': 'settings-roles-list',
+		'settings channels add': 'settings-channels-add',
+		'settings channels remove': 'settings-channels-remove',
+		'settings channels list': 'settings-channels-list',
+		'settings topics add': 'settings-topics-add',
+		'settings topics remove': 'settings-topics-remove',
+		'settings topics list': 'settings-topics-list',
+		'settings topics import': 'settings-topics-import',
+		'settings topics export': 'settings-topics-export',
+		'settings support set': 'settings-support-set',
+		'settings support view': 'settings-support-view',
+		'settings slowmode view': 'settings-slowmode-view',
+		'settings slowmode configure': 'settings-slowmode-configure',
+		'settings youtube enable': 'settings-youtube-enable',
+		'settings youtube disable': 'settings-youtube-disable',
+		'settings youtube view': 'settings-youtube-view',
+		'settings youtube test': 'settings-youtube-test',
+		'settings youtube force-update': 'settings-youtube-force-update'
+	};
+
 	private readonly contexts: InteractionContextType[] = [
 		InteractionContextType.BotDM,
 		InteractionContextType.Guild,
@@ -187,6 +235,7 @@ export class HelpCommand extends Command {
 
 		const content = this.buildHelpMessage(entry, prefix);
 		const component = createErrorTextComponent(content);
+		this.attachDocsButton(component, entry);
 		return interaction.reply({
 			components: [component],
 			flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
@@ -222,6 +271,7 @@ export class HelpCommand extends Command {
 
 		const content = this.buildHelpMessage(entry, prefix);
 		const component = createErrorTextComponent(content);
+		this.attachDocsButton(component, entry);
 		return message.reply({
 			components: [component],
 			flags: MessageFlags.IsComponentsV2
@@ -585,5 +635,38 @@ export class HelpCommand extends Command {
 		if (typeof option === 'string') return option;
 		if (Array.isArray(option) && option.length > 0) return option[0]!;
 		return 'j!';
+	}
+
+	private attachDocsButton(container: ReturnType<typeof createErrorTextComponent>, entry: HelpEntry) {
+		const anchor = this.buildDocsAnchor(entry);
+		if (!anchor) return;
+
+		container.addActionRowComponents(
+			new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+				new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Docs').setURL(`${this.docsBaseUrl}#${anchor}`)
+			)
+		);
+	}
+
+	private buildDocsAnchor(entry: HelpEntry): string | null {
+		const pathKey = entry.fullPath.join(' ');
+		const direct = this.docsAnchorMap[pathKey];
+		if (direct) {
+			return direct;
+		}
+
+		if (entry.type === 'command') {
+			const root = this.docsAnchorMap[entry.commandName];
+			if (root) {
+				return root;
+			}
+		}
+
+		const slug = entry.fullPath
+			.map((part) => part.trim().replace(/\s+/g, '-').toLowerCase())
+			.filter(Boolean)
+			.join('-');
+
+		return slug || null;
 	}
 }
