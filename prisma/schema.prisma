@@ -26,7 +26,6 @@ model GuildSettings {
 model GuildRoleSettings {
     guildId                String        @id
     allowedAdminRoles      String        @db.LongText
-    allowedFunCommandRoles String        @db.LongText
     allowedStaffRoles      String        @db.LongText
     allowedTagAdminRoles   String        @db.LongText
     allowedTagRoles        String        @db.LongText
@@ -37,7 +36,6 @@ model GuildRoleSettings {
 
 model GuildChannelSettings {
     guildId                   String        @id
-    allowedSkullboardChannels String        @db.LongText
     allowedSnipeChannels      String        @db.LongText
     allowedTagChannels        String        @db.LongText
     automaticSlowmodeChannels String        @db.LongText

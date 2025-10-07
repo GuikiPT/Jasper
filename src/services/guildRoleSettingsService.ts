@@ -5,7 +5,6 @@ import { Logger } from '../lib/logger';
 
 export const ROLE_BUCKET_KEYS = [
 	'allowedAdminRoles',
-	'allowedFunCommandRoles',
 	'allowedStaffRoles',
 	'allowedTagAdminRoles',
 	'allowedTagRoles',
@@ -138,7 +137,6 @@ export class GuildRoleSettingsService {
 		return {
 			guildId,
 			allowedAdminRoles: JSON.stringify([]),
-			allowedFunCommandRoles: JSON.stringify([]),
 			allowedStaffRoles: JSON.stringify([]),
 			allowedTagAdminRoles: JSON.stringify([]),
 			allowedTagRoles: JSON.stringify([]),

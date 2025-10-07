@@ -123,7 +123,7 @@ import {
 				messageUsage: '{{prefix}}settings roles add <bucket> <role>',
 				notes: [
 					'Permissions: Allowed Admin Roles, Allowed Tag Admin Roles, or Manage Server permission.',
-					'Setting choices (bucket): allowedAdminRoles, allowedFunCommandRoles, allowedStaffRoles, allowedTagAdminRoles, allowedTagRoles, ignoredSnipedRoles, supportRoles.'
+					'Setting choices (bucket): allowedAdminRoles, allowedStaffRoles, allowedTagAdminRoles, allowedTagRoles, ignoredSnipedRoles, supportRoles.'
 				],
 				examples: [
 					'/settings roles add setting:allowedAdminRoles role:@Leadership',
@@ -139,7 +139,7 @@ import {
 				messageUsage: '{{prefix}}settings roles remove <bucket> <role>',
 				notes: [
 					'Permissions: Allowed Admin Roles, Allowed Tag Admin Roles, or Manage Server permission.',
-					'Setting choices (bucket): allowedAdminRoles, allowedFunCommandRoles, allowedStaffRoles, allowedTagAdminRoles, allowedTagRoles, ignoredSnipedRoles, supportRoles.'
+					'Setting choices (bucket): allowedAdminRoles, allowedStaffRoles, allowedTagAdminRoles, allowedTagRoles, ignoredSnipedRoles, supportRoles.'
 				],
 				examples: [
 					'/settings roles remove setting:ignoredSnipedRoles role:@Muted',
@@ -155,7 +155,7 @@ import {
 				messageUsage: '{{prefix}}settings roles list [bucket]',
 				notes: [
 					'Permissions: Allowed Admin Roles, Allowed Tag Admin Roles, or Manage Server permission.',
-					'Use `setting` choices allowedAdminRoles, allowedFunCommandRoles, allowedStaffRoles, allowedTagAdminRoles, allowedTagRoles, ignoredSnipedRoles, supportRoles or omit to list every bucket.'
+					'Use `setting` choices allowedAdminRoles, allowedStaffRoles, allowedTagAdminRoles, allowedTagRoles, ignoredSnipedRoles, supportRoles or omit to list every bucket.'
 				],
 				examples: [
 					'/settings roles list setting:allowedStaffRoles',
@@ -171,7 +171,7 @@ import {
 				messageUsage: '{{prefix}}settings channels add <bucket> <channel>',
 				notes: [
 					'Permissions: Administrator permission or members in Allowed Admin Roles.',
-					'Bucket keys: allowedSkullboardChannels, allowedSnipeChannels, allowedTagChannels, automaticSlowmodeChannels.'
+					'Bucket keys: allowedSnipeChannels, allowedTagChannels, automaticSlowmodeChannels.'
 				],
 				aliases: ['channel add']
 			},
@@ -183,7 +183,7 @@ import {
 				messageUsage: '{{prefix}}settings channels remove <bucket> <channel>',
 				notes: [
 					'Permissions: Administrator permission or members in Allowed Admin Roles.',
-					'Bucket keys: allowedSkullboardChannels, allowedSnipeChannels, allowedTagChannels, automaticSlowmodeChannels.'
+					'Bucket keys: allowedSnipeChannels, allowedTagChannels, automaticSlowmodeChannels.'
 				],
 				aliases: ['channel remove']
 			},
@@ -195,7 +195,7 @@ import {
 				messageUsage: '{{prefix}}settings channels list [bucket]',
 				notes: [
 					'Permissions: Administrator permission or members in Allowed Admin Roles.',
-					'Use bucket keys (allowedSkullboardChannels, allowedSnipeChannels, allowedTagChannels, automaticSlowmodeChannels) or omit to view every bucket.'
+					'Use bucket keys (allowedSnipeChannels, allowedTagChannels, automaticSlowmodeChannels) or omit to view every bucket.'
 				],
 				aliases: ['channel list']
 			},

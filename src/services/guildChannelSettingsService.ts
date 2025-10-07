@@ -3,7 +3,6 @@ import type { GuildChannelSettings, PrismaClient } from '@prisma/client';
 import { GuildSettingsService } from './guildSettingsService';
 
 export const CHANNEL_BUCKET_KEYS = [
-	'allowedSkullboardChannels',
 	'allowedSnipeChannels',
 	'allowedTagChannels',
 	'automaticSlowmodeChannels'
@@ -132,7 +131,6 @@ export class GuildChannelSettingsService {
 	private createBlankSettings(guildId: string) {
 		return {
 			guildId,
-			allowedSkullboardChannels: JSON.stringify([]),
 			allowedSnipeChannels: JSON.stringify([]),
 			allowedTagChannels: JSON.stringify([]),
 			automaticSlowmodeChannels: JSON.stringify([])

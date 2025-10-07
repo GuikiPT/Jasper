@@ -90,7 +90,7 @@ interface HelpEntry {
 		{
 			name: 'AllowedGuildRoleBuckets',
 			context: {
-				buckets: ['allowedAdminRoles', 'allowedFunCommandRoles', 'allowedStaffRoles', 'allowedTagAdminRoles', 'allowedTagRoles', 'ignoredSnipedRoles', 'supportRoles'] as const,
+				buckets: ['allowedAdminRoles', 'allowedStaffRoles', 'allowedTagAdminRoles', 'allowedTagRoles', 'ignoredSnipedRoles', 'supportRoles'] as const,
 				allowManageGuild: false,
 				errorMessage: 'You need an allowed tag role, staff role, or admin role to use this command.'
 			}

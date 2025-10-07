@@ -33,7 +33,6 @@ export type RoleChatInputInteraction = Subcommand.ChatInputCommandInteraction;
 
 export const ROLE_BUCKETS = [
 	{ key: 'allowedAdminRoles', label: 'Allowed Admin Roles' },
-	{ key: 'allowedFunCommandRoles', label: 'Allowed Fun Command Roles' },
 	{ key: 'allowedStaffRoles', label: 'Allowed Staff Roles' },
 	{ key: 'allowedTagAdminRoles', label: 'Allowed Tag Admin Roles' },
 	{ key: 'allowedTagRoles', label: 'Allowed Tag Roles' },

@@ -1,0 +1,1081 @@
+---
+sidebar_position: 3
+toc_max_heading_level: 4
+---
+
+# Commands Catalogue
+
+This page documents every Jasper Revamp command with concise, authoritative details taken from the bot codebase. It focuses on what each command does, where it works, what permissions are needed, and which options it accepts.
+
+Notes
+
+- Examples and visual message previews have been intentionally removed.
+- "Allowed" role buckets refer to categories configured via `/settings roles`.
+- Message (prefix) commands use your configured prefix (default: `j!`).
+
+## General Commands
+
+### Quick Reference
+
+| Command | Summary |
+| --- | --- |
+| [`/help`](#help) | Interactive, searchable command catalogue with autocomplete. |
+| [`/ping`](#ping) | Measures gateway and interaction latency for Jasper. |
+
+<a id="help"></a>
+### `/help`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Provide an interactive command catalogue with autocomplete for commands and subcommands. Returns either a category overview or a detailed entry.
+
+**Where it works**
+
+- Guilds
+- Direct messages
+
+**Permissions**
+
+- Allowed Tag Roles
+- Allowed Staff Roles
+- Allowed Admin Roles
+
+**Options**
+
+- `command` (string, optional, autocomplete): Command or subcommand path such as `settings roles add`.
+
+**Syntax**
+
+`/help [command]` | `j!help [command]`
+
+</details>
+
+<a id="ping"></a>
+### `/ping`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Measure Discord gateway latency (websocket heartbeat) and round-trip latency for the interaction.
+
+**Where it works**
+
+- Guilds
+- Direct messages
+
+**Permissions**
+
+- None
+
+**Options**
+
+- None
+
+**Aliases**
+
+- `latency` (message command)
+
+**Syntax**
+
+`/ping` | `j!ping` | `j!latency`
+
+</details>
+
+<a id="discord-api-latency"></a>
+### Discord API Latency
+
+<details>
+<summary>View details</summary>
+
+Explains the websocket heartbeat measurement that reflects the current Discord gateway latency as observed by Jasper. Values update each time you run `/ping`.
+
+</details>
+
+<a id="bot-latency"></a>
+### Bot Latency
+
+<details>
+<summary>View details</summary>
+
+Describes the interaction round-trip time (the delay between triggering the command and Jasper replying). Helps distinguish transient API delays from persistent gateway issues.
+
+</details>
+
+## Moderation Commands
+
+### Quick Reference
+
+| Command | Summary |
+| --- | --- |
+| [`/topic`](#topic) | Send a random saved discussion topic. |
+| [`/snipe`](#snipe) | Recover the most recently deleted message when allowed. |
+
+<a id="topic"></a>
+### `/topic`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Send a random discussion topic saved for the guild.
+
+**Where it works**
+
+- Guild channels
+
+**Permissions**
+
+- Allowed Staff Roles
+- Allowed Admin Roles
+- Manage Server (Discord permission, implicit)
+
+**Options**
+
+- None
+
+**Syntax**
+
+`/topic` | `j!topic`
+
+</details>
+
+<a id="snipe"></a>
+### `/snipe`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Retrieve the most recently deleted message in the current channel.
+
+**Where it works**
+
+- Guild channels that are allow-listed for sniping
+
+**Permissions**
+
+- Allowed Staff Roles
+- Allowed Admin Roles
+
+**Options**
+
+- None
+
+**Syntax**
+
+`/snipe` | `j!snipe`
+
+**Notes**
+
+- Channel must be included in `allowedSnipeChannels`.
+- Command reply is ephemeral; recovered content posts publicly in the channel.
+
+</details>
+
+<a id="message-recovery"></a>
+### Message Recovery
+
+<details>
+<summary>View details</summary>
+
+Describes how deleted message content, attachments, and embeds are reconstructed from the snipe cache when the channel allows it. Confirms the recovered message posts publicly while the slash command reply stays ephemeral.
+
+</details>
+
+## Support Commands
+
+### Quick Reference
+
+| Command | Summary |
+| --- | --- |
+| [`/resolve`](#resolve) | Close a support thread with an optional Q&A summary. |
+| [`/tag`](#tag) | Manage reusable support tags and canned replies. |
+
+<a id="resolve"></a>
+### `/resolve`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Apply the configured resolved tag, optionally post a question and answer summary, then lock and archive the support thread.
+
+**Where it works**
+
+- Threads inside the configured support forum channel
+
+**Permissions**
+
+- Allowed Tag Roles
+- Allowed Staff Roles
+- Allowed Admin Roles
+- Jasper must have the Manage Threads permission in the forum
+
+**Options**
+
+- `question` (string, optional, up to 1000 characters): Summary of the original request.
+- `answer` (string, optional, up to 2000 characters): Notes describing the resolution.
+
+**Syntax**
+
+`/resolve [question] [answer]`
+
+</details>
+
+<a id="tag"></a>
+### `/tag`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Manage reusable support tags for quick responses.
+
+**Where it works**
+
+- Guilds only
+
+**Base permissions**
+
+- Support Roles
+- Allowed Staff Roles
+- Allowed Admin Roles
+
+**Additional notes**
+
+- Some subcommands require Allowed Tag Roles or Allowed Tag Admin Roles.
+- Sending tags may be limited to channels allow-listed through `allowedTagChannels`.
+
+**Subcommand quick reference**
+
+| Subcommand | Summary |
+| --- | --- |
+| [`create`](#tag-create) | Start the interactive flow to add a new tag. |
+| [`delete`](#tag-delete) | Remove an existing tag by name. |
+| [`edit`](#tag-edit) | Update a tag's content. |
+| [`export`](#tag-export) | Download all tags as JSON. |
+| [`import`](#tag-import) | Upload tags from JSON text or file. |
+| [`info`](#tag-info) | Show metadata for a tag. |
+| [`list`](#tag-list) | List all available tags. |
+| [`raw`](#tag-raw) | Display the stored JSON for a tag. |
+| [`show`](#tag-show) | Preview a tag without sending it publicly. |
+| [`use`](#tag-use) | Send a tag to the current channel or a selected user. |
+
+</details>
+
+<a id="tag-create"></a>
+#### `/tag create`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Start the interactive workflow to create a new support tag.
+
+**Permissions**
+
+- Allowed Tag Roles
+- Allowed Staff Roles
+- Allowed Admin Roles
+
+**Options**
+
+- None
+
+**Syntax**
+
+`/tag create`
+
+</details>
+
+<a id="tag-delete"></a>
+#### `/tag delete`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Remove an existing tag by name.
+
+**Permissions**
+
+- Allowed Tag Roles
+- Allowed Staff Roles
+- Allowed Admin Roles
+
+**Options**
+
+- `name` (string, required, autocomplete): Tag to delete.
+
+**Syntax**
+
+`/tag delete name:<tag>`
+
+</details>
+
+<a id="tag-edit"></a>
+#### `/tag edit`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Update the content of an existing tag.
+
+**Permissions**
+
+- Allowed Tag Roles
+- Allowed Staff Roles
+- Allowed Admin Roles
+
+**Options**
+
+- `name` (string, required, autocomplete): Tag to update.
+
+**Syntax**
+
+`/tag edit name:<tag>`
+
+</details>
+
+<a id="tag-export"></a>
+#### `/tag export`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Download all tags as a JSON file.
+
+**Permissions**
+
+- Allowed Tag Admin Roles
+
+**Options**
+
+- None
+
+**Syntax**
+
+`/tag export`
+
+</details>
+
+<a id="tag-import"></a>
+#### `/tag import`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Import tags from JSON text or an uploaded file.
+
+**Permissions**
+
+- Allowed Tag Admin Roles
+
+**Options**
+
+- `payload` (string, optional): Raw JSON array provided inline.
+- `file` (attachment, optional): Uploaded JSON file.
+- `overwrite` (boolean, optional): Replace existing tags when true; append otherwise.
+
+**Syntax**
+
+`/tag import [payload] [file] [overwrite]`
+
+</details>
+
+<a id="tag-info"></a>
+#### `/tag info`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Show metadata for a tag, including creator and usage stats.
+
+**Permissions**
+
+- Allowed Tag Roles
+- Allowed Staff Roles
+- Allowed Admin Roles
+
+**Options**
+
+- `name` (string, required): Tag to inspect.
+
+**Syntax**
+
+`/tag info name:<tag>`
+
+</details>
+
+<a id="tag-list"></a>
+#### `/tag list`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+List every available tag.
+
+**Permissions**
+
+- Allowed Tag Roles
+- Allowed Staff Roles
+- Allowed Admin Roles
+
+**Options**
+
+- None
+
+**Syntax**
+
+`/tag list`
+
+</details>
+
+<a id="tag-raw"></a>
+#### `/tag raw`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Display the stored JSON payload for a tag.
+
+**Permissions**
+
+- Allowed Tag Admin Roles
+
+**Options**
+
+- `name` (string, required): Tag to inspect.
+
+**Syntax**
+
+`/tag raw name:<tag>`
+
+</details>
+
+<a id="tag-show"></a>
+#### `/tag show`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Preview a tag's rendered content without sending it publicly.
+
+**Permissions**
+
+- Allowed Tag Roles
+- Allowed Staff Roles
+- Allowed Admin Roles
+
+**Options**
+
+- `name` (string, required): Tag to preview.
+- `ephemeral` (boolean, optional): Send the preview ephemerally.
+
+**Syntax**
+
+`/tag show name:<tag> [ephemeral:true|false]`
+
+</details>
+
+<a id="tag-use"></a>
+#### `/tag use`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Send a saved tag to the current channel or mention a user directly.
+
+**Permissions**
+
+- Allowed Tag Roles
+- Allowed Staff Roles
+- Allowed Admin Roles
+
+**Options**
+
+- `name` (string, required, autocomplete): Tag to send.
+- `user` (user, optional): Deliver the tag via direct message to the selected user.
+- `ephemeral` (boolean, optional): Limit the response to the invoker.
+
+**Syntax**
+
+`/tag use name:<tag> [user:<member>] [ephemeral:true|false]`
+
+**Notes**
+
+- Channel access must be allow-listed via `allowedTagChannels` when posting tags publicly.
+
+</details>
+
+## Settings Commands
+
+The `/settings` command configures guild-specific behavior. Most actions are available as both slash and message commands. Where "Manage Server" is noted, users with that Discord permission may also execute the action.
+
+### Quick Reference
+
+| Category | Base Command | Subcommands |
+| --- | --- | --- |
+| Prefixes | `/settings prefixes` | `set`, `view` |
+| Roles | `/settings roles` | `add`, `remove`, `list` |
+| Channels | `/settings channels` | `add`, `remove`, `list` |
+| Topics | `/settings topics` | `add`, `remove`, `list`, `import`, `export` |
+| Support | `/settings support` | `set`, `view` |
+| Slowmode | `/settings slowmode` | `view`, `configure` |
+
+### Prefixes (`/settings prefixes`)
+
+Configures the guild-specific message prefix used for Jasper's message commands.
+
+**Subcommands**
+- [`/settings prefixes set`](#settings-prefixes-set) - Set the message command prefix for the guild.
+- [`/settings prefixes view`](#settings-prefixes-view) - Show the active prefix.
+
+<a id="settings-prefixes-set"></a>
+#### `/settings prefixes set`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Set the message-command prefix for this server (up to 16 characters).
+
+**Permissions**
+
+- Allowed Admin Roles (Administrator also permitted).
+
+**Options**
+
+- `value` (string, required): New prefix to apply.
+
+**Syntax**
+
+`/settings prefixes set value:<prefix>` | `j!settings prefixes set <prefix>`
+
+</details>
+
+<a id="settings-prefixes-view"></a>
+#### `/settings prefixes view`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Show the current message-command prefix (or the Jasper default if none is set).
+
+**Permissions**
+
+- Allowed Admin Roles (Administrator also permitted).
+
+**Options**
+
+None.
+
+**Syntax**
+
+`/settings prefixes view` | `j!settings prefixes view`
+
+**Additional Notes**
+
+- **Prefix Updated**: After changing the prefix, Jasper sends a confirmation summarizing the old and new prefixes. Slash commands keep working, and the message prefix switches immediately.
+- **Current Prefix Configuration**: The view output highlights whether the active prefix is the Jasper default or a custom value you set.
+
+</details>
+
+### Roles (`/settings roles`)
+
+Manages role buckets that control access to commands and features.
+
+**Subcommands**
+- [`/settings roles add`](#settings-roles-add) - Add a role to a permission bucket.
+- [`/settings roles remove`](#settings-roles-remove) - Remove a role from a permission bucket.
+- [`/settings roles list`](#settings-roles-list) - View the roles assigned to buckets.
+
+<a id="settings-roles-add"></a>
+#### `/settings roles add`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Add a role to one of Jasper's permission buckets.
+
+**Permissions**
+
+- Allowed Admin Roles.
+- Allowed Tag Admin Roles.
+- Manage Server (Discord permission).
+
+**Options**
+
+- `setting` (choice, required): One of `allowedAdminRoles`, `allowedStaffRoles`, `allowedTagAdminRoles`, `allowedTagRoles`, `ignoredSnipedRoles`, `supportRoles`.
+- `role` (role, required): Role to attach to the bucket.
+
+**Syntax**
+
+`/settings roles add setting:<bucket> role:<@role>` | `j!settings roles add <bucket> <@role>`
+
+**Bucket choices**
+
+- `allowedAdminRoles`: Elevated administrators who can change every Jasper setting.
+- `allowedStaffRoles`: Moderators who can manage day-to-day tools.
+- `allowedTagAdminRoles`: Specialists who manage saved tags.
+- `allowedTagRoles`: Members permitted to send saved tags.
+- `ignoredSnipedRoles`: Roles excluded from `/snipe` results.
+- `supportRoles`: Roles recognized when using support utilities.
+
+</details>
+
+<a id="settings-roles-remove"></a>
+#### `/settings roles remove`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Remove a role from a permission bucket.
+
+**Permissions**
+
+- Allowed Admin Roles.
+- Allowed Tag Admin Roles.
+- Manage Server (Discord permission).
+
+**Options**
+
+- `setting` (choice, required): Bucket to update.
+- `role` (role, required): Role to remove.
+
+**Syntax**
+
+`/settings roles remove setting:<bucket> role:<@role>` | `j!settings roles remove <bucket> <@role>`
+
+**Bucket choices**
+
+Same role buckets as `/settings roles add`.
+
+</details>
+
+<a id="settings-roles-list"></a>
+#### `/settings roles list`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Display the roles stored in one bucket or every bucket.
+
+**Permissions**
+
+- Allowed Admin Roles.
+- Allowed Tag Admin Roles.
+- Manage Server (Discord permission).
+
+**Options**
+
+- `setting` (choice, optional): Provide a bucket name to narrow the output.
+
+**Syntax**
+
+`/settings roles list [setting]` | `j!settings roles list [bucket]`
+
+**Bucket choices**
+
+Same role buckets as `/settings roles add`. Omit `setting` to view the full summary.
+
+</details>
+
+### Channels (`/settings channels`)
+
+Controls allow-lists for features that depend on specific channels.
+
+**Subcommands**
+- [`/settings channels add`](#settings-channels-add) - Allow a channel for a feature bucket.
+- [`/settings channels remove`](#settings-channels-remove) - Remove a channel from a feature bucket.
+- [`/settings channels list`](#settings-channels-list) - List channels registered for buckets.
+
+<a id="settings-channels-add"></a>
+#### `/settings channels add`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Add a channel to the allow-list for a specific feature.
+
+**Permissions**
+
+- Allowed Admin Roles (Administrator also permitted).
+
+**Options**
+
+- `setting` (choice, required): One of `allowedSnipeChannels`, `allowedTagChannels`, `automaticSlowmodeChannels`.
+- `channel` (channel, required): Channel to register.
+
+**Syntax**
+
+`/settings channels add setting:<bucket> channel:<#channel>` | `j!settings channels add <bucket> <#channel>`
+
+**Bucket choices**
+
+- `allowedSnipeChannels`: Allow `/snipe` access.
+- `allowedTagChannels`: Allow sending saved tags.
+- `automaticSlowmodeChannels`: Opt a channel into automatic slowmode.
+
+</details>
+
+<a id="settings-channels-remove"></a>
+#### `/settings channels remove`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Remove a channel from an allow-list bucket.
+
+**Permissions**
+
+- Allowed Admin Roles (Administrator also permitted).
+
+**Options**
+
+- `setting` (choice, required): Bucket that should no longer include the channel.
+- `channel` (channel, required): Channel to remove.
+
+**Syntax**
+
+`/settings channels remove setting:<bucket> channel:<#channel>` | `j!settings channels remove <bucket> <#channel>`
+
+**Bucket choices**
+
+Same channel buckets listed under `/settings channels add`.
+
+</details>
+
+<a id="settings-channels-list"></a>
+#### `/settings channels list`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+List channels that are registered for a bucket (or every bucket when omitted).
+
+**Permissions**
+
+- Allowed Admin Roles (Administrator also permitted).
+
+**Options**
+
+- `setting` (choice, optional): Provide one of the channel bucket keys to filter.
+
+**Syntax**
+
+`/settings channels list [setting]` | `j!settings channels list [bucket]`
+
+**Bucket choices**
+
+- `allowedSnipeChannels`
+- `allowedTagChannels`
+- `automaticSlowmodeChannels`
+
+</details>
+
+### Topics (`/settings topics`)
+
+Maintains the pool of discussion topics used throughout the guild.
+
+**Subcommands**
+- [`/settings topics add`](#settings-topics-add) - Add a new topic entry.
+- [`/settings topics remove`](#settings-topics-remove) - Delete a topic by its ID.
+- [`/settings topics list`](#settings-topics-list) - View all saved topics.
+- [`/settings topics import`](#settings-topics-import) - Bulk load topics from JSON.
+- [`/settings topics export`](#settings-topics-export) - Export all topics to JSON.
+
+<a id="settings-topics-add"></a>
+#### `/settings topics add`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Add a moderation topic to the guild's saved topic pool.
+
+**Permissions**
+
+- Allowed Admin Roles (Administrator also permitted).
+
+**Options**
+
+- `value` (string, required, up to 256 characters): Topic text to store.
+
+**Syntax**
+
+`/settings topics add value:<text>` | `j!settings topics add <text>`
+
+**Notes**
+
+Duplicate entries are ignored.
+
+</details>
+
+<a id="settings-topics-remove"></a>
+#### `/settings topics remove`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Remove a topic by its numeric ID.
+
+**Permissions**
+
+- Allowed Admin Roles (Administrator also permitted).
+
+**Options**
+
+- `id` (integer, required): Identifier from `/settings topics list`.
+
+**Syntax**
+
+`/settings topics remove id:<number>` | `j!settings topics remove <id>`
+
+</details>
+
+<a id="settings-topics-list"></a>
+#### `/settings topics list`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Display every configured topic along with its numeric ID.
+
+**Permissions**
+
+- Allowed Admin Roles (Administrator also permitted).
+
+**Options**
+
+None.
+
+**Syntax**
+
+`/settings topics list` | `j!settings topics list`
+
+</details>
+
+<a id="settings-topics-import"></a>
+#### `/settings topics import`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Import topics from JSON text or an attachment.
+
+**Permissions**
+
+- Allowed Admin Roles (Administrator also permitted).
+
+**Options**
+
+- `payload` (string, optional): Raw JSON array passed inline.
+- `file` (attachment, optional): Uploaded JSON file.
+- `overwrite` (boolean, optional): Replace existing topics when true; append otherwise.
+
+**Syntax**
+
+`/settings topics import [payload] [file] [overwrite]` | `j!settings topics import [file] [text]`
+
+</details>
+
+<a id="settings-topics-export"></a>
+#### `/settings topics export`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Export every saved topic as a JSON file.
+
+**Permissions**
+
+- Allowed Admin Roles (Administrator also permitted).
+
+**Options**
+
+None.
+
+**Syntax**
+
+`/settings topics export` | `j!settings topics export`
+
+</details>
+
+### Support (`/settings support`)
+
+Configures the support forum integration used by `/resolve`.
+
+**Subcommands**
+- [`/settings support set`](#settings-support-set) - Configure the forum channel or resolved tag.
+- [`/settings support view`](#settings-support-view) - Display the current support configuration.
+
+<a id="settings-support-set"></a>
+#### `/settings support set`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Configure the support forum channel and resolved tag used by `/resolve`.
+
+**Permissions**
+
+- Allowed Admin Roles.
+- Allowed Tag Admin Roles.
+- Manage Server (Discord permission).
+
+**Options**
+
+- `setting` (choice, required): `supportForumChannelId` or `resolvedTagId`.
+- `value` (string, optional): Channel ID (forum) or tag ID. Leave blank to clear the setting.
+
+**Syntax**
+
+`/settings support set setting:<option> [value:<id>]` | `j!settings support set <option> [value]`
+
+**Validation**
+
+`supportForumChannelId` must reference a forum channel.
+
+</details>
+
+<a id="settings-support-view"></a>
+#### `/settings support view`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Display the configured support forum channel and resolved tag.
+
+**Permissions**
+
+- Allowed Admin Roles.
+- Allowed Tag Admin Roles.
+- Manage Server (Discord permission).
+
+**Options**
+
+None.
+
+**Syntax**
+
+`/settings support view` | `j!settings support view`
+
+</details>
+
+### Slowmode (`/settings slowmode`)
+
+Controls Jasper's automatic slowmode system.
+
+**Subcommands**
+- [`/settings slowmode view`](#settings-slowmode-view) - Show the automatic slowmode status.
+- [`/settings slowmode configure`](#settings-slowmode-configure) - Update the automation thresholds and timers.
+
+<a id="settings-slowmode-view"></a>
+#### `/settings slowmode view`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Show the automatic slowmode configuration and tracked channels.
+
+**Permissions**
+
+- Allowed Admin Roles.
+
+**Options**
+
+None.
+
+**Syntax**
+
+`/settings slowmode view` | `j!settings slowmode view`
+
+</details>
+
+<a id="settings-slowmode-configure"></a>
+#### `/settings slowmode configure`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Update the automation thresholds and timers for automatic slowmode.
+
+**Permissions**
+
+- Allowed Admin Roles.
+
+**Options (slash)**
+
+- `enabled` (boolean, optional): Enable or disable automatic slowmode.
+- `threshold` (integer, optional): Messages required within the window.
+- `window` (integer, optional): Activity window in seconds.
+- `cooldown` (integer, optional): Seconds between adjustments.
+- `reset` (integer, optional): Seconds of inactivity before the timer resets to 1 second.
+- `max` (integer, optional): Maximum slowmode duration in seconds (up to 21,600).
+
+**Syntax**
+
+`/settings slowmode configure [enabled] [threshold] [window] [cooldown] [reset] [max]` | `j!settings slowmode configure enabled=true threshold=10 window=60`
+
+</details>
+

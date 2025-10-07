@@ -30,7 +30,6 @@ export type ChannelListContext = {
 };
 
 export const CHANNEL_BUCKETS = [
-	{ key: 'allowedSkullboardChannels', label: 'Allowed Skullboard Channels' },
 	{ key: 'allowedSnipeChannels', label: 'Allowed Snipe Channels' },
 	{ key: 'allowedTagChannels', label: 'Allowed Tag Channels' },
 	{ key: 'automaticSlowmodeChannels', label: 'Automatic Slowmode Channels' }
