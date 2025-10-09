@@ -23,7 +23,6 @@ export async function chatInputTagUse(command: TagCommand, interaction: TagChatI
 
 	const name = normalizeTagName(interaction.options.getString('name', true));
 	const user = interaction.options.getUser('user');
-	const ephemeral = interaction.options.getBoolean('ephemeral') ?? false;
 
 	const access = await ensureTagChannelAccess(command, interaction);
 	if (!access.allowed) {
@@ -53,6 +52,6 @@ export async function chatInputTagUse(command: TagCommand, interaction: TagChatI
 
 	return interaction.reply({
 		components,
-		flags: ephemeral ? MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 : MessageFlags.IsComponentsV2
+		flags: MessageFlags.IsComponentsV2
 	});
 }

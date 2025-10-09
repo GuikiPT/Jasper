@@ -208,6 +208,8 @@ Describes how deleted message content, attachments, and embeds are reconstructed
 
 Apply the configured resolved tag, optionally post a question and answer summary, then lock and archive the support thread.
 
+> Jasper also monitors support threads for inactivity. After the configured reminder delay, the bot prompts the thread author to keep it open or close it; if ignored, the thread is resolved automatically after the grace period.
+
 **Where it works**
 
 - Threads inside the configured support forum channel
@@ -523,11 +525,10 @@ Send a saved tag to the current channel or mention a user directly.
 
 - `name` (string, required, autocomplete): Tag to send.
 - `user` (user, optional): Deliver the tag via direct message to the selected user.
-- `ephemeral` (boolean, optional): Limit the response to the invoker.
 
 **Syntax**
 
-`/tag use name:<tag> [user:<member>] [ephemeral:true|false]`
+`/tag use name:<tag> [user:<member>]`
 
 **Notes**
 
@@ -956,7 +957,7 @@ None.
 
 ### Support (`/settings support`)
 
-Configures the support forum integration used by `/resolve`.
+Configures the support forum integration used by `/resolve` and the inactivity automation for support threads.
 
 **Subcommands**
 - [`/settings support set`](#settings-support-set) - Configure the forum channel or resolved tag.
@@ -970,7 +971,7 @@ Configures the support forum integration used by `/resolve`.
 
 **Purpose**
 
-Configure the support forum channel and resolved tag used by `/resolve`.
+Configure the support forum channel, resolved tag, and inactivity timers used by `/resolve` and the support thread monitor.
 
 **Permissions**
 
@@ -980,8 +981,12 @@ Configure the support forum channel and resolved tag used by `/resolve`.
 
 **Options**
 
-- `setting` (choice, required): `supportForumChannelId` or `resolvedTagId`.
-- `value` (string, optional): Channel ID (forum) or tag ID. Leave blank to clear the setting.
+- `setting` (choice, required): `supportForumChannelId`, `resolvedTagId`, `inactivityReminderMinutes`, or `autoCloseMinutes`.
+- `value` (string, optional):
+  - Channel ID for `supportForumChannelId` (must be a forum channel).
+  - Tag ID for `resolvedTagId`.
+  - Number of minutes (1-10080) for `inactivityReminderMinutes` or `autoCloseMinutes`.
+  - Leave blank to clear `supportForumChannelId` or `resolvedTagId`.
 
 **Syntax**
 
@@ -989,7 +994,7 @@ Configure the support forum channel and resolved tag used by `/resolve`.
 
 **Validation**
 
-`supportForumChannelId` must reference a forum channel.
+`supportForumChannelId` must reference a forum channel. Minute-based options must be between 1 and 10080 (inclusive).
 
 </details>
 
@@ -1001,7 +1006,7 @@ Configure the support forum channel and resolved tag used by `/resolve`.
 
 **Purpose**
 
-Display the configured support forum channel and resolved tag.
+Display the configured support forum channel, resolved tag, and inactivity timers.
 
 **Permissions**
 

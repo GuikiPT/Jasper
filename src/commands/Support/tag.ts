@@ -97,8 +97,8 @@ import {
 			},
 			{
 				name: 'use',
-				description: 'Send a tag into the current channel, optionally mentioning a user or making it ephemeral.',
-				chatInputUsage: '/tag use name:<tag> [user] [ephemeral]',
+				description: 'Send a tag into the current channel, optionally mentioning a user.',
+				chatInputUsage: '/tag use name:<tag> [user]',
 				notes: ['Requires an allowed tag role, staff role, or admin role.'],
 				aliases: ['send tag']
 			}
@@ -346,12 +346,6 @@ export class SupportTagCommand extends Subcommand {
 							option
 								.setName('user')
 								.setDescription('Mention a user alongside the tag.')
-								.setRequired(false)
-						)
-						.addBooleanOption((option: SlashCommandBooleanOption) =>
-							option
-								.setName('ephemeral')
-								.setDescription('Send the tag privately.')
 								.setRequired(false)
 						)
 				)
