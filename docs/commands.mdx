@@ -865,7 +865,7 @@ Duplicate entries are ignored.
 
 **Purpose**
 
-Remove a topic by its numeric ID.
+Remove a topic using dropdown selection, list position, or exact text matching.
 
 **Permissions**
 
@@ -873,11 +873,16 @@ Remove a topic by its numeric ID.
 
 **Options**
 
-- `id` (integer, required): Identifier from `/settings topics list`.
+- `topic` (string, optional, autocomplete): Select topic from dropdown menu.
+- `position` (integer, optional): Position number from topics list (1, 2, 3...).
 
 **Syntax**
 
-`/settings topics remove id:<number>` | `j!settings topics remove <id>`
+`/settings topics remove [topic:<text>] [position:<number>]` | `j!settings topics remove <topic_or_position>`
+
+**Notes**
+
+For slash commands, use either dropdown selection OR position number (not both). For message commands, provide either the exact topic text or position number from `/settings topics list`.
 
 </details>
 

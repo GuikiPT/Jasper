@@ -33,8 +33,19 @@ export const registerTopicSubcommandGroup = (group: SlashCommandSubcommandGroupB
 		.addSubcommand((subcommand) =>
 			subcommand
 				.setName('remove')
-				.setDescription('Remove a topic by its identifier.')
-				.addIntegerOption((option) => option.setName('id').setDescription('The identifier from the list command.').setRequired(true))
+				.setDescription('Remove a topic by selection menu, list position, or text matching.')
+				.addStringOption((option) =>
+					option
+						.setName('topic')
+						.setDescription('Select topic from dropdown menu.')
+						.setAutocomplete(true)
+				)
+				.addIntegerOption((option) =>
+					option
+						.setName('position')
+						.setDescription('Position number from the topics list (1, 2, 3...).')
+						.setMinValue(1)
+				)
 		)
 		.addSubcommand((subcommand) =>
 			subcommand

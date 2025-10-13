@@ -219,19 +219,20 @@ import {
 				messageUsage: '{{prefix}}settings topics list',
 				notes: [
 					'Permissions: Administrator permission or members in Allowed Admin Roles.',
-					'Outputs topic IDs you can pass to `/settings topics remove` or `/settings topics export`.'
+					'View all configured topics with their IDs for reference.'
 				],
 				aliases: ['topic list']
 			},
 			{
 				group: 'topics',
 				name: 'remove',
-				description: 'Remove a topic using the identifier from the list command.',
-				chatInputUsage: '/settings topics remove id:<number>',
-				messageUsage: '{{prefix}}settings topics remove <id>',
+				description: 'Remove a topic using dropdown selection, list position, or exact text.',
+				chatInputUsage: '/settings topics remove [topic:<text>] [position:<number>]',
+				messageUsage: '{{prefix}}settings topics remove <topic_or_position>',
 				notes: [
 					'Permissions: Administrator permission or members in Allowed Admin Roles.',
-					'Use the numeric ID from `/settings topics list`; deleting an ID shifts later IDs.'
+					'Slash command: Use dropdown selection OR position number (1, 2, 3...) from `/settings topics list`.',
+					'Message command: Provide exact topic text or position number from the topics list.'
 				],
 				aliases: ['topic remove']
 			},
