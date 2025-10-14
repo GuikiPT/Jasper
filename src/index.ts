@@ -18,6 +18,8 @@ import { GuildSupportSettingsService } from './services/guildSupportSettingsServ
 import { GuildSlowmodeSettingsService } from './services/guildSlowmodeSettingsService';
 import { GuildTopicSettingsService } from './services/guildTopicSettingsService';
 import { SupportTagService } from './services/supportTagService';
+import { SupportThreadService } from './services/supportThreadService';
+import { SupportThreadMonitor } from './services/supportThreadMonitor';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const logLevel = isProduction ? LogLevel.Info : LogLevel.Debug;
@@ -91,6 +93,13 @@ container.guildSlowmodeSettingsService = new GuildSlowmodeSettingsService(
 );
 container.guildTopicSettingsService = new GuildTopicSettingsService(container.database);
 container.supportTagService = new SupportTagService(container.database);
+container.supportThreadService = new SupportThreadService(container.database);
+container.supportThreadMonitor = new SupportThreadMonitor(
+	client,
+	container.supportThreadService,
+	container.guildSupportSettingsService,
+	container.database
+);
 
 container.slowmodeManager = new SlowmodeManager(client, container.database);
 container.snipeManager = new SnipeManager(client, container.database);

@@ -189,9 +189,36 @@ export class JasperLogger extends BaseLogger {
 			await mkdir(directory, { recursive: true });
 			const entry = `${now.toISOString()} ${getLevelLabel(level)} ${this.formatValues(values)}\n`;
 			await appendFile(filePath, entry, 'utf8');
+
+			const subsystem = this.extractSubsystem(values);
+			if (subsystem) {
+				const subsystemDirectory = join(rootDir, 'logs', 'subsystems', subsystem, year, month);
+				await mkdir(subsystemDirectory, { recursive: true });
+				const subsystemFile = join(subsystemDirectory, `${day}.log`);
+				await appendFile(subsystemFile, entry, 'utf8');
+			}
 		} catch (error) {
 			this.console.error('Failed to write log entry', this.normalizeForConsole(error));
 		}
+	}
+
+	private extractSubsystem(values: readonly unknown[]) {
+		for (const value of values) {
+			if (!value || typeof value !== 'object') continue;
+			const candidate = (value as Record<string, unknown>).subsystem;
+			if (typeof candidate === 'string' && candidate.trim().length > 0) {
+				return this.slugifySubsystem(candidate);
+			}
+		}
+		return null;
+	}
+
+	private slugifySubsystem(subsystem: string) {
+		return subsystem
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, '-')
+			.replace(/(^-|-$)/g, '')
+			|| 'unknown';
 	}
 
 	private formatValues(values: readonly unknown[]) {

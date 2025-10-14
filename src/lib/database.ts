@@ -20,7 +20,8 @@ const expectedTables = [
 	'GuildSupportSettings',
 	'GuildSupportTagSettings',
 	'GuildTopicSettings',
-	'GuildSlowmodeSettings'
+	'GuildSlowmodeSettings',
+	'SupportThread'
 ];
 
 let isDatabaseReady = false;

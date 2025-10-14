@@ -15,6 +15,7 @@ export class UserEvent extends Listener {
 		this.printBanner();
 		this.printStoreDebugInformation();
 		this.startYouTubeManager();
+		this.startSupportThreadMonitor();
 	}
 
 	private printBanner() {
@@ -58,6 +59,15 @@ ${line03}${dev ? ` ${pad}${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MO
 			await youtubeService.start();
 		} catch (error) {
 			this.container.logger.error('Failed to start YouTube service:', error);
+		}
+	}
+
+	private async startSupportThreadMonitor() {
+		try {
+			this.container.supportThreadMonitor.start();
+			this.container.logger.info('[SupportThreadMonitor] Initialised inactivity monitor');
+		} catch (error) {
+			this.container.logger.error('Failed to start SupportThreadMonitor:', error);
 		}
 	}
 }

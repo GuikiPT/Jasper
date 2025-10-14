@@ -21,5 +21,14 @@ export class AutomaticSlowmodeListener extends Listener<typeof Events.MessageCre
 				channelId: message.channel.id
 			});
 		}
+
+		try {
+			await this.container.supportThreadMonitor.handleMessage(message);
+		} catch (error) {
+			this.container.logger.error('Support thread monitor failed', error, {
+				guildId: message.guildId,
+				channelId: message.channel.id
+			});
+		}
 	}
 }

@@ -2,7 +2,12 @@
 import type { GuildSupportSettings, PrismaClient } from '@prisma/client';
 import { GuildSettingsService } from './guildSettingsService';
 
-export const SUPPORT_SETTING_KEYS = ['supportForumChannelId', 'resolvedTagId'] as const satisfies readonly (keyof GuildSupportSettings)[];
+export const SUPPORT_SETTING_KEYS = [
+	'supportForumChannelId',
+	'resolvedTagId',
+	'inactivityReminderMinutes',
+	'autoCloseMinutes'
+] as const satisfies readonly (keyof GuildSupportSettings)[];
 
 export type SupportSettingKey = (typeof SUPPORT_SETTING_KEYS)[number];
 
@@ -27,7 +32,7 @@ export class GuildSupportSettingsService {
 	public async setSetting(
 		guildId: string,
 		key: SupportSettingKey,
-		value: string | null
+		value: string | number | null
 	): Promise<GuildSupportSettings> {
 		await this.guildSettingsService.ensureGuild(guildId);
 		return this.database.guildSupportSettings.upsert({

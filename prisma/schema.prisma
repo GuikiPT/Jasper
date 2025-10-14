@@ -46,6 +46,8 @@ model GuildSupportSettings {
     guildId               String        @id
     supportForumChannelId String?
     resolvedTagId         String?
+    inactivityReminderMinutes Int        @default(2880)
+    autoCloseMinutes      Int           @default(1440)
     guild                 GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
     @@map("GuildSupportSettings")
@@ -109,4 +111,22 @@ model GuildYouTubeSettings {
     guild                 GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
     @@map("GuildYouTubeSettings")
+}
+
+model SupportThread {
+    threadId             String   @id
+    guildId              String
+    authorId             String
+    createdAt            DateTime @default(now())
+    updatedAt            DateTime @updatedAt
+    lastAuthorMessageAt  DateTime
+    lastReminderAt       DateTime?
+    reminderMessageId    String?
+    reminderCount        Int      @default(0)
+    closedAt             DateTime?
+
+    @@index([guildId])
+    @@index([lastAuthorMessageAt])
+    @@index([closedAt])
+    @@map("SupportThread")
 }

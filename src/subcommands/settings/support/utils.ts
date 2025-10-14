@@ -27,7 +27,9 @@ export type SupportViewContext = {
 
 export const SUPPORT_SETTINGS = [
 	{ key: 'supportForumChannelId', label: 'Support Forum Channel' },
-	{ key: 'resolvedTagId', label: 'Resolved Tag' }
+	{ key: 'resolvedTagId', label: 'Resolved Tag' },
+	{ key: 'inactivityReminderMinutes', label: 'Reminder After (minutes)' },
+	{ key: 'autoCloseMinutes', label: 'Auto-close After (minutes)' }
 ] as const;
 
 export type SupportSettingKey = (typeof SUPPORT_SETTINGS)[number]['key'];
@@ -40,7 +42,12 @@ export const settingLookup = new Map<string, SupportSettingKey>(
 		['forum', 'supportForumChannelId'],
 		['channel', 'supportForumChannelId'],
 		['resolved', 'resolvedTagId'],
-		['tag', 'resolvedTagId']
+		['tag', 'resolvedTagId'],
+		['reminder', 'inactivityReminderMinutes'],
+		['inactivity', 'inactivityReminderMinutes'],
+		['minutes', 'inactivityReminderMinutes'],
+		['autoclose', 'autoCloseMinutes'],
+		['close', 'autoCloseMinutes']
 	])
 );
 
@@ -62,7 +69,7 @@ export const registerSupportSubcommandGroup = (group: SlashCommandSubcommandGrou
 				.addStringOption((option) =>
 					option
 						.setName('value')
-						.setDescription('Channel ID or Tag ID to set (leave empty to remove).')
+						.setDescription('Channel ID, Tag ID, or minute value (leave empty to remove the channel/tag).')
 						.setRequired(false)
 				)
 		)
@@ -125,24 +132,29 @@ export async function executeSupportSet({
 		return respond('Support settings are not available right now.');
 	}
 
-	// If no value provided, remove the setting
-	if (!value || value.trim() === '') {
-		try {
-			await service.setSetting(guildId, setting, null);
-		} catch (error) {
-			return respond('Failed to update support settings. Please try again later.');
+	let processedValue: string | number | null = value ? value.trim() : null;
+
+	// Handle clearing value for nullable settings
+	if (!processedValue || processedValue === '') {
+		if (setting === 'supportForumChannelId' || setting === 'resolvedTagId') {
+			try {
+				await service.setSetting(guildId, setting, null);
+			} catch (error) {
+				return respond('Failed to update support settings. Please try again later.');
+			}
+
+			return respond(`Removed **${label}** setting.`);
 		}
 
-		return respond(`Removed **${label}** setting.`);
+		return deny('This setting requires a numeric value in minutes.');
 	}
 
 	// Validate the value based on the setting type
 	if (setting === 'supportForumChannelId') {
-		// Validate it's a valid channel ID and it's a forum channel
 		try {
 			const guild = command.container.client.guilds.cache.get(guildId);
 			if (guild) {
-				const channel = await guild.channels.fetch(value);
+				const channel = await guild.channels.fetch(processedValue);
 				if (!channel) {
 					return deny('Invalid channel ID provided.');
 				}
@@ -153,19 +165,30 @@ export async function executeSupportSet({
 		} catch {
 			return deny('Invalid channel ID provided.');
 		}
+	} else if (setting === 'inactivityReminderMinutes' || setting === 'autoCloseMinutes') {
+		const numericValue = Number.parseInt(processedValue, 10);
+		if (!Number.isFinite(numericValue)) {
+			return deny('Please provide a valid number of minutes.');
+		}
+		if (numericValue < 1 || numericValue > 10080) {
+			return deny('Please choose a value between 1 and 10080 minutes (up to 7 days).');
+		}
+		processedValue = numericValue;
 	}
 
 	try {
-		await service.setSetting(guildId, setting, value);
+		await service.setSetting(guildId, setting, processedValue);
 	} catch (error) {
 		return respond('Failed to update support settings. Please try again later.');
 	}
 
 	if (setting === 'supportForumChannelId') {
-		return respond(`Set **${label}** to <#${value}>.`);
-	} else {
-		return respond(`Set **${label}** to \`${value}\`.`);
+		return respond(`Set **${label}** to <#${processedValue}>.`);
 	}
+	if (setting === 'inactivityReminderMinutes' || setting === 'autoCloseMinutes') {
+		return respond(`Set **${label}** to \`${processedValue} minute(s)\`.`);
+	}
+	return respond(`Set **${label}** to \`${processedValue}\`.`);
 }
 
 export async function executeSupportView({
@@ -217,8 +240,10 @@ export async function executeSupportView({
 				return `${label}: *(not set)*`;
 			}
 
-			if (setting.key === 'supportForumChannelId') {
-				return `${label}: <#${value}>`;
+				if (setting.key === 'supportForumChannelId') {
+					return `${label}: <#${value}>`;
+				} else if (setting.key === 'inactivityReminderMinutes' || setting.key === 'autoCloseMinutes') {
+					return `${label}: ${value} minute(s)`;
 			} else {
 				return `${label}: \`${value}\``;
 			}
@@ -243,6 +268,8 @@ export async function executeSupportView({
 
 		if (setting.key === 'supportForumChannelId') {
 			return `**${label}:** <#${value}>`;
+		} else if (setting.key === 'inactivityReminderMinutes' || setting.key === 'autoCloseMinutes') {
+			return `**${label}:** ${value} minute(s)`;
 		} else {
 			return `**${label}:** \`${value}\``;
 		}

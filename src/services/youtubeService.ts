@@ -1,7 +1,10 @@
 import { fetch, FetchResultTypes } from '@sapphire/fetch';
 import { container } from '@sapphire/framework';
 import { ChannelType } from 'discord.js';
+import { createSubsystemLogger } from '../lib/subsystemLogger';
 import { GuildYouTubeSettingsService } from './guildYouTubeSettingsService';
+
+const logger = createSubsystemLogger('YouTubeService');
 
 export interface YouTubeChannelMetadata {
 	subscriberCount: string | null;
@@ -27,7 +30,7 @@ export class YouTubeService {
 	 * Starts the YouTube service with global 5-minute checks
 	 */
 	public async start(): Promise<void> {
-		container.logger.info('[YouTubeService] Starting YouTube subscriber tracking...');
+		logger.info('Starting YouTube subscriber tracking...');
 
 		// Start the global check interval
 		this.globalCheckInterval = setInterval(async () => {
@@ -37,21 +40,21 @@ export class YouTubeService {
 		// Perform initial check
 		await this.checkAllGuildsForUpdates();
 
-		container.logger.info('[YouTubeService] YouTube service started with 5-minute global checks');
+		logger.info('YouTube service started with 5-minute global checks');
 	}
 
 	/**
 	 * Stops the YouTube service
 	 */
 	public stop(): void {
-		container.logger.info('[YouTubeService] Stopping YouTube subscriber tracking...');
+		logger.info('Stopping YouTube subscriber tracking...');
 
 		if (this.globalCheckInterval) {
 			clearInterval(this.globalCheckInterval);
 			this.globalCheckInterval = null;
 		}
 
-		container.logger.info('[YouTubeService] YouTube service stopped');
+		logger.info('YouTube service stopped');
 	}
 
 	/**
@@ -62,7 +65,7 @@ export class YouTubeService {
 			const allSettings = await GuildYouTubeSettingsService.getAllEnabledSettings();
 			const currentTime = new Date();
 
-			container.logger.debug(`[YouTubeService] Checking ${allSettings.length} enabled guilds for updates`);
+			logger.debug(`Checking ${allSettings.length} enabled guilds for updates`);
 
 			for (const settings of allSettings) {
 				if (this.shouldUpdateGuild(settings, currentTime)) {
@@ -70,7 +73,7 @@ export class YouTubeService {
 				}
 			}
 		} catch (error) {
-			container.logger.error('[YouTubeService] Error during global check:', error);
+			logger.error('Error during global check', error);
 		}
 	}
 
@@ -114,7 +117,7 @@ export class YouTubeService {
 			const result = await this.updateSubscriberCount(guildId);
 			return result;
 		} catch (error) {
-			container.logger.error(`[YouTubeService] Error during force update for guild ${guildId}:`, error);
+			logger.error(`Error during force update for guild ${guildId}`, error);
 			return { success: false, message: 'An error occurred during the force update' };
 		}
 	}
@@ -150,7 +153,7 @@ export class YouTubeService {
 				lastUpdated
 			};
 		} catch (error) {
-			container.logger.error(`[YouTubeService] Error getting tracking status for guild ${guildId}:`, error);
+			logger.error(`Error getting tracking status for guild ${guildId}`, error);
 			return { isEnabled: false, isTracking: false };
 		}
 	}
@@ -211,7 +214,7 @@ export class YouTubeService {
 				metadata.channelAvatarUrl
 			);
 
-			container.logger.info(`[YouTubeService] Updated ${guildId}: ${subscriberCount} subscribers -> ${newChannelName}`);
+		logger.info(`Updated ${guildId}: ${subscriberCount} subscribers -> ${newChannelName}`);
 
 			return {
 				success: true,
@@ -219,7 +222,7 @@ export class YouTubeService {
 				currentCount: parseInt(subscriberCount)
 			};
 		} catch (error) {
-			container.logger.error(`[YouTubeService] Error updating subscriber count for guild ${guildId}:`, error);
+			logger.error(`Error updating subscriber count for guild ${guildId}`, error);
 			return { success: false, message: 'An error occurred while updating the subscriber count' };
 		}
 	}
@@ -272,7 +275,7 @@ export class YouTubeService {
 			const imageMatch = html.match(/<meta property="og:image" content="([^"]+)"/i);
 
 			if (!subscriberCount) {
-				container.logger.warn(`[YouTubeService] Could not find subscriber count for ${channelUrl}`);
+				logger.warn(`Could not find subscriber count for ${channelUrl}`);
 			}
 
 			return {
@@ -281,7 +284,7 @@ export class YouTubeService {
 				channelAvatarUrl: imageMatch?.[1] ?? null
 			};
 		} catch (error) {
-			container.logger.error(`[YouTubeService] Error fetching metadata for ${channelUrl}:`, error);
+			logger.error(`Error fetching metadata for ${channelUrl}`, error);
 			return null;
 		}
 	}

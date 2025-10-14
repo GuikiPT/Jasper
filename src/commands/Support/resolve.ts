@@ -185,12 +185,43 @@ export class ResolveCommand extends Command {
 			await freshThread.setLocked(true, 'Thread resolved');
 			await freshThread.setArchived(true, 'Thread resolved');
 
+			await this.markSupportThreadClosed(freshThread);
+
 			// Simple success response
 			return editReplyWithComponent(interaction, '✅ Thread resolved successfully!');
 
 		} catch (error) {
 			this.container.logger.error('Failed to apply thread resolution:', error);
 			return editReplyWithComponent(interaction, 'Failed to apply thread resolution. I might not have the necessary permissions.');
+		}
+	}
+
+	private async markSupportThreadClosed(thread: ThreadChannel) {
+		const service = this.container.supportThreadService;
+		if (!service) return;
+
+		try {
+			const record = await service.getThread(thread.id);
+			if (record?.reminderMessageId) {
+				await this.tryDeleteReminderMessage(thread, record.reminderMessageId);
+			}
+			await service.markThreadClosed(thread.id);
+		} catch (error) {
+			this.container.logger.debug('Failed to mark support thread as closed after /resolve', error, {
+				threadId: thread.id
+			});
+		}
+	}
+
+	private async tryDeleteReminderMessage(thread: ThreadChannel, messageId: string) {
+		try {
+			const message = await thread.messages.fetch(messageId);
+			await message.delete();
+		} catch (error) {
+			this.container.logger.debug('Failed to remove reminder message after /resolve', error, {
+				threadId: thread.id,
+				messageId
+			});
 		}
 	}
 
