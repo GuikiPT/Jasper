@@ -120,6 +120,7 @@ model SupportThread {
     createdAt            DateTime @default(now())
     updatedAt            DateTime @updatedAt
     lastAuthorMessageAt  DateTime
+    lastAuthorMessageId  String?
     lastReminderAt       DateTime?
     reminderMessageId    String?
     reminderCount        Int      @default(0)

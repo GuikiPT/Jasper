@@ -6,6 +6,7 @@ export interface SupportThreadActivityPayload {
 	guildId: string;
 	authorId: string;
 	timestamp: Date;
+	messageId?: string;
 }
 
 export interface SupportThreadReminderPayload {
@@ -28,11 +29,13 @@ export class SupportThreadService {
 				threadId: payload.threadId,
 				guildId: payload.guildId,
 				authorId: payload.authorId,
-				lastAuthorMessageAt: payload.timestamp
+				lastAuthorMessageAt: payload.timestamp,
+				lastAuthorMessageId: payload.messageId ?? null
 			},
 			update: {
 				authorId: payload.authorId,
 				lastAuthorMessageAt: payload.timestamp,
+				lastAuthorMessageId: payload.messageId ?? null,
 				closedAt: null,
 				lastReminderAt: null,
 				reminderMessageId: null,
@@ -77,6 +80,7 @@ export class SupportThreadService {
 		return this.database.supportThread.findMany({
 			where: {
 				closedAt: null,
+				lastAuthorMessageId: { not: null }, // Only send reminders if we have a valid author message
 				lastAuthorMessageAt: { lt: cutoff },
 				OR: [
 					{ lastReminderAt: null },
@@ -92,6 +96,7 @@ export class SupportThreadService {
 		return this.database.supportThread.findMany({
 			where: {
 				closedAt: null,
+				lastAuthorMessageId: { not: null }, // Only auto-close if we have a valid author message
 				lastReminderAt: { not: null, lt: reminderCutoff },
 				lastAuthorMessageAt: { lt: reminderCutoff },
 				...(guildId ? { guildId } : {})

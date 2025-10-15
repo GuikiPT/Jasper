@@ -64,12 +64,14 @@ export class SupportThreadMonitor {
 				threadId: thread.id,
 				guildId: message.guildId,
 				authorId: ownerId,
-				timestamp: message.createdAt
+				timestamp: message.createdAt,
+				messageId: message.id
 			});
 			this.logger.debug('Recorded author activity', {
 				threadId: thread.id,
 				guildId: message.guildId,
 				authorId: ownerId,
+				messageId: message.id,
 				reminderMessageId
 			});
 
@@ -81,17 +83,35 @@ export class SupportThreadMonitor {
 
 		if (!existingRecord) {
 			const createdAt = thread.createdAt ?? new Date();
+			// Find the first message from the thread owner to use as the initial message ID
+			let initialMessageId: string | undefined;
+			try {
+				const messages = await thread.messages.fetch({ limit: 100 });
+				const firstOwnerMessage = messages
+					.filter(m => m.author.id === ownerId)
+					.sort((a, b) => a.createdTimestamp - b.createdTimestamp)
+					.first();
+				initialMessageId = firstOwnerMessage?.id;
+			} catch (error) {
+				this.logger.debug('Failed to fetch initial owner message', {
+					threadId: thread.id,
+					error
+				});
+			}
+
 			await this.supportThreadService.recordAuthorActivity({
 				threadId: thread.id,
 				guildId: message.guildId,
 				authorId: ownerId,
-				timestamp: createdAt
+				timestamp: createdAt,
+				messageId: initialMessageId ?? message.id
 			});
 			this.logger.info('Registered support thread for inactivity tracking', {
 				threadId: thread.id,
 				guildId: message.guildId,
 				authorId: ownerId,
-				registeredAt: createdAt.toISOString()
+				registeredAt: createdAt.toISOString(),
+				initialMessageId
 			});
 		}
 	}
@@ -162,6 +182,15 @@ export class SupportThreadMonitor {
 
 	private async sendReminder(record: SupportThreadRecord) {
 		try {
+			// Safety check: don't send reminders if we don't have a valid author message ID
+			if (!record.lastAuthorMessageId) {
+				this.logger.debug('Skipping reminder for thread without valid author message ID', {
+					threadId: record.threadId,
+					guildId: record.guildId
+				});
+				return;
+			}
+
 			const thread = await this.fetchSupportThread(record.threadId);
 			if (!thread) {
 				await this.supportThreadService.markThreadClosed(record.threadId);
@@ -202,6 +231,15 @@ export class SupportThreadMonitor {
 
 	private async autoCloseThread(record: SupportThreadRecord, settings: GuildSupportSettings) {
 		try {
+			// Safety check: don't auto-close if we don't have a valid author message ID
+			if (!record.lastAuthorMessageId) {
+				this.logger.debug('Skipping auto-close for thread without valid author message ID', {
+					threadId: record.threadId,
+					guildId: record.guildId
+				});
+				return;
+			}
+
 			const thread = await this.fetchSupportThread(record.threadId);
 			if (!thread) {
 				await this.supportThreadService.markThreadClosed(record.threadId);
