@@ -24,7 +24,7 @@ export class SupportThreadMonitor {
 		private readonly supportThreadService: SupportThreadService,
 		private readonly supportSettingsService: GuildSupportSettingsService,
 		private readonly database: PrismaClient
-	) {}
+	) { }
 
 	public start(intervalMs: number = DEFAULT_REMINDER_INTERVAL_MS) {
 		if (this.checkTimer) return;
@@ -261,10 +261,10 @@ export class SupportThreadMonitor {
 			const resolvedTagId = settings.resolvedTagId;
 			const freshThread = await thread.fetch();
 
-				if (freshThread.archived) {
-					await freshThread.setArchived(false, 'Temporarily reopening to close due to inactivity');
-					await new Promise((resolve) => setTimeout(resolve, 1000));
-				}
+			if (freshThread.archived) {
+				await freshThread.setArchived(false, 'Temporarily reopening to close due to inactivity');
+				await new Promise((resolve) => setTimeout(resolve, 1000));
+			}
 
 			if (resolvedTagId) {
 				await this.applyResolvedTag(freshThread, resolvedTagId);

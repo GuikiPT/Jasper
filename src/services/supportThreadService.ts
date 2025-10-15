@@ -16,7 +16,7 @@ export interface SupportThreadReminderPayload {
 }
 
 export class SupportThreadService {
-	public constructor(private readonly database: PrismaClient) {}
+	public constructor(private readonly database: PrismaClient) { }
 
 	public getThread(threadId: string): Promise<SupportThread | null> {
 		return this.database.supportThread.findUnique({ where: { threadId } });

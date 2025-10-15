@@ -24,14 +24,14 @@ model GuildSettings {
 }
 
 model GuildRoleSettings {
-    guildId                String        @id
-    allowedAdminRoles      String        @db.LongText
-    allowedStaffRoles      String        @db.LongText
-    allowedTagAdminRoles   String        @db.LongText
-    allowedTagRoles        String        @db.LongText
-    ignoredSnipedRoles     String        @db.LongText
-    supportRoles           String        @db.LongText
-    guild                  GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
+    guildId              String        @id
+    allowedAdminRoles    String        @db.LongText
+    allowedStaffRoles    String        @db.LongText
+    allowedTagAdminRoles String        @db.LongText
+    allowedTagRoles      String        @db.LongText
+    ignoredSnipedRoles   String        @db.LongText
+    supportRoles         String        @db.LongText
+    guild                GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
 }
 
 model GuildChannelSettings {
@@ -43,12 +43,12 @@ model GuildChannelSettings {
 }
 
 model GuildSupportSettings {
-    guildId               String        @id
-    supportForumChannelId String?
-    resolvedTagId         String?
-    inactivityReminderMinutes Int        @default(2880)
-    autoCloseMinutes      Int           @default(1440)
-    guild                 GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
+    guildId                   String        @id
+    supportForumChannelId     String?
+    resolvedTagId             String?
+    inactivityReminderMinutes Int           @default(2880)
+    autoCloseMinutes          Int           @default(1440)
+    guild                     GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
     @@map("GuildSupportSettings")
 }
@@ -114,17 +114,17 @@ model GuildYouTubeSettings {
 }
 
 model SupportThread {
-    threadId             String   @id
-    guildId              String
-    authorId             String
-    createdAt            DateTime @default(now())
-    updatedAt            DateTime @updatedAt
-    lastAuthorMessageAt  DateTime
-    lastAuthorMessageId  String?
-    lastReminderAt       DateTime?
-    reminderMessageId    String?
-    reminderCount        Int      @default(0)
-    closedAt             DateTime?
+    threadId            String    @id
+    guildId             String
+    authorId            String
+    createdAt           DateTime  @default(now())
+    updatedAt           DateTime  @updatedAt
+    lastAuthorMessageAt DateTime
+    lastAuthorMessageId String?
+    lastReminderAt      DateTime?
+    reminderMessageId   String?
+    reminderCount       Int       @default(0)
+    closedAt            DateTime?
 
     @@index([guildId])
     @@index([lastAuthorMessageAt])
