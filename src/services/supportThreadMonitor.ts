@@ -262,7 +262,7 @@ export class SupportThreadMonitor {
 			const freshThread = await thread.fetch();
 
 			if (freshThread.archived) {
-				await freshThread.setArchived(false, 'Temporarily reopening to close due to inactivity');
+				await freshThread.setArchived(false, 'Temporarily reopening to close due to inactivity (self-jasper-check-protection).');
 				await new Promise((resolve) => setTimeout(resolve, 1000));
 			}
 
@@ -281,8 +281,8 @@ export class SupportThreadMonitor {
 				await this.dismissReminderMessage(freshThread, record.reminderMessageId);
 			}
 
-			await freshThread.setLocked(true, 'Closed automatically after inactivity');
-			await freshThread.setArchived(true, 'Closed automatically after inactivity');
+			await freshThread.setLocked(true, 'I\'m closing the thread automatically after op inactivity');
+			await freshThread.setArchived(true, 'I\'m closing the thread automatically after op inactivity');
 
 			await this.supportThreadService.markThreadClosed(record.threadId);
 			this.logger.info('Auto-closed inactive support thread', {

@@ -165,14 +165,14 @@ export class ResolveCommand extends Command {
 
 			// Check if thread is archived and unarchive it if needed
 			if (freshThread.archived) {
-				await freshThread.setArchived(false, 'Temporarily unarchiving to apply resolution');
+				await freshThread.setArchived(false, `Temporarily reopening thread by ${interaction.user.tag} - ${interaction.user.id}.`);
 				// Wait a moment for Discord to process the unarchive
 				await new Promise(resolve => setTimeout(resolve, 1000));
 			}
 
 			// Apply the resolved tag
-			await freshThread.setAppliedTags(newTags, 'Thread resolved by support staff');
-
+			await freshThread.setAppliedTags(newTags, `Thread resolved by ${interaction.user.tag} - ${interaction.user.id}${answer ? ` | Answer: ${answer}` : ''}`);
+ 
 			// Send resolution message as component
 			const resolutionComponent = this.createResolutionComponent(question, answer, interaction.user.id);
 			await freshThread.send({
@@ -182,8 +182,8 @@ export class ResolveCommand extends Command {
 			});
 
 			// Archive and lock the thread
-			await freshThread.setLocked(true, 'Thread resolved');
-			await freshThread.setArchived(true, 'Thread resolved');
+			await freshThread.setLocked(true, `Thread locked by ${interaction.user.tag} - ${interaction.user.id}${answer ? ` | Answer: ${answer}` : ''}`);
+			await freshThread.setArchived(true, `Thread archived by ${interaction.user.tag} - ${interaction.user.id}${answer ? ` | Answer: ${answer}` : ''}`);
 
 			await this.markSupportThreadClosed(freshThread);
 
