@@ -102,7 +102,7 @@ export class SupportThreadCloseModalHandler extends InteractionHandler {
 
 			const wasArchived = freshThread.archived;
 			if (wasArchived) {
-				await freshThread.setArchived(false, `Temporarily reopening by ${interaction.user.tag} - ${interaction.user.id}.`);
+				await freshThread.setArchived(false, `Temporarily reopening by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}.`);
 				await new Promise((resolve) => setTimeout(resolve, 1000));
 			}
 
@@ -121,8 +121,8 @@ export class SupportThreadCloseModalHandler extends InteractionHandler {
 				allowedMentions: { users: [], roles: [] }
 			});
 
-			await freshThread.setLocked(true, `Locked by ${interaction.user.tag} - ${interaction.user.id} via modal.`);
-			await freshThread.setArchived(true, `Archived by ${interaction.user.tag} - ${interaction.user.id} via modal.`);
+			await freshThread.setLocked(true, `Locked by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id} via modal.`);
+			await freshThread.setArchived(true, `Archived by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id} via modal.`);
 
 			await this.container.supportThreadService.markThreadClosed(thread.id);
 
