@@ -17,6 +17,7 @@ import {
 
 import { VIRUSTOTAL_CONFIG, ERROR_MESSAGES, STATUS_CONFIG, REPORT_TEMPLATES } from './constants';
 import type { VirusTotalAnalysisStats, SecurityStatus, VirusTotalEngineResult } from './types';
+import { Logger } from '../../../lib/logger';
 
 /**
  * Rate limiter for VirusTotal API calls
@@ -360,8 +361,6 @@ export function createReportComponents(
  * Enhanced error handling for VirusTotal operations
  */
 export function handleVirusTotalError(error: unknown, context: Record<string, any> = {}): string {
-	// Use Logger instead of console.error
-	const { Logger } = require('../../lib/logger');
 	Logger.error('[SECURITY] VirusTotal operation error', error, context);
 
 	if (axios.isAxiosError(error)) {
