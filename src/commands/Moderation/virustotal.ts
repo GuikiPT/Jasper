@@ -65,7 +65,7 @@ import {
 		{
 			name: 'AllowedGuildRoleBuckets',
 			context: {
-				buckets: ['allowedStaffRoles', 'allowedAdminRoles'] as const,
+				buckets: ['allowedStaffRoles', 'allowedAdminRoles', 'supportRoles'] as const,
 				allowManageGuild: true,
 				errorMessage: 'VirusTotal commands may only be used by users with "Staff Roles", "Admin Roles", or the "Manage Guild" permission.'
 			}
