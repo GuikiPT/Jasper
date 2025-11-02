@@ -420,13 +420,6 @@ export async function fetchVirusTotalData<T>(endpoint: string): Promise<T> {
 }
 
 /**
- * Common function to handle interaction deferral
- */
-export async function deferInteractionReply(interaction: any, ephemeral: boolean): Promise<void> {
-	await interaction.deferReply(ephemeral ? { flags: 1 << 6 } : undefined);
-}
-
-/**
  * Common function to format date from Unix timestamp
  */
 export function formatUnixDate(timestamp: number | undefined): string {

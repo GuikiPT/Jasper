@@ -6,6 +6,9 @@ import { Logger } from '../lib/logger';
 /**
  * Abstract base class for services managing bucket-based guild settings (roles, channels, etc.).
  * Provides common functionality for parsing, adding, removing, and replacing bucket contents.
+ *
+ * @template TSettings - The Prisma model type for the settings entity (e.g., GuildRoleSettings)
+ * @template TBucketKey - Union type of valid bucket key names (e.g., 'allowedAdminRoles' | 'allowedStaffRoles')
  */
 export abstract class BaseBucketSettingsService<TSettings, TBucketKey extends string> {
 	protected constructor(
