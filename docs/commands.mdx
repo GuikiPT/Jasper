@@ -5,1145 +5,467 @@ toc_max_heading_level: 4
 
 # Commands Catalogue
 
-This page documents every Jasper Revamp command with concise, authoritative details taken from the bot codebase. It focuses on what each command does, where it works, what permissions are needed, and which options it accepts.
+This document provides comprehensive reference for all Jasper Revamp commands, including permissions, options, and usage patterns.
 
-Notes
+## Documentation Conventions
 
-- Examples and visual message previews have been intentionally removed.
-- "Allowed" role buckets refer to categories configured via `/settings roles`.
-- Message (prefix) commands use your configured prefix (default: `j!`).
+- **Role Buckets**: Permission categories configured via `/settings roles`
+- **Command Syntax**: Both slash commands (`/command`) and prefix commands (`j!command`) are supported
+- **Default Prefix**: `j!` (configurable per guild)
+- **Ephemeral**: Response visible only to the command invoker
+
+## Permission Roles Reference
+
+Commands use role-based access control through these permission buckets:
+
+| Bucket | Purpose |
+| --- | --- |
+| **Support Roles** | Basic support utilities and tag access |
+| **Allowed Tag Roles** | Permission to send and manage tags |
+| **Allowed Tag Admin Roles** | Advanced tag administration (import/export/raw) |
+| **Allowed Staff Roles** | Day-to-day moderation tools |
+| **Allowed Admin Roles** | Full configuration access |
+| **Ignored Sniped Roles** | Excluded from `/snipe` results |
+
+Configure these via `/settings roles add` and `/settings roles remove`.
 
 ## General Commands
 
-### Quick Reference
-
-| Command | Summary |
-| --- | --- |
-| [`/help`](#help) | Interactive, searchable command catalogue with autocomplete. |
-| [`/ping`](#ping) | Measures gateway and interaction latency for Jasper. |
-| [`/topic`](#topic) | Send a random saved discussion topic. |
-
 <a id="help"></a>
-### `/help`
+### `/help` - Interactive Command Reference
 
-<details>
-<summary>View details</summary>
+Provides searchable command catalogue with autocomplete. Returns category overview or detailed command information.
 
-**Purpose**
+**Availability**: Guilds, Direct messages  
+**Permissions**: Support Roles, Tag Roles, Staff Roles, Admin Roles  
+**Options**: `command` (string, optional, autocomplete) - Command path like `settings roles add`
 
-Provide an interactive command catalogue with autocomplete for commands and subcommands. Returns either a category overview or a detailed entry.
-
-**Where it works**
-
-- Guilds
-- Direct messages
-
-**Permissions**
-
-- Support Roles
-- Allowed Tag Roles
-- Allowed Staff Roles
-- Allowed Admin Roles
-
-**Options**
-
-- `command` (string, optional, autocomplete): Command or subcommand path such as `settings roles add`.
-
-**Syntax**
-
-`/help [command]` | `j!help [command]`
-
-</details>
+**Syntax**: `/help [command]` | `j!help [command]`
 
 <a id="ping"></a>
-### `/ping`
+### `/ping` - Latency Measurement
 
-<details>
-<summary>View details</summary>
+Measures Discord gateway (websocket heartbeat) and interaction round-trip latency.
 
-**Purpose**
+**Availability**: Guilds, Direct messages  
+**Permissions**: None  
+**Aliases**: `latency` (message command)
 
-Measure Discord gateway latency (websocket heartbeat) and round-trip latency for the interaction.
-
-**Where it works**
-
-- Guilds
-- Direct messages
-
-**Permissions**
-
-- None
-
-**Options**
-
-- None
-
-**Aliases**
-
-- `latency` (message command)
-
-**Syntax**
-
-`/ping` | `j!ping` | `j!latency`
-
-</details>
-
-<a id="discord-api-latency"></a>
-### Discord API Latency
-
-<details>
-<summary>View details</summary>
-
-Explains the websocket heartbeat measurement that reflects the current Discord gateway latency as observed by Jasper. Values update each time you run `/ping`.
-
-</details>
-
-<a id="bot-latency"></a>
-### Bot Latency
-
-<details>
-<summary>View details</summary>
-
-Describes the interaction round-trip time (the delay between triggering the command and Jasper replying). Helps distinguish transient API delays from persistent gateway issues.
-
-</details>
+**Syntax**: `/ping` | `j!ping` | `j!latency`
 
 <a id="topic"></a>
-### `/topic`
+### `/topic` - Random Discussion Topic
 
-<details>
-<summary>View details</summary>
+Sends a random discussion topic from the guild's configured topic pool.
 
-**Purpose**
+**Availability**: Guild channels  
+**Permissions**: Staff Roles, Admin Roles, Manage Server
 
-Send a random discussion topic saved for the guild.
+**Syntax**: `/topic` | `j!topic`
 
-**Where it works**
-
-- Guild channels
-
-**Permissions**
-
-- Allowed Staff Roles
-- Allowed Admin Roles
-- Manage Server (Discord permission, implicit)
-
-**Options**
-
-- None
-
-**Syntax**
-
-`/topic` | `j!topic`
-
-**Notes**
-
-- Topics are configured through `/settings topics`.
-- Only allowed staff or admins can call this command.
-
-</details>
+**Note**: Topics configured via `/settings topics`
 
 ## Moderation Commands
 
-### Quick Reference
-
-| Command | Summary |
-| --- | --- |
-| [`/snipe`](#snipe) | Recover the most recently deleted message when allowed. |
-| [`/virustotal`](#virustotal) | Analyze files, URLs, domains, and IP addresses using VirusTotal. |
-
 <a id="snipe"></a>
-### `/snipe`
+### `/snipe` - Recover Deleted Message
 
-<details>
-<summary>View details</summary>
+Retrieves the most recently deleted message in the current channel. Command reply is ephemeral; recovered content posts publicly.
 
-**Purpose**
+**Availability**: Allow-listed guild channels  
+**Permissions**: Staff Roles, Admin Roles
 
-Retrieve the most recently deleted message in the current channel.
+**Syntax**: `/snipe` | `j!snipe`
 
-**Where it works**
-
-- Guild channels that are allow-listed for sniping
-
-**Permissions**
-
-- Allowed Staff Roles
-- Allowed Admin Roles
-
-**Options**
-
-- None
-
-**Syntax**
-
-`/snipe` | `j!snipe`
-
-**Notes**
-
-- Channel must be included in `allowedSnipeChannels`.
-- Command reply is ephemeral; recovered content posts publicly in the channel.
-
-</details>
-
-<a id="message-recovery"></a>
-### Message Recovery
-
-<details>
-<summary>View details</summary>
-
-Describes how deleted message content, attachments, and embeds are reconstructed from the snipe cache when the channel allows it. Confirms the recovered message posts publicly while the slash command reply stays ephemeral.
-
-</details>
+**Requirements**: 
+- Channel must be in `allowedSnipeChannels` (configure via `/settings channels add`)
+- Messages from `ignoredSnipedRoles` are excluded from recovery
 
 <a id="virustotal"></a>
-### `/virustotal`
+### `/virustotal` - Security Analysis
 
-<details>
-<summary>View details</summary>
+Submits files, URLs, domains, and IP addresses to VirusTotal for comprehensive threat analysis.
 
-**Purpose**
+**Availability**: Guild channels  
+**Permissions**: Staff Roles, Admin Roles, Manage Server  
+**Common Option**: `ephemeral` (boolean, optional) - Makes response visible only to you (default: true)
 
-Submit suspicious files, URLs, domains, and IP addresses to VirusTotal for comprehensive security analysis.
+**Subcommands**:
+- [`ip`](#virustotal-ip) - Analyze IP address reputation and malicious activity
+- [`domain`](#virustotal-domain) - Check domain reputation and security status
+- [`file`](#virustotal-file) - Upload and scan files for malware (max 650MB)
+- [`url`](#virustotal-url) - Scan URLs for malicious content
 
-**Where it works**
-
-- Guild channels
-
-**Permissions**
-
-- Allowed Staff Roles
-- Allowed Admin Roles
-- Manage Server (Discord permission, implicit)
-
-**Subcommands**
-
-- [`ip`](#virustotal-ip) - Analyze an IP address for malicious activity.
-- [`domain`](#virustotal-domain) - Check a domain for malicious activity and reputation.
-- [`file`](#virustotal-file) - Upload and scan a file for malware.
-- [`url`](#virustotal-url) - Scan a URL for malicious content.
-
-**General Options (all subcommands)**
-
-- `ephemeral` (boolean, optional): Whether the response should be visible only to you. Defaults to `true`.
-
-**Notes**
-
-- Results include detection ratios from multiple antivirus engines.
-- All analysis data is provided by VirusTotal's comprehensive threat intelligence platform.
-- Files up to 650MB are supported for scanning.
-- Responses include detailed reports as downloadable text files.
-
-</details>
+All results include detection ratios from multiple antivirus engines, detailed reports as downloadable files, and links to web-based VirusTotal reports.
 
 <a id="virustotal-ip"></a>
-#### `/virustotal ip`
+#### `/virustotal ip` - IP Address Analysis
 
-<details>
-<summary>View details</summary>
+Analyzes IP address for malicious activity and reputation.
 
-**Purpose**
+**Options**:
+- `address` (string, required) - IP address to analyze
+- `ephemeral` (boolean, optional) - Response visibility
 
-Analyze an IP address for malicious activity and reputation data.
+**Response Includes**: Security status, geographic info (country, AS owner), detection summary, community votes, reputation score, downloadable report
 
-**Options**
-
-- `address` (string, required): The IP address to analyze.
-- `ephemeral` (boolean, optional): Whether the response should be visible only to you.
-
-**Syntax**
-
-`/virustotal ip address:<ip_address> [ephemeral:true|false]`
-
-**Response includes**
-
-- Security status (Safe/Suspicious/Malicious)
-- Geographic information (country, continent, AS owner)
-- Detection summary from multiple security engines
-- Community votes and reputation score
-- Detailed analysis results with downloadable report
-- Link to web-based VirusTotal report
-
-</details>
+**Syntax**: `/virustotal ip address:<ip> [ephemeral:true|false]`
 
 <a id="virustotal-domain"></a>
-#### `/virustotal domain`
+#### `/virustotal domain` - Domain Analysis
 
-<details>
-<summary>View details</summary>
+Checks domain reputation and malicious activity across security sources.
 
-**Purpose**
+**Options**:
+- `name` (string, required) - Domain name to analyze
+- `ephemeral` (boolean, optional) - Response visibility
 
-Check a domain for malicious activity and reputation across multiple security sources.
+**Response Includes**: Security assessment, domain categories, detection summary, community votes, threat intelligence, downloadable report
 
-**Options**
-
-- `name` (string, required): The domain name to analyze.
-- `ephemeral` (boolean, optional): Whether the response should be visible only to you.
-
-**Syntax**
-
-`/virustotal domain name:<domain> [ephemeral:true|false]`
-
-**Response includes**
-
-- Security status assessment
-- Domain reputation and categories
-- Detection summary from security engines
-- Community votes and threat intelligence
-- Detailed analysis results with downloadable report
-- Link to web-based VirusTotal report
-
-</details>
+**Syntax**: `/virustotal domain name:<domain> [ephemeral:true|false]`
 
 <a id="virustotal-file"></a>
-#### `/virustotal file`
+#### `/virustotal file` - File Malware Scan
 
-<details>
-<summary>View details</summary>
+Uploads and scans files for malware using comprehensive analysis from 70+ antivirus engines.
 
-**Purpose**
+**Options**:
+- `attachment` (file, required) - File to scan (max 650MB)
+- `ephemeral` (boolean, optional) - Response visibility
 
-Upload and scan a file for malware using VirusTotal's comprehensive analysis engine.
+**Response Includes**: Threat assessment, file hashes (SHA256, MD5, SHA1), size/type info, malicious detections by engine, progress tracking, downloadable report
 
-**Options**
+**Security Features**: Secure download with integrity verification, memory monitoring, hash verification, rate limiting, automatic retry with exponential backoff
 
-- `attachment` (file, required): The file to scan for malware (max 650MB).
-- `ephemeral` (boolean, optional): Whether the response should be visible only to you.
-
-**Syntax**
-
-`/virustotal file attachment:<file> [ephemeral:true|false]`
-
-**Response includes**
-
-- Security status with threat level assessment
-- File information (hashes, size, type)
-- Detection summary from 70+ antivirus engines
-- Malicious detections by engine name
-- File integrity verification
-- Progress tracking for upload and analysis
-- Detailed analysis results with downloadable report
-- Link to web-based VirusTotal report
-
-**Security Features**
-
-- Secure file download with integrity verification
-- Memory usage monitoring and cleanup
-- Hash verification (SHA256, MD5, SHA1)
-- Rate limiting to prevent API abuse
-- Automatic retry with exponential backoff
-
-</details>
+**Syntax**: `/virustotal file attachment:<file> [ephemeral:true|false]`
 
 <a id="virustotal-url"></a>
-#### `/virustotal url`
+#### `/virustotal url` - URL Threat Scan
 
-<details>
-<summary>View details</summary>
+Submits URLs to VirusTotal for security scanning and threat analysis.
 
-**Purpose**
+**Options**:
+- `link` (string, required) - URL to scan
+- `ephemeral` (boolean, optional) - Response visibility
 
-Submit a URL to VirusTotal for security scanning and threat analysis.
+**Response Includes**: Security status, URL info (title, HTTP status, reputation), detection summary, community votes, categories, progress tracking, downloadable report
 
-**Options**
-
-- `link` (string, required): The URL to scan for threats.
-- `ephemeral` (boolean, optional): Whether the response should be visible only to you.
-
-**Syntax**
-
-`/virustotal url link:<url> [ephemeral:true|false]`
-
-**Response includes**
-
-- Security status and threat assessment
-- URL information (title, HTTP status, reputation)
-- Detection summary from multiple security engines
-- Community votes and categories
-- Progress tracking during analysis
-- Detailed scan results with downloadable report
-- Link to web-based VirusTotal report
-
-</details>
+**Syntax**: `/virustotal url link:<url> [ephemeral:true|false]`
 
 ## Support Commands
 
-### Quick Reference
-
-| Command | Summary |
-| --- | --- |
-| [`/resolve`](#resolve) | Close a support thread with an optional Q&A summary. |
-| [`/tag`](#tag) | Manage reusable support tags and canned replies. |
-
 <a id="resolve"></a>
-### `/resolve`
+### `/resolve` - Close Support Thread
 
-<details>
-<summary>View details</summary>
+Applies configured resolved tag, optionally posts Q&A summary, then locks and archives the support thread.
 
-**Purpose**
+**Availability**: Threads in configured support forum channel  
+**Permissions**: Tag Roles, Staff Roles, Admin Roles  
+**Bot Requirements**: Manage Threads permission in forum
 
-Apply the configured resolved tag, optionally post a question and answer summary, then lock and archive the support thread.
+**Options**:
+- `question` (string, optional, max 1000 chars) - Summary of original request
+- `answer` (string, optional, max 2000 chars) - Resolution notes
 
-> Jasper also monitors support threads for inactivity. After the configured reminder delay, the bot prompts the thread author to keep it open or close it; if ignored, the thread is resolved automatically after the grace period.
+**Syntax**: `/resolve [question] [answer]`
 
-**Where it works**
-
-- Threads inside the configured support forum channel
-
-**Permissions**
-
-- Allowed Tag Roles
-- Allowed Staff Roles
-- Allowed Admin Roles
-- Jasper must have the Manage Threads permission in the forum
-
-**Options**
-
-- `question` (string, optional, up to 1000 characters): Summary of the original request.
-- `answer` (string, optional, up to 2000 characters): Notes describing the resolution.
-
-**Syntax**
-
-`/resolve [question] [answer]`
-
-</details>
+**Auto-Resolution**: Jasper monitors support threads for inactivity. After the configured reminder delay, it prompts the thread author to keep open or close. If ignored, threads auto-resolve after the grace period. Configure via `/settings support set`.
 
 <a id="tag"></a>
-### `/tag`
+### `/tag` - Support Tag Management
 
-<details>
-<summary>View details</summary>
+Manages reusable support tags for quick responses.
 
-**Purpose**
+**Availability**: Guilds only  
+**Base Permissions**: Support Roles, Staff Roles, Admin Roles  
+**Special Permissions**: Some subcommands require Tag Admin Roles  
+**Channel Restrictions**: Sending tags may be limited to `allowedTagChannels`
 
-Manage reusable support tags for quick responses.
-
-**Where it works**
-
-- Guilds only
-
-**Base permissions**
-
-- Support Roles
-- Allowed Staff Roles
-- Allowed Admin Roles
-
-**Additional notes**
-
-- Some subcommands require Allowed Tag Roles or Allowed Tag Admin Roles.
-- Sending tags may be limited to channels allow-listed through `allowedTagChannels`.
-
-**Subcommand quick reference**
-
-| Subcommand | Summary |
-| --- | --- |
-| [`create`](#tag-create) | Start the interactive flow to add a new tag. |
-| [`delete`](#tag-delete) | Remove an existing tag by name. |
-| [`edit`](#tag-edit) | Update a tag's content. |
-| [`export`](#tag-export) | Download all tags as JSON. |
-| [`import`](#tag-import) | Upload tags from JSON text or file. |
-| [`info`](#tag-info) | Show metadata for a tag. |
-| [`list`](#tag-list) | List all available tags. |
-| [`raw`](#tag-raw) | Display the stored JSON for a tag. |
-| [`show`](#tag-show) | Preview a tag without sending it publicly. |
-| [`use`](#tag-use) | Send a tag to the current channel or a selected user. |
-
-</details>
+**Subcommands**:
+- [`create`](#tag-create) - Interactive workflow to add new tag
+- [`delete`](#tag-delete) - Remove tag by name
+- [`edit`](#tag-edit) - Update tag content
+- [`export`](#tag-export) - Download all tags as JSON (Tag Admin only)
+- [`import`](#tag-import) - Upload tags from JSON (Tag Admin only)
+- [`info`](#tag-info) - Show tag metadata and usage stats
+- [`list`](#tag-list) - List all available tags
+- [`raw`](#tag-raw) - Display stored JSON payload (Tag Admin only)
+- [`show`](#tag-show) - Preview tag without sending publicly
+- [`use`](#tag-use) - Send tag to channel or user
 
 <a id="tag-create"></a>
-#### `/tag create`
+#### `/tag create` - Create New Tag
 
-<details>
-<summary>View details</summary>
+Starts interactive workflow to create a new support tag.
 
-**Purpose**
-
-Start the interactive workflow to create a new support tag.
-
-**Permissions**
-
-- Support Roles
-- Allowed Tag Roles
-- Allowed Staff Roles
-- Allowed Admin Roles
-
-**Options**
-
-- None
-
-**Syntax**
-
-`/tag create`
-
-</details>
+**Syntax**: `/tag create`
 
 <a id="tag-delete"></a>
-#### `/tag delete`
+#### `/tag delete` - Delete Tag
 
-<details>
-<summary>View details</summary>
+Removes an existing tag by name.
 
-**Purpose**
+**Options**: `name` (string, required, autocomplete) - Tag to delete
 
-Remove an existing tag by name.
-
-**Permissions**
-
-- Support Roles
-- Allowed Tag Roles
-- Allowed Staff Roles
-- Allowed Admin Roles
-
-**Options**
-
-- `name` (string, required, autocomplete): Tag to delete.
-
-**Syntax**
-
-`/tag delete name:<tag>`
-
-</details>
+**Syntax**: `/tag delete name:<tag>`
 
 <a id="tag-edit"></a>
-#### `/tag edit`
+#### `/tag edit` - Edit Tag
 
-<details>
-<summary>View details</summary>
+Updates the content of an existing tag.
 
-**Purpose**
+**Options**: `name` (string, required, autocomplete) - Tag to update
 
-Update the content of an existing tag.
-
-**Permissions**
-
-- Support Roles
-- Allowed Tag Roles
-- Allowed Staff Roles
-- Allowed Admin Roles
-
-**Options**
-
-- `name` (string, required, autocomplete): Tag to update.
-
-**Syntax**
-
-`/tag edit name:<tag>`
-
-</details>
+**Syntax**: `/tag edit name:<tag>`
 
 <a id="tag-export"></a>
-#### `/tag export`
+#### `/tag export` - Export Tags
 
-<details>
-<summary>View details</summary>
+Downloads all tags as JSON file.
 
-**Purpose**
+**Permissions**: Tag Admin Roles only
 
-Download all tags as a JSON file.
-
-**Permissions**
-
-- Allowed Tag Admin Roles
-
-**Options**
-
-- None
-
-**Syntax**
-
-`/tag export`
-
-</details>
+**Syntax**: `/tag export`
 
 <a id="tag-import"></a>
-#### `/tag import`
+#### `/tag import` - Import Tags
 
-<details>
-<summary>View details</summary>
+Imports tags from JSON text or uploaded file.
 
-**Purpose**
+**Permissions**: Tag Admin Roles only
 
-Import tags from JSON text or an uploaded file.
+**Options**:
+- `payload` (string, optional) - Raw JSON array inline
+- `file` (attachment, optional) - Uploaded JSON file
+- `overwrite` (boolean, optional) - Replace existing tags (true) or append (false)
 
-**Permissions**
-
-- Allowed Tag Admin Roles
-
-**Options**
-
-- `payload` (string, optional): Raw JSON array provided inline.
-- `file` (attachment, optional): Uploaded JSON file.
-- `overwrite` (boolean, optional): Replace existing tags when true; append otherwise.
-
-**Syntax**
-
-`/tag import [payload] [file] [overwrite]`
-
-</details>
+**Syntax**: `/tag import [payload] [file] [overwrite]`
 
 <a id="tag-info"></a>
-#### `/tag info`
+#### `/tag info` - Tag Metadata
 
-<details>
-<summary>View details</summary>
+Shows metadata including creator and usage statistics.
 
-**Purpose**
+**Options**: `name` (string, required) - Tag to inspect
 
-Show metadata for a tag, including creator and usage stats.
-
-**Permissions**
-
-- Support Roles
-- Allowed Tag Roles
-- Allowed Staff Roles
-- Allowed Admin Roles
-
-**Options**
-
-- `name` (string, required): Tag to inspect.
-
-**Syntax**
-
-`/tag info name:<tag>`
-
-</details>
+**Syntax**: `/tag info name:<tag>`
 
 <a id="tag-list"></a>
-#### `/tag list`
+#### `/tag list` - List All Tags
 
-<details>
-<summary>View details</summary>
+Displays all available tags.
 
-**Purpose**
-
-List every available tag.
-
-**Permissions**
-
-- Support Roles
-- Allowed Tag Roles
-- Allowed Staff Roles
-- Allowed Admin Roles
-
-**Options**
-
-- None
-
-**Syntax**
-
-`/tag list`
-
-</details>
+**Syntax**: `/tag list`
 
 <a id="tag-raw"></a>
-#### `/tag raw`
+#### `/tag raw` - View Tag JSON
 
-<details>
-<summary>View details</summary>
+Displays the stored JSON payload for a tag.
 
-**Purpose**
+**Permissions**: Tag Admin Roles only
 
-Display the stored JSON payload for a tag.
+**Options**: `name` (string, required) - Tag to inspect
 
-**Permissions**
-
-- Allowed Tag Admin Roles
-
-**Options**
-
-- `name` (string, required): Tag to inspect.
-
-**Syntax**
-
-`/tag raw name:<tag>`
-
-</details>
+**Syntax**: `/tag raw name:<tag>`
 
 <a id="tag-show"></a>
-#### `/tag show`
+#### `/tag show` - Preview Tag
 
-<details>
-<summary>View details</summary>
+Previews tag's rendered content without sending publicly.
 
-**Purpose**
+**Options**:
+- `name` (string, required) - Tag to preview
+- `ephemeral` (boolean, optional) - Send preview ephemerally
 
-Preview a tag's rendered content without sending it publicly.
-
-**Permissions**
-
-- Support Roles
-- Allowed Tag Roles
-- Allowed Staff Roles
-- Allowed Admin Roles
-
-**Options**
-
-- `name` (string, required): Tag to preview.
-- `ephemeral` (boolean, optional): Send the preview ephemerally.
-
-**Syntax**
-
-`/tag show name:<tag> [ephemeral:true|false]`
-
-</details>
+**Syntax**: `/tag show name:<tag> [ephemeral:true|false]`
 
 <a id="tag-use"></a>
-#### `/tag use`
+#### `/tag use` - Send Tag
 
-<details>
-<summary>View details</summary>
+Sends saved tag to current channel or mentions user directly.
 
-**Purpose**
+**Options**:
+- `name` (string, required, autocomplete) - Tag to send
+- `user` (user, optional) - Deliver via direct message to selected user
 
-Send a saved tag to the current channel or mention a user directly.
+**Syntax**: `/tag use name:<tag> [user:<member>]`
 
-**Permissions**
-
-- Support Roles
-- Allowed Tag Roles
-- Allowed Staff Roles
-- Allowed Admin Roles
-
-**Options**
-
-- `name` (string, required, autocomplete): Tag to send.
-- `user` (user, optional): Deliver the tag via direct message to the selected user.
-
-**Syntax**
-
-`/tag use name:<tag> [user:<member>]`
-
-**Notes**
-
-- Channel access must be allow-listed via `allowedTagChannels` when posting tags publicly.
-
-</details>
+**Note**: Public tag posting requires channel in `allowedTagChannels`
 
 ## Settings Commands
 
-The `/settings` command configures guild-specific behavior. Most actions are available as both slash and message commands. Where "Manage Server" is noted, users with that Discord permission may also execute the action.
+The `/settings` command configures guild-specific behavior. Users with "Manage Server" Discord permission can execute most settings actions alongside configured role buckets.
 
-### Quick Reference
-
-| Category | Base Command | Subcommands |
-| --- | --- | --- |
-| Prefixes | `/settings prefixes` | `set`, `view` |
-| Roles | `/settings roles` | `add`, `remove`, `list` |
-| Channels | `/settings channels` | `add`, `remove`, `list` |
-| Topics | `/settings topics` | `add`, `remove`, `list`, `import`, `export` |
-| Support | `/settings support` | `set`, `view` |
-| Slowmode | `/settings slowmode` | `view`, `configure` |
-| YouTube | `/settings youtube` | `enable`, `disable`, `view`, `test`, `force-update` |
-
-### Prefixes (`/settings prefixes`)
-
-Configures the guild-specific message prefix used for Jasper's message commands.
-
-**Subcommands**
-- [`/settings prefixes set`](#settings-prefixes-set) - Set the message command prefix for the guild.
-- [`/settings prefixes view`](#settings-prefixes-view) - Show the active prefix.
+### Prefixes - Message Command Prefix
 
 <a id="settings-prefixes-set"></a>
-#### `/settings prefixes set`
+#### `/settings prefixes set` - Set Prefix
 
-<details>
-<summary>View details</summary>
+Sets message-command prefix for the server (max 16 characters).
 
-**Purpose**
+**Permissions**: Admin Roles, Administrator
 
-Set the message-command prefix for this server (up to 16 characters).
+**Options**: `value` (string, required) - New prefix
 
-**Permissions**
-
-- Allowed Admin Roles (Administrator also permitted).
-
-**Options**
-
-- `value` (string, required): New prefix to apply.
-
-**Syntax**
-
-`/settings prefixes set value:<prefix>` | `j!settings prefixes set <prefix>`
-
-</details>
+**Syntax**: `/settings prefixes set value:<prefix>` | `j!settings prefixes set <prefix>`
 
 <a id="settings-prefixes-view"></a>
-#### `/settings prefixes view`
+#### `/settings prefixes view` - View Prefix
 
-<details>
-<summary>View details</summary>
+Shows current message-command prefix (or Jasper default if unset).
 
-**Purpose**
+**Permissions**: Admin Roles, Administrator
 
-Show the current message-command prefix (or the Jasper default if none is set).
+**Syntax**: `/settings prefixes view` | `j!settings prefixes view`
 
-**Permissions**
+### Roles - Permission Bucket Management
 
-- Allowed Admin Roles (Administrator also permitted).
+Manages role assignments to permission buckets controlling command access.
 
-**Options**
-
-None.
-
-**Syntax**
-
-`/settings prefixes view` | `j!settings prefixes view`
-
-**Additional Notes**
-
-- **Prefix Updated**: After changing the prefix, Jasper sends a confirmation summarizing the old and new prefixes. Slash commands keep working, and the message prefix switches immediately.
-- **Current Prefix Configuration**: The view output highlights whether the active prefix is the Jasper default or a custom value you set.
-
-</details>
-
-### Roles (`/settings roles`)
-
-Manages role buckets that control access to commands and features.
-
-**Subcommands**
-- [`/settings roles add`](#settings-roles-add) - Add a role to a permission bucket.
-- [`/settings roles remove`](#settings-roles-remove) - Remove a role from a permission bucket.
-- [`/settings roles list`](#settings-roles-list) - View the roles assigned to buckets.
+**Available Buckets**:
+- `allowedAdminRoles` - Elevated administrators with full settings access
+- `allowedStaffRoles` - Moderators for day-to-day tools
+- `allowedTagAdminRoles` - Tag system administrators
+- `allowedTagRoles` - Members who can send tags
+- `ignoredSnipedRoles` - Roles excluded from `/snipe`
+- `supportRoles` - Support utility access
 
 <a id="settings-roles-add"></a>
-#### `/settings roles add`
+#### `/settings roles add` - Add Role to Bucket
 
-<details>
-<summary>View details</summary>
+**Permissions**: Admin Roles, Tag Admin Roles, Manage Server
 
-**Purpose**
+**Options**:
+- `setting` (choice, required) - Permission bucket name
+- `role` (role, required) - Role to add
 
-Add a role to one of Jasper's permission buckets.
-
-**Permissions**
-
-- Allowed Admin Roles.
-- Allowed Tag Admin Roles.
-- Manage Server (Discord permission).
-
-**Options**
-
-- `setting` (choice, required): One of `allowedAdminRoles`, `allowedStaffRoles`, `allowedTagAdminRoles`, `allowedTagRoles`, `ignoredSnipedRoles`, `supportRoles`.
-- `role` (role, required): Role to attach to the bucket.
-
-**Syntax**
-
-`/settings roles add setting:<bucket> role:<@role>` | `j!settings roles add <bucket> <@role>`
-
-**Bucket choices**
-
-- `allowedAdminRoles`: Elevated administrators who can change every Jasper setting.
-- `allowedStaffRoles`: Moderators who can manage day-to-day tools.
-- `allowedTagAdminRoles`: Specialists who manage saved tags.
-- `allowedTagRoles`: Members permitted to send saved tags.
-- `ignoredSnipedRoles`: Roles excluded from `/snipe` results.
-- `supportRoles`: Roles recognized when using support utilities.
-
-</details>
+**Syntax**: `/settings roles add setting:<bucket> role:<@role>` | `j!settings roles add <bucket> <@role>`
 
 <a id="settings-roles-remove"></a>
-#### `/settings roles remove`
+#### `/settings roles remove` - Remove Role from Bucket
 
-<details>
-<summary>View details</summary>
+**Permissions**: Admin Roles, Tag Admin Roles, Manage Server
 
-**Purpose**
+**Options**:
+- `setting` (choice, required) - Permission bucket name
+- `role` (role, required) - Role to remove
 
-Remove a role from a permission bucket.
-
-**Permissions**
-
-- Allowed Admin Roles.
-- Allowed Tag Admin Roles.
-- Manage Server (Discord permission).
-
-**Options**
-
-- `setting` (choice, required): Bucket to update.
-- `role` (role, required): Role to remove.
-
-**Syntax**
-
-`/settings roles remove setting:<bucket> role:<@role>` | `j!settings roles remove <bucket> <@role>`
-
-**Bucket choices**
-
-Same role buckets as `/settings roles add`.
-
-</details>
+**Syntax**: `/settings roles remove setting:<bucket> role:<@role>` | `j!settings roles remove <bucket> <@role>`
 
 <a id="settings-roles-list"></a>
-#### `/settings roles list`
+#### `/settings roles list` - List Bucket Roles
 
-<details>
-<summary>View details</summary>
+Displays roles in one bucket or all buckets.
 
-**Purpose**
+**Permissions**: Admin Roles, Tag Admin Roles, Manage Server
 
-Display the roles stored in one bucket or every bucket.
+**Options**: `setting` (choice, optional) - Specific bucket name (omit to view all)
 
-**Permissions**
+**Syntax**: `/settings roles list [setting]` | `j!settings roles list [bucket]`
 
-- Allowed Admin Roles.
-- Allowed Tag Admin Roles.
-- Manage Server (Discord permission).
+### Channels - Feature Allow-Lists
 
-**Options**
+Controls channel allow-lists for specific features.
 
-- `setting` (choice, optional): Provide a bucket name to narrow the output.
-
-**Syntax**
-
-`/settings roles list [setting]` | `j!settings roles list [bucket]`
-
-**Bucket choices**
-
-Same role buckets as `/settings roles add`. Omit `setting` to view the full summary.
-
-</details>
-
-### Channels (`/settings channels`)
-
-Controls allow-lists for features that depend on specific channels.
-
-**Subcommands**
-- [`/settings channels add`](#settings-channels-add) - Allow a channel for a feature bucket.
-- [`/settings channels remove`](#settings-channels-remove) - Remove a channel from a feature bucket.
-- [`/settings channels list`](#settings-channels-list) - List channels registered for buckets.
+**Available Buckets**:
+- `allowedSnipeChannels` - Enable `/snipe` access
+- `allowedTagChannels` - Enable sending saved tags
+- `automaticSlowmodeChannels` - Opt into automatic slowmode
 
 <a id="settings-channels-add"></a>
-#### `/settings channels add`
+#### `/settings channels add` - Add Channel to Bucket
 
-<details>
-<summary>View details</summary>
+**Permissions**: Admin Roles, Administrator
 
-**Purpose**
+**Options**:
+- `setting` (choice, required) - Channel bucket name
+- `channel` (channel, required) - Channel to register
 
-Add a channel to the allow-list for a specific feature.
-
-**Permissions**
-
-- Allowed Admin Roles (Administrator also permitted).
-
-**Options**
-
-- `setting` (choice, required): One of `allowedSnipeChannels`, `allowedTagChannels`, `automaticSlowmodeChannels`.
-- `channel` (channel, required): Channel to register.
-
-**Syntax**
-
-`/settings channels add setting:<bucket> channel:<#channel>` | `j!settings channels add <bucket> <#channel>`
-
-**Bucket choices**
-
-- `allowedSnipeChannels`: Allow `/snipe` access.
-- `allowedTagChannels`: Allow sending saved tags.
-- `automaticSlowmodeChannels`: Opt a channel into automatic slowmode.
-
-</details>
+**Syntax**: `/settings channels add setting:<bucket> channel:<#channel>` | `j!settings channels add <bucket> <#channel>`
 
 <a id="settings-channels-remove"></a>
-#### `/settings channels remove`
+#### `/settings channels remove` - Remove Channel from Bucket
 
-<details>
-<summary>View details</summary>
+**Permissions**: Admin Roles, Administrator
 
-**Purpose**
+**Options**:
+- `setting` (choice, required) - Channel bucket name
+- `channel` (channel, required) - Channel to remove
 
-Remove a channel from an allow-list bucket.
-
-**Permissions**
-
-- Allowed Admin Roles (Administrator also permitted).
-
-**Options**
-
-- `setting` (choice, required): Bucket that should no longer include the channel.
-- `channel` (channel, required): Channel to remove.
-
-**Syntax**
-
-`/settings channels remove setting:<bucket> channel:<#channel>` | `j!settings channels remove <bucket> <#channel>`
-
-**Bucket choices**
-
-Same channel buckets listed under `/settings channels add`.
-
-</details>
+**Syntax**: `/settings channels remove setting:<bucket> channel:<#channel>` | `j!settings channels remove <bucket> <#channel>`
 
 <a id="settings-channels-list"></a>
-#### `/settings channels list`
+#### `/settings channels list` - List Bucket Channels
 
-<details>
-<summary>View details</summary>
+Lists channels in one bucket or all buckets.
 
-**Purpose**
+**Permissions**: Admin Roles, Administrator
 
-List channels that are registered for a bucket (or every bucket when omitted).
+**Options**: `setting` (choice, optional) - Specific bucket (omit to view all)
 
-**Permissions**
+**Syntax**: `/settings channels list [setting]` | `j!settings channels list [bucket]`
 
-- Allowed Admin Roles (Administrator also permitted).
+### Topics - Discussion Topic Pool
 
-**Options**
-
-- `setting` (choice, optional): Provide one of the channel bucket keys to filter.
-
-**Syntax**
-
-`/settings channels list [setting]` | `j!settings channels list [bucket]`
-
-**Bucket choices**
-
-- `allowedSnipeChannels`
-- `allowedTagChannels`
-- `automaticSlowmodeChannels`
-
-</details>
-
-### Topics (`/settings topics`)
-
-Maintains the pool of discussion topics used throughout the guild.
-
-**Subcommands**
-- [`/settings topics add`](#settings-topics-add) - Add a new topic entry.
-- [`/settings topics remove`](#settings-topics-remove) - Delete a topic by its ID.
-- [`/settings topics list`](#settings-topics-list) - View all saved topics.
-- [`/settings topics import`](#settings-topics-import) - Bulk load topics from JSON.
-- [`/settings topics export`](#settings-topics-export) - Export all topics to JSON.
+Maintains the pool of discussion topics used by `/topic` command.
 
 <a id="settings-topics-add"></a>
-#### `/settings topics add`
+#### `/settings topics add` - Add Topic
 
-<details>
-<summary>View details</summary>
+Adds a discussion topic to the guild pool. Duplicates are ignored.
 
-**Purpose**
+**Permissions**: Admin Roles, Administrator
 
-Add a moderation topic to the guild's saved topic pool.
+**Options**: `value` (string, required, max 256 chars) - Topic text
 
-**Permissions**
-
-- Allowed Admin Roles (Administrator also permitted).
-
-**Options**
-
-- `value` (string, required, up to 256 characters): Topic text to store.
-
-**Syntax**
-
-`/settings topics add value:<text>` | `j!settings topics add <text>`
-
-**Notes**
-
-Duplicate entries are ignored.
-
-</details>
+**Syntax**: `/settings topics add value:<text>` | `j!settings topics add <text>`
 
 <a id="settings-topics-remove"></a>
-#### `/settings topics remove`
+#### `/settings topics remove` - Remove Topic
 
-<details>
-<summary>View details</summary>
+Removes topic via dropdown selection, list position, or exact text.
 
-**Purpose**
+**Permissions**: Admin Roles, Administrator
 
-Remove a topic using dropdown selection, list position, or exact text matching.
+**Options**:
+- `topic` (string, optional, autocomplete) - Select from dropdown
+- `position` (integer, optional) - Position number from list (1, 2, 3...)
 
-**Permissions**
+**Syntax**: `/settings topics remove [topic:<text>] [position:<number>]` | `j!settings topics remove <topic_or_position>`
 
-- Allowed Admin Roles (Administrator also permitted).
-
-**Options**
-
-- `topic` (string, optional, autocomplete): Select topic from dropdown menu.
-- `position` (integer, optional): Position number from topics list (1, 2, 3...).
-
-**Syntax**
-
-`/settings topics remove [topic:<text>] [position:<number>]` | `j!settings topics remove <topic_or_position>`
-
-**Notes**
-
-For slash commands, use either dropdown selection OR position number (not both). For message commands, provide either the exact topic text or position number from `/settings topics list`.
-
-</details>
+**Note**: Use either dropdown OR position, not both
 
 <a id="settings-topics-list"></a>
-#### `/settings topics list`
+#### `/settings topics list` - List Topics
 
-<details>
-<summary>View details</summary>
+Displays all configured topics with numeric IDs.
 
-**Purpose**
+**Permissions**: Admin Roles, Administrator
 
-Display every configured topic along with its numeric ID.
-
-**Permissions**
-
-- Allowed Admin Roles (Administrator also permitted).
-
-**Options**
-
-None.
-
-**Syntax**
-
-`/settings topics list` | `j!settings topics list`
-
-</details>
+**Syntax**: `/settings topics list` | `j!settings topics list`
 
 <a id="settings-topics-import"></a>
-#### `/settings topics import`
+#### `/settings topics import` - Import Topics
 
-<details>
-<summary>View details</summary>
+Imports topics from JSON text or attachment.
 
-**Purpose**
+**Permissions**: Admin Roles, Administrator
 
-Import topics from JSON text or an attachment.
+**Options**:
+- `payload` (string, optional) - Raw JSON array inline
+- `file` (attachment, optional) - Uploaded JSON file
+- `overwrite` (boolean, optional) - Replace existing (true) or append (false)
 
-**Permissions**
-
-- Allowed Admin Roles (Administrator also permitted).
-
-**Options**
-
-- `payload` (string, optional): Raw JSON array passed inline.
-- `file` (attachment, optional): Uploaded JSON file.
-- `overwrite` (boolean, optional): Replace existing topics when true; append otherwise.
-
-**Syntax**
-
-`/settings topics import [payload] [file] [overwrite]` | `j!settings topics import [file] [text]`
-
-</details>
+**Syntax**: `/settings topics import [payload] [file] [overwrite]` | `j!settings topics import [file] [text]`
 
 <a id="settings-topics-export"></a>
-#### `/settings topics export`
+#### `/settings topics export` - Export Topics
 
-<details>
-<summary>View details</summary>
+Exports all saved topics as JSON file.
 
-**Purpose**
+**Permissions**: Admin Roles, Administrator
 
-Export every saved topic as a JSON file.
-
-**Permissions**
-
-- Allowed Admin Roles (Administrator also permitted).
-
-**Options**
-
-None.
-
-**Syntax**
-
-`/settings topics export` | `j!settings topics export`
-
-</details>
+**Syntax**: `/settings topics export` | `j!settings topics export`
 
 ### Support (`/settings support`)
 
