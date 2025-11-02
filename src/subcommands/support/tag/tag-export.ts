@@ -18,7 +18,6 @@ type TagExportContext = {
 	defer?: () => Promise<unknown>;
 };
 
-
 export async function chatInputTagExport(command: TagCommand, interaction: TagChatInputInteraction) {
 	const guildId = interaction.guildId;
 	if (!guildId) {
@@ -29,10 +28,7 @@ export async function chatInputTagExport(command: TagCommand, interaction: TagCh
 		command,
 		guildId,
 		deny: (content) => replyEphemeral(interaction, content),
-		respond: (content, attachment) =>
-			attachment
-				? interaction.editReply({ content, files: [attachment] })
-				: interaction.editReply({ content }),
+		respond: (content, attachment) => (attachment ? interaction.editReply({ content, files: [attachment] }) : interaction.editReply({ content })),
 		defer: () => interaction.deferReply({ flags: MessageFlags.Ephemeral })
 	});
 }
@@ -60,13 +56,16 @@ async function handleTagExport({ command, guildId, deny, respond, defer }: TagEx
 		}
 
 		// Convert to the format from the attached JSON file
-		const exportData: Record<string, {
-			name: string;
-			title: string;
-			description: string | null;
-			footer: string | null;
-			imageUrl: string | null;
-		}> = {};
+		const exportData: Record<
+			string,
+			{
+				name: string;
+				title: string;
+				description: string | null;
+				footer: string | null;
+				imageUrl: string | null;
+			}
+		> = {};
 
 		for (const tag of tags) {
 			exportData[tag.name] = {

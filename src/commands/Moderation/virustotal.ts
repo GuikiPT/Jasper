@@ -109,16 +109,10 @@ export class ModerationVirusTotalCommand extends Subcommand {
 						.setName('ip')
 						.setDescription('Analyze an IP address for malicious activity.')
 						.addStringOption((option: SlashCommandStringOption) =>
-							option
-								.setName('address')
-								.setDescription('The IP address to analyze.')
-								.setRequired(true)
+							option.setName('address').setDescription('The IP address to analyze.').setRequired(true)
 						)
 						.addBooleanOption((option) =>
-							option
-								.setName('ephemeral')
-								.setDescription('Whether the response should be visible only to you.')
-								.setRequired(false)
+							option.setName('ephemeral').setDescription('Whether the response should be visible only to you.').setRequired(false)
 						)
 				)
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
@@ -126,16 +120,10 @@ export class ModerationVirusTotalCommand extends Subcommand {
 						.setName('domain')
 						.setDescription('Check a domain for malicious activity.')
 						.addStringOption((option: SlashCommandStringOption) =>
-							option
-								.setName('name')
-								.setDescription('The domain name to analyze.')
-								.setRequired(true)
+							option.setName('name').setDescription('The domain name to analyze.').setRequired(true)
 						)
 						.addBooleanOption((option) =>
-							option
-								.setName('ephemeral')
-								.setDescription('Whether the response should be visible only to you.')
-								.setRequired(false)
+							option.setName('ephemeral').setDescription('Whether the response should be visible only to you.').setRequired(false)
 						)
 				)
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
@@ -143,16 +131,10 @@ export class ModerationVirusTotalCommand extends Subcommand {
 						.setName('file')
 						.setDescription('Upload and scan a file for malware.')
 						.addAttachmentOption((option: SlashCommandAttachmentOption) =>
-							option
-								.setName('attachment')
-								.setDescription('The file to scan for malware.')
-								.setRequired(true)
+							option.setName('attachment').setDescription('The file to scan for malware.').setRequired(true)
 						)
 						.addBooleanOption((option) =>
-							option
-								.setName('ephemeral')
-								.setDescription('Whether the response should be visible only to you.')
-								.setRequired(false)
+							option.setName('ephemeral').setDescription('Whether the response should be visible only to you.').setRequired(false)
 						)
 				)
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
@@ -160,16 +142,10 @@ export class ModerationVirusTotalCommand extends Subcommand {
 						.setName('url')
 						.setDescription('Scan a URL for malicious content.')
 						.addStringOption((option: SlashCommandStringOption) =>
-							option
-								.setName('link')
-								.setDescription('The URL to scan for threats.')
-								.setRequired(true)
+							option.setName('link').setDescription('The URL to scan for threats.').setRequired(true)
 						)
 						.addBooleanOption((option) =>
-							option
-								.setName('ephemeral')
-								.setDescription('Whether the response should be visible only to you.')
-								.setRequired(false)
+							option.setName('ephemeral').setDescription('Whether the response should be visible only to you.').setRequired(false)
 						)
 				)
 		);

@@ -16,11 +16,7 @@ import {
 } from 'discord.js';
 
 import { VIRUSTOTAL_CONFIG, ERROR_MESSAGES, STATUS_CONFIG, REPORT_TEMPLATES } from './constants';
-import type {
-	VirusTotalAnalysisStats,
-	SecurityStatus,
-	VirusTotalEngineResult
-} from './types';
+import type { VirusTotalAnalysisStats, SecurityStatus, VirusTotalEngineResult } from './types';
 
 /**
  * Rate limiter for VirusTotal API calls
@@ -39,13 +35,13 @@ class RateLimiter {
 		const now = Date.now();
 
 		// Remove old requests outside the window
-		this.requests = this.requests.filter(time => now - time < this.windowMs);
+		this.requests = this.requests.filter((time) => now - time < this.windowMs);
 
 		if (this.requests.length >= this.maxRequests) {
 			const oldestRequest = Math.min(...this.requests);
 			const waitTime = this.windowMs - (now - oldestRequest);
 			if (waitTime > 0) {
-				await new Promise(resolve => setTimeout(resolve, waitTime));
+				await new Promise((resolve) => setTimeout(resolve, waitTime));
 			}
 		}
 
@@ -98,7 +94,7 @@ export async function makeVirusTotalRequest<T>(config: AxiosRequestConfig): Prom
 				if (error.response?.status && error.response.status >= 400 && error.response.status < 500) {
 					if (error.response.status === 429) {
 						// Rate limited, wait longer
-						await new Promise(resolve => setTimeout(resolve, VIRUSTOTAL_CONFIG.SECURITY.RETRY_DELAY_MS * attempt));
+						await new Promise((resolve) => setTimeout(resolve, VIRUSTOTAL_CONFIG.SECURITY.RETRY_DELAY_MS * attempt));
 						continue;
 					}
 					throw error;
@@ -106,7 +102,7 @@ export async function makeVirusTotalRequest<T>(config: AxiosRequestConfig): Prom
 			}
 
 			if (attempt < VIRUSTOTAL_CONFIG.SECURITY.MAX_RETRIES) {
-				await new Promise(resolve => setTimeout(resolve, VIRUSTOTAL_CONFIG.SECURITY.RETRY_DELAY_MS * attempt));
+				await new Promise((resolve) => setTimeout(resolve, VIRUSTOTAL_CONFIG.SECURITY.RETRY_DELAY_MS * attempt));
 			}
 		}
 	}
@@ -267,17 +263,13 @@ export function createProgressComponents(
 			.addTextDisplayComponents(
 				new TextDisplayBuilder().setContent(
 					`🔍 **${title}**\n\n` +
-					resourceInfo +
-					`\n\n${isExisting ? '📋 **Using existing analysis...** Resource already scanned.' : '⏳ **Scanning in progress...** Please wait while we analyze the resource.'}\n\n` +
-					`Expected completion: <t:${expectedCompletion}:R>`
+						resourceInfo +
+						`\n\n${isExisting ? '📋 **Using existing analysis...** Resource already scanned.' : '⏳ **Scanning in progress...** Please wait while we analyze the resource.'}\n\n` +
+						`Expected completion: <t:${expectedCompletion}:R>`
 				)
 			)
 			.addMediaGalleryComponents(
-				new MediaGalleryBuilder()
-					.addItems(
-						new MediaGalleryItemBuilder()
-							.setURL(VIRUSTOTAL_CONFIG.UI.PROGRESS_GIF_URL)
-					)
+				new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL(VIRUSTOTAL_CONFIG.UI.PROGRESS_GIF_URL))
 			)
 	];
 }
@@ -316,7 +308,7 @@ export function createDetailedReport(
 		analysisStats['type-unsupported'] ? `- TYPE UNSUPPORTED: ${analysisStats['type-unsupported']} engines` : '',
 		'',
 		'MALICIOUS DETECTIONS:',
-		maliciousEngines.length > 0 ? maliciousEngines.map(engine => `- ${engine}`).join('\n') : 'None detected',
+		maliciousEngines.length > 0 ? maliciousEngines.map((engine) => `- ${engine}`).join('\n') : 'None detected',
 		'',
 		'DETAILED ANALYSIS RESULTS:',
 		Object.entries(analysisResults)
@@ -340,41 +332,24 @@ export function createReportComponents(
 	fileName: string
 ): ContainerBuilder[] {
 	const builder = new ContainerBuilder()
-		.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`## ${title}`)
-		)
-		.addSeparatorComponents(
-			new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-		)
-		.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`❓ **Security Status:** ${status.emoji} ${status.text}`)
-		);
+		.addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ${title}`))
+		.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
+		.addTextDisplayComponents(new TextDisplayBuilder().setContent(`❓ **Security Status:** ${status.emoji} ${status.text}`));
 
 	// Add each section with separators
-	sections.forEach(section => {
+	sections.forEach((section) => {
 		builder
-			.addSeparatorComponents(
-				new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-			)
-			.addTextDisplayComponents(
-				new TextDisplayBuilder().setContent(`${section.title}\n\n${section.content}`)
-			);
+			.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
+			.addTextDisplayComponents(new TextDisplayBuilder().setContent(`${section.title}\n\n${section.content}`));
 	});
 
 	// Add file and web report button
 	builder
-		.addSeparatorComponents(
-			new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-		)
-		.addFileComponents(
-			new FileBuilder().setURL(`attachment://${fileName}`)
-		)
+		.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
+		.addFileComponents(new FileBuilder().setURL(`attachment://${fileName}`))
 		.addActionRowComponents(
 			new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
-				new ButtonBuilder()
-					.setStyle(ButtonStyle.Link)
-					.setLabel("View Web Report")
-					.setURL(webReportUrl)
+				new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('View Web Report').setURL(webReportUrl)
 			)
 		);
 

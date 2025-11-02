@@ -54,12 +54,7 @@ export const registerChannelSubcommandGroup = (group: SlashCommandSubcommandGrou
 						.setRequired(true)
 						.addChoices(...CHANNEL_BUCKETS.map((b) => ({ name: b.label, value: b.key })))
 				)
-				.addChannelOption((option) =>
-					option
-						.setName('channel')
-						.setDescription('Channel to add to the list.')
-						.setRequired(true)
-				)
+				.addChannelOption((option) => option.setName('channel').setDescription('Channel to add to the list.').setRequired(true))
 		)
 		.addSubcommand((sub) =>
 			sub
@@ -72,12 +67,7 @@ export const registerChannelSubcommandGroup = (group: SlashCommandSubcommandGrou
 						.setRequired(true)
 						.addChoices(...CHANNEL_BUCKETS.map((b) => ({ name: b.label, value: b.key })))
 				)
-				.addChannelOption((option) =>
-					option
-						.setName('channel')
-						.setDescription('Channel to remove from the list.')
-						.setRequired(true)
-				)
+				.addChannelOption((option) => option.setName('channel').setDescription('Channel to remove from the list.').setRequired(true))
 		)
 		.addSubcommand((sub) =>
 			sub
@@ -102,9 +92,7 @@ export async function parseBucket(args: Args, required: boolean): Promise<Channe
 
 	if (result.isErr()) {
 		if (required) {
-			throw new Error(
-				`You must provide a channel setting. Available options: ${CHANNEL_BUCKETS.map((b) => b.key).join(', ')}`
-			);
+			throw new Error(`You must provide a channel setting. Available options: ${CHANNEL_BUCKETS.map((b) => b.key).join(', ')}`);
 		}
 		return null;
 	}
@@ -126,16 +114,7 @@ export function parseBucketChoice(value: string | null, fallback: ChannelBucketK
 	return resolved;
 }
 
-export async function executeChannelMutation({
-	command,
-	guildId,
-	bucket,
-	channelId,
-	operation,
-	deny,
-	respond,
-	defer
-}: ChannelMutationContext) {
+export async function executeChannelMutation({ command, guildId, bucket, channelId, operation, deny, respond, defer }: ChannelMutationContext) {
 	if (!guildId) {
 		return deny('This command can only be used inside a server.');
 	}
@@ -162,22 +141,10 @@ export async function executeChannelMutation({
 		}
 	}
 
-	return respond(
-		operation === 'add'
-			? `Added <#${channelId}> to **${label}**.`
-			: `Removed <#${channelId}> from **${label}**.`
-	);
+	return respond(operation === 'add' ? `Added <#${channelId}> to **${label}**.` : `Removed <#${channelId}> from **${label}**.`);
 }
 
-export async function executeChannelList({
-	command,
-	guildId,
-	bucket,
-	deny,
-	respond,
-	respondComponents,
-	defer
-}: ChannelListContext) {
+export async function executeChannelList({ command, guildId, bucket, deny, respond, respondComponents, defer }: ChannelListContext) {
 	if (!guildId) {
 		return deny('This command can only be used inside a server.');
 	}
@@ -240,7 +207,6 @@ export async function executeChannelList({
 export function bucketLabel(bucket: ChannelBucketKey) {
 	return CHANNEL_BUCKETS.find((entry) => entry.key === bucket)?.label ?? bucket;
 }
-
 
 export const denyInteraction = (interaction: ChannelChatInputInteraction, content: string) =>
 	interaction.reply({ content, flags: MessageFlags.Ephemeral });

@@ -71,24 +71,28 @@ COMMUNITY VOTES:
 TAGS: ${tags.length > 0 ? tags.join(', ') : 'None'}
 
 MALICIOUS DETECTIONS:
-${maliciousEngines.length > 0 ? maliciousEngines.map(engine => `- ${engine}`).join('\n') : 'None detected'}
+${maliciousEngines.length > 0 ? maliciousEngines.map((engine) => `- ${engine}`).join('\n') : 'None detected'}
 
 WHOIS INFORMATION:
 ${attributes.whois || 'Not available'}
 
 LAST ANALYSIS RESULTS (Detailed):
 ${Object.entries(attributes.last_analysis_results || {})
-				.map(([engine, result]: [string, any]) => `${engine}: ${result.category} (${result.result || 'N/A'})`)
-				.join('\n')}
+	.map(([engine, result]: [string, any]) => `${engine}: ${result.category} (${result.result || 'N/A'})`)
+	.join('\n')}
 
 CERTIFICATE INFORMATION:
-${attributes.last_https_certificate ? `
+${
+	attributes.last_https_certificate
+		? `
 ISSUER: ${attributes.last_https_certificate.issuer?.CN || 'Unknown'}
 SUBJECT: ${attributes.last_https_certificate.subject?.CN || 'Unknown'}
 VALID FROM: ${attributes.last_https_certificate.validity?.not_before || 'Unknown'}
 VALID TO: ${attributes.last_https_certificate.validity?.not_after || 'Unknown'}
 THUMBPRINT: ${attributes.last_https_certificate.thumbprint || 'Unknown'}
-` : 'No certificate information available'}
+`
+		: 'No certificate information available'
+}
 
 JARM FINGERPRINT: ${attributes.jarm || 'Not available'}
 
@@ -137,10 +141,12 @@ Powered by VirusTotal API
 		);
 
 		await interaction.editReply({
-			files: [{
-				attachment: Buffer.from(detailedReport),
-				name: `virustotal-ip-${address}.txt`
-			}],
+			files: [
+				{
+					attachment: Buffer.from(detailedReport),
+					name: `virustotal-ip-${address}.txt`
+				}
+			],
 			components,
 			flags: MessageFlags.IsComponentsV2
 		});

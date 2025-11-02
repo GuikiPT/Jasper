@@ -73,11 +73,7 @@ export const registerSupportSubcommandGroup = (group: SlashCommandSubcommandGrou
 						.setRequired(false)
 				)
 		)
-		.addSubcommand((sub) =>
-			sub
-				.setName('view')
-				.setDescription('View current support settings.')
-		);
+		.addSubcommand((sub) => sub.setName('view').setDescription('View current support settings.'));
 
 export function formatError(error: unknown) {
 	if (error instanceof Error) return error.message;
@@ -88,9 +84,7 @@ export async function parseSetting(args: Args): Promise<SupportSettingKey> {
 	const result = await args.pickResult('string');
 
 	if (result.isErr()) {
-		throw new Error(
-			`You must provide a support setting. Available options: ${SUPPORT_SETTINGS.map((s) => s.key).join(', ')}`
-		);
+		throw new Error(`You must provide a support setting. Available options: ${SUPPORT_SETTINGS.map((s) => s.key).join(', ')}`);
 	}
 
 	const value = result.unwrap();
@@ -109,15 +103,7 @@ export function parseSettingChoice(value: string): SupportSettingKey {
 	return resolved;
 }
 
-export async function executeSupportSet({
-	command,
-	guildId,
-	setting,
-	value,
-	deny,
-	respond,
-	defer
-}: SupportSetContext) {
+export async function executeSupportSet({ command, guildId, setting, value, deny, respond, defer }: SupportSetContext) {
 	if (!guildId) {
 		return deny('This command can only be used inside a server.');
 	}
@@ -191,14 +177,7 @@ export async function executeSupportSet({
 	return respond(`Set **${label}** to \`${processedValue}\`.`);
 }
 
-export async function executeSupportView({
-	command,
-	guildId,
-	deny,
-	respond,
-	respondComponents,
-	defer
-}: SupportViewContext) {
+export async function executeSupportView({ command, guildId, deny, respond, respondComponents, defer }: SupportViewContext) {
 	if (!guildId) {
 		return deny('This command can only be used inside a server.');
 	}
@@ -224,11 +203,7 @@ export async function executeSupportView({
 		const { createListComponent } = await import('../../../lib/components.js');
 
 		if (!settings) {
-			const component = createListComponent(
-				'Support Settings',
-				[],
-				'No support settings configured for this server.'
-			);
+			const component = createListComponent('Support Settings', [], 'No support settings configured for this server.');
 			return respondComponents([component]);
 		}
 
@@ -240,10 +215,10 @@ export async function executeSupportView({
 				return `${label}: *(not set)*`;
 			}
 
-				if (setting.key === 'supportForumChannelId') {
-					return `${label}: <#${value}>`;
-				} else if (setting.key === 'inactivityReminderMinutes' || setting.key === 'autoCloseMinutes') {
-					return `${label}: ${value} minute(s)`;
+			if (setting.key === 'supportForumChannelId') {
+				return `${label}: <#${value}>`;
+			} else if (setting.key === 'inactivityReminderMinutes' || setting.key === 'autoCloseMinutes') {
+				return `${label}: ${value} minute(s)`;
 			} else {
 				return `${label}: \`${value}\``;
 			}

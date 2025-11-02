@@ -22,23 +22,23 @@ import { createErrorTextComponent } from '../../lib/components.js';
 type DetailedDescriptionMetadata =
 	| string
 	| {
-		summary?: string;
-		chatInputUsage?: string;
-		messageUsage?: string;
-		examples?: string[];
-		notes?: string[];
-		subcommands?: Array<{
-			group?: string;
-			name: string;
-			description?: string;
+			summary?: string;
 			chatInputUsage?: string;
 			messageUsage?: string;
 			examples?: string[];
 			notes?: string[];
-			aliases?: string[];
-			keywords?: string[];
-		}>;
-	};
+			subcommands?: Array<{
+				group?: string;
+				name: string;
+				description?: string;
+				chatInputUsage?: string;
+				messageUsage?: string;
+				examples?: string[];
+				notes?: string[];
+				aliases?: string[];
+				keywords?: string[];
+			}>;
+	  };
 
 interface NormalisedSubcommandMetadata {
 	group?: string;
@@ -78,7 +78,8 @@ interface HelpEntry {
 	name: 'help',
 	description: 'Look up usage details for Jasper commands.',
 	detailedDescription: {
-		summary: 'Use `/help` or `j!help` to explore every command Jasper provides. Start typing for autocomplete suggestions, or run without arguments to see an overview grouped by category.',
+		summary:
+			'Use `/help` or `j!help` to explore every command Jasper provides. Start typing for autocomplete suggestions, or run without arguments to see an overview grouped by category.',
 		chatInputUsage: '/help [command]',
 		messageUsage: '{{prefix}}help [command]',
 		examples: ['/help settings prefixes set', '{{prefix}}help tag create'],
@@ -94,12 +95,19 @@ interface HelpEntry {
 		{
 			name: 'AllowedGuildRoleBuckets',
 			context: {
-				buckets: ['allowedAdminRoles', 'allowedStaffRoles', 'allowedTagAdminRoles', 'allowedTagRoles', 'ignoredSnipedRoles', 'supportRoles'] as const,
+				buckets: [
+					'allowedAdminRoles',
+					'allowedStaffRoles',
+					'allowedTagAdminRoles',
+					'allowedTagRoles',
+					'ignoredSnipedRoles',
+					'supportRoles'
+				] as const,
 				allowManageGuild: false,
 				errorMessage: 'You need an allowed tag role, staff role, or admin role to use this command.'
 			}
 		}
-	],
+	]
 })
 export class HelpCommand extends Command {
 	private readonly integrationTypes: ApplicationIntegrationType[] = [
@@ -170,18 +178,16 @@ export class HelpCommand extends Command {
 				.setIntegrationTypes(this.integrationTypes)
 				.setContexts(this.contexts)
 				.addStringOption((option: SlashCommandStringOption) =>
-					option
-						.setName('command')
-						.setDescription('Command or subcommand to look up.')
-						.setAutocomplete(true)
-						.setRequired(false)
+					option.setName('command').setDescription('Command or subcommand to look up.').setAutocomplete(true).setRequired(false)
 				)
 		);
 	}
 
 	public override async autocompleteRun(interaction: AutocompleteInteraction) {
 		const focused = interaction.options.getFocused(true);
-		const query = String(focused.value ?? '').trim().toLowerCase();
+		const query = String(focused.value ?? '')
+			.trim()
+			.toLowerCase();
 		const entries = this.collectEntries();
 
 		const scored = entries
@@ -192,10 +198,10 @@ export class HelpCommand extends Command {
 
 		const emptyFallback = !query
 			? entries
-				.filter((entry) => entry.type === 'command')
-				.sort((a, b) => a.commandName.localeCompare(b.commandName))
-				.slice(0, 25)
-				.map((entry) => ({ entry, score: 1 }))
+					.filter((entry) => entry.type === 'command')
+					.sort((a, b) => a.commandName.localeCompare(b.commandName))
+					.slice(0, 25)
+					.map((entry) => ({ entry, score: 1 }))
 			: [];
 
 		const collection = scored.length > 0 ? scored : emptyFallback;
@@ -248,7 +254,7 @@ export class HelpCommand extends Command {
 	}
 
 	public override async messageRun(message: Message, args: Args) {
-		const rawQuery = args.finished ? null : (await args.rest('string'));
+		const rawQuery = args.finished ? null : await args.rest('string');
 		const normalizedQuery = rawQuery?.trim() ?? '';
 		const entries = this.collectEntries();
 		const entry = this.findEntry(entries, normalizedQuery);
@@ -321,10 +327,7 @@ export class HelpCommand extends Command {
 			if (!command.enabled) continue;
 			const metadata = this.normaliseMetadata(command.detailedDescription as DetailedDescriptionMetadata);
 			const aliases = Array.isArray(command.aliases) ? command.aliases : [];
-			const keywords = new Set<string>([
-				command.name.toLowerCase(),
-				...aliases.map((alias) => alias.toLowerCase())
-			]);
+			const keywords = new Set<string>([command.name.toLowerCase(), ...aliases.map((alias) => alias.toLowerCase())]);
 
 			const baseEntry: HelpEntry = {
 				key: command.name,
@@ -382,48 +385,38 @@ export class HelpCommand extends Command {
 		const summary = typeof details.summary === 'string' ? details.summary : undefined;
 		const chatInputUsage = typeof details.chatInputUsage === 'string' ? details.chatInputUsage : undefined;
 		const messageUsage = typeof details.messageUsage === 'string' ? details.messageUsage : undefined;
-		const examples = Array.isArray(details.examples)
-			? details.examples.filter((item): item is string => typeof item === 'string')
-			: [];
-		const notes = Array.isArray(details.notes)
-			? details.notes.filter((item): item is string => typeof item === 'string')
-			: [];
+		const examples = Array.isArray(details.examples) ? details.examples.filter((item): item is string => typeof item === 'string') : [];
+		const notes = Array.isArray(details.notes) ? details.notes.filter((item): item is string => typeof item === 'string') : [];
 
 		const subcommands: NormalisedSubcommandMetadata[] = Array.isArray(details.subcommands)
 			? details.subcommands.flatMap((entry) => {
-				if (!entry || typeof entry !== 'object') return [];
-				if (typeof entry.name !== 'string') return [];
-				const group = typeof entry.group === 'string' ? entry.group : undefined;
-				const description = typeof entry.description === 'string' ? entry.description : undefined;
-				const chatUsage = typeof entry.chatInputUsage === 'string' ? entry.chatInputUsage : undefined;
-				const messageUsageLocal = typeof entry.messageUsage === 'string' ? entry.messageUsage : undefined;
-				const examplesLocal = Array.isArray(entry.examples)
-					? entry.examples.filter((item): item is string => typeof item === 'string')
-					: [];
-				const notesLocal = Array.isArray(entry.notes)
-					? entry.notes.filter((item): item is string => typeof item === 'string')
-					: [];
-				const aliases = Array.isArray(entry.aliases)
-					? entry.aliases.filter((item): item is string => typeof item === 'string')
-					: [];
-				const keywords = Array.isArray(entry.keywords)
-					? entry.keywords.filter((item): item is string => typeof item === 'string')
-					: [];
+					if (!entry || typeof entry !== 'object') return [];
+					if (typeof entry.name !== 'string') return [];
+					const group = typeof entry.group === 'string' ? entry.group : undefined;
+					const description = typeof entry.description === 'string' ? entry.description : undefined;
+					const chatUsage = typeof entry.chatInputUsage === 'string' ? entry.chatInputUsage : undefined;
+					const messageUsageLocal = typeof entry.messageUsage === 'string' ? entry.messageUsage : undefined;
+					const examplesLocal = Array.isArray(entry.examples)
+						? entry.examples.filter((item): item is string => typeof item === 'string')
+						: [];
+					const notesLocal = Array.isArray(entry.notes) ? entry.notes.filter((item): item is string => typeof item === 'string') : [];
+					const aliases = Array.isArray(entry.aliases) ? entry.aliases.filter((item): item is string => typeof item === 'string') : [];
+					const keywords = Array.isArray(entry.keywords) ? entry.keywords.filter((item): item is string => typeof item === 'string') : [];
 
-				const normalised: NormalisedSubcommandMetadata = {
-					group,
-					name: entry.name,
-					description,
-					chatInputUsage: chatUsage,
-					messageUsage: messageUsageLocal,
-					examples: examplesLocal,
-					notes: notesLocal,
-					aliases,
-					keywords
-				};
+					const normalised: NormalisedSubcommandMetadata = {
+						group,
+						name: entry.name,
+						description,
+						chatInputUsage: chatUsage,
+						messageUsage: messageUsageLocal,
+						examples: examplesLocal,
+						notes: notesLocal,
+						aliases,
+						keywords
+					};
 
-				return [normalised];
-			})
+					return [normalised];
+				})
 			: [];
 
 		return { summary, chatInputUsage, messageUsage, examples, notes, subcommands };
@@ -462,9 +455,8 @@ export class HelpCommand extends Command {
 
 	private buildAutocompleteLabel(entry: HelpEntry): string {
 		const displayPath = `/${entry.fullPath.join(' ')}`;
-		const summary = entry.type === 'subcommand'
-			? entry.subcommand?.description ?? entry.description
-			: entry.metadata.summary ?? entry.description;
+		const summary =
+			entry.type === 'subcommand' ? (entry.subcommand?.description ?? entry.description) : (entry.metadata.summary ?? entry.description);
 
 		if (!summary) {
 			return displayPath.slice(0, 100);
@@ -478,9 +470,8 @@ export class HelpCommand extends Command {
 	private buildHelpMessage(entry: HelpEntry, prefix: string): string {
 		const lines: string[] = [];
 		const slashPath = `/${entry.fullPath.join(' ')}`;
-		const summary = entry.type === 'subcommand'
-			? entry.subcommand?.description ?? entry.description
-			: entry.metadata.summary ?? entry.description;
+		const summary =
+			entry.type === 'subcommand' ? (entry.subcommand?.description ?? entry.description) : (entry.metadata.summary ?? entry.description);
 
 		lines.push(`### ${entry.type === 'command' ? 'Command' : 'Subcommand'}: ${slashPath}`);
 
@@ -535,7 +526,9 @@ export class HelpCommand extends Command {
 	private buildOverviewMessage(entries: HelpEntry[], prefix: string): string {
 		const lines: string[] = [];
 		lines.push('### Jasper Help Overview');
-		lines.push('Use `/help <command>` or `{{prefix}}help <command>` for detailed instructions. Autocomplete works for every command and subcommand.');
+		lines.push(
+			'Use `/help <command>` or `{{prefix}}help <command>` for detailed instructions. Autocomplete works for every command and subcommand.'
+		);
 
 		const grouped = new Map<string, HelpEntry[]>();
 		for (const entry of entries) {
@@ -576,9 +569,7 @@ export class HelpCommand extends Command {
 	}
 
 	private resolveMessageUsage(entry: HelpEntry, prefix: string): string | null {
-		const raw = entry.type === 'subcommand'
-			? entry.subcommand?.messageUsage ?? entry.metadata.messageUsage
-			: entry.metadata.messageUsage;
+		const raw = entry.type === 'subcommand' ? (entry.subcommand?.messageUsage ?? entry.metadata.messageUsage) : entry.metadata.messageUsage;
 		if (raw) {
 			return this.applyPrefix(raw, prefix);
 		}
@@ -592,17 +583,13 @@ export class HelpCommand extends Command {
 	}
 
 	private resolveExamples(entry: HelpEntry, prefix: string): string[] {
-		const examples = entry.type === 'subcommand'
-			? entry.subcommand?.examples ?? entry.metadata.examples
-			: entry.metadata.examples;
+		const examples = entry.type === 'subcommand' ? (entry.subcommand?.examples ?? entry.metadata.examples) : entry.metadata.examples;
 		if (!examples) return [];
 		return examples.map((example) => this.applyPrefix(example, prefix)).filter(Boolean) as string[];
 	}
 
 	private resolveNotes(entry: HelpEntry): string[] {
-		const notes = entry.type === 'subcommand'
-			? entry.subcommand?.notes ?? entry.metadata.notes
-			: entry.metadata.notes;
+		const notes = entry.type === 'subcommand' ? (entry.subcommand?.notes ?? entry.metadata.notes) : entry.metadata.notes;
 		return notes ?? [];
 	}
 
@@ -614,7 +601,10 @@ export class HelpCommand extends Command {
 	}
 
 	private applyPrefix(value: string, prefix: string): string {
-		return value.replace(/\{\{prefix\}\}/g, prefix).replace(/\s+/g, ' ').trim();
+		return value
+			.replace(/\{\{prefix\}\}/g, prefix)
+			.replace(/\s+/g, ' ')
+			.trim();
 	}
 
 	private async resolvePrefix(guildId: string | null): Promise<string> {

@@ -23,11 +23,12 @@ export async function messageChannelList(command: ChannelCommand, message: Messa
 			bucket,
 			deny: (content) => message.reply({ content, allowedMentions: { users: [], roles: [] } }),
 			respond: (content) => message.reply({ content, allowedMentions: { users: [], roles: [] } }),
-			respondComponents: (components) => message.reply({
-				components,
-				flags: MessageFlags.IsComponentsV2,
-				allowedMentions: { users: [], roles: [] }
-			})
+			respondComponents: (components) =>
+				message.reply({
+					components,
+					flags: MessageFlags.IsComponentsV2,
+					allowedMentions: { users: [], roles: [] }
+				})
 		});
 	} catch (error) {
 		return message.reply({ content: formatError(error), allowedMentions: { users: [], roles: [] } });
@@ -45,11 +46,12 @@ export async function chatInputChannelList(command: ChannelCommand, interaction:
 		bucket,
 		deny: (content) => denyInteraction(interaction, content),
 		respond: (content) => interaction.editReply({ content, allowedMentions: { users: [], roles: [] } }),
-		respondComponents: (components) => interaction.editReply({
-			components,
-			flags: MessageFlags.IsComponentsV2,
-			allowedMentions: { users: [], roles: [] }
-		}),
+		respondComponents: (components) =>
+			interaction.editReply({
+				components,
+				flags: MessageFlags.IsComponentsV2,
+				allowedMentions: { users: [], roles: [] }
+			}),
 		defer: () => interaction.deferReply({ flags: MessageFlags.Ephemeral })
 	});
 }

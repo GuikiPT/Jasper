@@ -12,10 +12,7 @@ import {
 	MediaGalleryItemBuilder
 } from 'discord.js';
 import type { GuildSupportTagSettings } from '@prisma/client';
-import {
-	GuildSupportTagTableMissingError,
-	type NormalizedImportEntry as SupportTagNormalizedImportEntry
-} from '../../../services/supportTagService';
+import { GuildSupportTagTableMissingError, type NormalizedImportEntry as SupportTagNormalizedImportEntry } from '../../../services/supportTagService';
 
 export type TagCommand = Subcommand;
 export type TagChatInputInteraction = Subcommand.ChatInputCommandInteraction;
@@ -26,12 +23,7 @@ export const MAX_EMBED_DESCRIPTION_LENGTH = 65_535; // TEXT field limit in MySQL
 export const MAX_EMBED_FOOTER_LENGTH = 65_535; // TEXT field limit in MySQL
 
 export const replyEphemeral = (interaction: TagChatInputInteraction, content: string) => {
-	const components = [
-		new ContainerBuilder()
-			.addTextDisplayComponents(
-				new TextDisplayBuilder().setContent(content)
-			)
-	];
+	const components = [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(content))];
 
 	return interaction.reply({
 		components,
@@ -40,16 +32,9 @@ export const replyEphemeral = (interaction: TagChatInputInteraction, content: st
 };
 
 export const replyWithComponents = (interaction: TagChatInputInteraction, content: string, ephemeral: boolean = false) => {
-	const components = [
-		new ContainerBuilder()
-			.addTextDisplayComponents(
-				new TextDisplayBuilder().setContent(content)
-			)
-	];
+	const components = [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(content))];
 
-	const flags = ephemeral
-		? MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
-		: MessageFlags.IsComponentsV2;
+	const flags = ephemeral ? MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 : MessageFlags.IsComponentsV2;
 
 	return interaction.reply({
 		components,
@@ -93,57 +78,37 @@ export const buildTagComponents = (tag: GuildSupportTagSettings, user?: { id: st
 
 	// Add user mention as separate component outside container if provided
 	if (user) {
-		components.push(
-			new TextDisplayBuilder().setContent(`<@${user.id}>`)
-		);
+		components.push(new TextDisplayBuilder().setContent(`<@${user.id}>`));
 	}
 
 	// Create the main container for the tag content
 	const container = new ContainerBuilder();
 
 	// Always start with the title
-	container.addTextDisplayComponents(
-		new TextDisplayBuilder().setContent(`# ${tag.embedTitle}`)
-	);
+	container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ${tag.embedTitle}`));
 
 	// Add separator after title
-	container.addSeparatorComponents(
-		new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-	);
+	container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 
 	// Add body (description) if present
 	if (tag.embedDescription) {
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(tag.embedDescription)
-		);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(tag.embedDescription));
 
 		// Add separator after body
-		container.addSeparatorComponents(
-			new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-		);
+		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 	}
 
 	// Add image if present
 	if (tag.embedImageUrl) {
-		container.addMediaGalleryComponents(
-			new MediaGalleryBuilder()
-				.addItems(
-					new MediaGalleryItemBuilder()
-						.setURL(tag.embedImageUrl)
-				)
-		);
+		container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL(tag.embedImageUrl)));
 
 		// Add separator after image
-		container.addSeparatorComponents(
-			new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-		);
+		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 	}
 
 	// Add footer if present (should always have separator before footer when footer exists)
 	if (tag.embedFooter) {
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(tag.embedFooter)
-		);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(tag.embedFooter));
 	}
 
 	// Add the container to components
@@ -207,10 +172,7 @@ type TagChannelAccess =
 
 type RestrictedTagChannelAccess = Extract<TagChannelAccess, { allowed: false }>;
 
-export const ensureTagChannelAccess = async (
-	context: ContainerAccessor,
-	interaction: ChannelAwareInteraction
-): Promise<TagChannelAccess> => {
+export const ensureTagChannelAccess = async (context: ContainerAccessor, interaction: ChannelAwareInteraction): Promise<TagChannelAccess> => {
 	const guildId = interaction.guildId;
 	if (!guildId) {
 		return { allowed: false, allowedChannels: [], reason: 'unconfigured' };
@@ -224,9 +186,7 @@ export const ensureTagChannelAccess = async (
 	const candidateChannels = collectCandidateChannelIds(interaction);
 	const allowed = allowedChannels.some((channelId) => candidateChannels.has(channelId));
 
-	return allowed
-		? { allowed: true, allowedChannels }
-		: { allowed: false, allowedChannels, reason: 'not-allowed' };
+	return allowed ? { allowed: true, allowedChannels } : { allowed: false, allowedChannels, reason: 'not-allowed' };
 };
 
 type RestrictionCopy = {
@@ -235,10 +195,7 @@ type RestrictionCopy = {
 	multiple: (channels: string) => string;
 };
 
-export const formatTagChannelRestrictionMessage = (
-	access: RestrictedTagChannelAccess,
-	copy: RestrictionCopy
-) => {
+export const formatTagChannelRestrictionMessage = (access: RestrictedTagChannelAccess, copy: RestrictionCopy) => {
 	if (access.reason === 'unconfigured') {
 		return copy.unconfigured;
 	}
@@ -292,10 +249,7 @@ const fetchAllowedTagAdminRoles = async (context: ContainerAccessor, guildId: st
 	}
 };
 
-const memberHasAllowedRole = (
-	member: GuildMember | APIInteractionGuildMember,
-	allowedRoles: readonly string[]
-) => {
+const memberHasAllowedRole = (member: GuildMember | APIInteractionGuildMember, allowedRoles: readonly string[]) => {
 	if ('roles' in member) {
 		const roles = member.roles;
 		if (Array.isArray(roles)) {
@@ -310,16 +264,11 @@ const memberHasAllowedRole = (
 	return false;
 };
 
-type SupportRoleAccess =
-	| { allowed: true }
-	| { allowed: false; reason: 'missing-member' | 'no-config' | 'forbidden' };
+type SupportRoleAccess = { allowed: true } | { allowed: false; reason: 'missing-member' | 'no-config' | 'forbidden' };
 
 export const SUPPORT_ROLE_REQUIRED_MESSAGE = 'You need a support role to use this command.';
 
-export const ensureSupportRoleAccess = async (
-	context: ContainerAccessor,
-	interaction: SupportRoleAwareInteraction
-): Promise<SupportRoleAccess> => {
+export const ensureSupportRoleAccess = async (context: ContainerAccessor, interaction: SupportRoleAwareInteraction): Promise<SupportRoleAccess> => {
 	const { guildId, member } = interaction;
 	if (!guildId || !member) {
 		return { allowed: false, reason: 'missing-member' };
@@ -337,13 +286,9 @@ export const ensureSupportRoleAccess = async (
 	return { allowed: true };
 };
 
-type AllowedTagRoleAccess =
-	| { allowed: true }
-	| { allowed: false; reason: 'missing-member' | 'no-config' | 'forbidden' };
+type AllowedTagRoleAccess = { allowed: true } | { allowed: false; reason: 'missing-member' | 'no-config' | 'forbidden' };
 
-type AllowedTagAdminRoleAccess =
-	| { allowed: true }
-	| { allowed: false; reason: 'missing-member' | 'no-config' | 'forbidden' };
+type AllowedTagAdminRoleAccess = { allowed: true } | { allowed: false; reason: 'missing-member' | 'no-config' | 'forbidden' };
 
 export const ensureAllowedTagRoleAccess = async (
 	context: ContainerAccessor,
@@ -442,7 +387,10 @@ export const normalizeImportEntry = (raw: unknown, tagName?: string): Normalized
 	}
 
 	if (titleRaw.length > MAX_EMBED_TITLE_LENGTH) {
-		return { ok: false, reason: `Embed title for "${nameRaw}" exceeds ${MAX_EMBED_TITLE_LENGTH} characters (${titleRaw.length} chars). Consider shortening it.` };
+		return {
+			ok: false,
+			reason: `Embed title for "${nameRaw}" exceeds ${MAX_EMBED_TITLE_LENGTH} characters (${titleRaw.length} chars). Consider shortening it.`
+		};
 	}
 
 	const descriptionRaw = typeof candidate.description === 'string' ? candidate.description.trim() : null;
@@ -456,7 +404,8 @@ export const normalizeImportEntry = (raw: unknown, tagName?: string): Normalized
 	}
 
 	// Handle both 'image' and 'imageUrl' properties for compatibility
-	const imageRaw = (typeof candidate.imageUrl === 'string' ? candidate.imageUrl.trim() : null) ||
+	const imageRaw =
+		(typeof candidate.imageUrl === 'string' ? candidate.imageUrl.trim() : null) ||
 		(typeof candidate.image === 'string' ? candidate.image.trim() : null);
 	if (imageRaw && !validateUrl(imageRaw)) {
 		return { ok: false, reason: `Embed image URL for "${nameRaw}" is invalid.` };
@@ -481,6 +430,4 @@ export const normalizeImportEntry = (raw: unknown, tagName?: string): Normalized
 
 export type NormalizedImportEntry = SupportTagNormalizedImportEntry;
 
-export type NormalizedImportResult =
-	| { ok: true; value: NormalizedImportEntry }
-	| { ok: false; reason: string };
+export type NormalizedImportResult = { ok: true; value: NormalizedImportEntry } | { ok: false; reason: string };

@@ -65,10 +65,7 @@ export class GuildTopicSettingsService {
 		});
 	}
 
-	public async importTopics(
-		guildId: string,
-		topics: readonly string[]
-	): Promise<number> {
+	public async importTopics(guildId: string, topics: readonly string[]): Promise<number> {
 		if (topics.length === 0) return 0;
 
 		const payload = topics.map((value) => ({ guildId, value }));

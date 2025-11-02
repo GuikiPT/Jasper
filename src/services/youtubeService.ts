@@ -17,7 +17,7 @@ export class YouTubeService {
 	private globalCheckInterval: NodeJS.Timeout | null = null;
 	private readonly CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
-	private constructor() { }
+	private constructor() {}
 
 	public static getInstance(): YouTubeService {
 		if (!YouTubeService.instance) {
@@ -214,7 +214,7 @@ export class YouTubeService {
 				metadata.channelAvatarUrl
 			);
 
-		logger.info(`Updated ${guildId}: ${subscriberCount} subscribers -> ${newChannelName}`);
+			logger.info(`Updated ${guildId}: ${subscriberCount} subscribers -> ${newChannelName}`);
 
 			return {
 				success: true,
@@ -313,12 +313,7 @@ export class YouTubeService {
 			}
 
 			const path = urlObj.pathname;
-			return (
-				path.startsWith('/@') ||
-				path.startsWith('/channel/') ||
-				path.startsWith('/c/') ||
-				path.startsWith('/user/')
-			);
+			return path.startsWith('/@') || path.startsWith('/channel/') || path.startsWith('/c/') || path.startsWith('/user/');
 		} catch {
 			return false;
 		}

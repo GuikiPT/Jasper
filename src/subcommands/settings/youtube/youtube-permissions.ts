@@ -1,17 +1,10 @@
 // youtube-permissions module within subcommands/settings/youtube
-import type {
-	GuildBasedChannel,
-	GuildMember,
-	PermissionsBitField
-} from 'discord.js';
+import type { GuildBasedChannel, GuildMember, PermissionsBitField } from 'discord.js';
 import { PermissionFlagsBits } from 'discord.js';
 import type { UserResolvable } from 'discord.js';
 
 // Ordered list of permissions required for YouTube tracking features
-const REQUIRED_PERMISSION_BITS = [
-	PermissionFlagsBits.ViewChannel,
-	PermissionFlagsBits.ManageChannels
-] as const;
+const REQUIRED_PERMISSION_BITS = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ManageChannels] as const;
 
 // Human-friendly labels for the permission names we surface to users
 const PERMISSION_LABELS = new Map<bigint, string>([

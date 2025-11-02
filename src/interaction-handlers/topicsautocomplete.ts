@@ -71,8 +71,7 @@ export class TopicsAutocompleteHandler extends InteractionHandler {
 			}
 
 			// Prioritize startsWith matches, then contains matches
-			const choices = [...startsWith, ...contains]
-				.slice(0, 25); // Discord limit is 25 choices
+			const choices = [...startsWith, ...contains].slice(0, 25); // Discord limit is 25 choices
 
 			return this.some(choices);
 		} catch (error) {

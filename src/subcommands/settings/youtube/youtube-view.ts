@@ -3,12 +3,7 @@ import type { Subcommand } from '@sapphire/plugin-subcommands';
 import { MessageFlags } from 'discord.js';
 import type { ChatInputCommandInteraction, Message } from 'discord.js';
 import { GuildYouTubeSettingsService } from '../../../services/guildYouTubeSettingsService';
-import {
-	createComponentDetailsSection,
-	createTextComponent,
-	replyWithComponent,
-	editReplyWithComponent
-} from '../../../lib/components';
+import { createComponentDetailsSection, createTextComponent, replyWithComponent, editReplyWithComponent } from '../../../lib/components';
 
 export async function chatInputYouTubeView(command: Subcommand, interaction: ChatInputCommandInteraction) {
 	if (!interaction.guild) {
@@ -58,11 +53,7 @@ YouTube subscriber count tracking is not configured for this server.`;
 		});
 	} catch (error) {
 		command.container.logger.error('[YouTube Settings] Error viewing settings:', error);
-		return editReplyWithComponent(
-			interaction,
-			'❌ An error occurred while retrieving YouTube tracking settings. Please try again later.',
-			true
-		);
+		return editReplyWithComponent(interaction, '❌ An error occurred while retrieving YouTube tracking settings. Please try again later.', true);
 	}
 }
 

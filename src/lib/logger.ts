@@ -214,11 +214,12 @@ export class JasperLogger extends BaseLogger {
 	}
 
 	private slugifySubsystem(subsystem: string) {
-		return subsystem
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, '-')
-			.replace(/(^-|-$)/g, '')
-			|| 'unknown';
+		return (
+			subsystem
+				.toLowerCase()
+				.replace(/[^a-z0-9]+/g, '-')
+				.replace(/(^-|-$)/g, '') || 'unknown'
+		);
 	}
 
 	private formatValues(values: readonly unknown[]) {

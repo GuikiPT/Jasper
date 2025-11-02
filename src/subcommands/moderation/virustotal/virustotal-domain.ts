@@ -43,14 +43,16 @@ export async function chatInputVirusTotalDomain(_command: Subcommand, interactio
 		const maliciousEngines = getMaliciousEngines(attributes.last_analysis_results || {});
 
 		const popularityRanks = attributes.popularity_ranks || {};
-		const rankInfo = Object.entries(popularityRanks)
-			.map(([source, info]: [string, any]) => `${source}: #${info.rank}`)
-			.join(', ') || 'Not ranked';
+		const rankInfo =
+			Object.entries(popularityRanks)
+				.map(([source, info]: [string, any]) => `${source}: #${info.rank}`)
+				.join(', ') || 'Not ranked';
 
 		const dnsRecords = attributes.last_dns_records || [];
-		const dnsSummary = dnsRecords.slice(0, 5).map((record: any) =>
-			`${record.type}: ${record.value}`
-		).join('\n');
+		const dnsSummary = dnsRecords
+			.slice(0, 5)
+			.map((record: any) => `${record.type}: ${record.value}`)
+			.join('\n');
 
 		// Build detailed report
 		const detailedReport = `
@@ -83,30 +85,35 @@ CATEGORIES: ${Object.keys(categories).length > 0 ? Object.keys(categories).join(
 TAGS: ${tags.length > 0 ? tags.join(', ') : 'None'}
 
 MALICIOUS DETECTIONS:
-${maliciousEngines.length > 0 ? maliciousEngines.map(engine => `- ${engine}`).join('\n') : 'None detected'}
+${maliciousEngines.length > 0 ? maliciousEngines.map((engine) => `- ${engine}`).join('\n') : 'None detected'}
 
 WHOIS INFORMATION:
 ${attributes.whois || 'Not available'}
 
 DNS RECORDS (Latest 10):
-${dnsRecords.slice(0, 10).map((record: any) =>
-			`${record.type} ${record.ttl || 'N/A'} ${record.value}${record.priority ? ` priority ${record.priority}` : ''}`
-		).join('\n')}
+${dnsRecords
+	.slice(0, 10)
+	.map((record: any) => `${record.type} ${record.ttl || 'N/A'} ${record.value}${record.priority ? ` priority ${record.priority}` : ''}`)
+	.join('\n')}
 
 LAST ANALYSIS RESULTS (Detailed):
 ${Object.entries(attributes.last_analysis_results || {})
-				.map(([engine, result]: [string, any]) => `${engine}: ${result.category} (${result.result || 'N/A'})`)
-				.join('\n')}
+	.map(([engine, result]: [string, any]) => `${engine}: ${result.category} (${result.result || 'N/A'})`)
+	.join('\n')}
 
 CERTIFICATE INFORMATION:
-${attributes.last_https_certificate ? `
+${
+	attributes.last_https_certificate
+		? `
 ISSUER: ${attributes.last_https_certificate.issuer?.CN || 'Unknown'}
 SUBJECT: ${attributes.last_https_certificate.subject?.CN || 'Unknown'}
 VALID FROM: ${attributes.last_https_certificate.validity?.not_before || 'Unknown'}
 VALID TO: ${attributes.last_https_certificate.validity?.not_after || 'Unknown'}
 THUMBPRINT: ${attributes.last_https_certificate.thumbprint || 'Unknown'}
 SERIAL: ${attributes.last_https_certificate.serial_number || 'Unknown'}
-` : 'No certificate information available'}
+`
+		: 'No certificate information available'
+}
 
 JARM FINGERPRINT: ${attributes.jarm || 'Not available'}
 
@@ -162,10 +169,12 @@ Powered by VirusTotal API
 		);
 
 		await interaction.editReply({
-			files: [{
-				attachment: Buffer.from(detailedReport),
-				name: `virustotal-domain-${domain}.txt`
-			}],
+			files: [
+				{
+					attachment: Buffer.from(detailedReport),
+					name: `virustotal-domain-${domain}.txt`
+				}
+			],
 			components,
 			flags: MessageFlags.IsComponentsV2
 		});

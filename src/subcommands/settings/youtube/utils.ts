@@ -31,24 +31,8 @@ export function registerYouTubeSubcommandGroup(builder: SlashCommandSubcommandGr
 						.setRequired(false)
 				)
 		)
-		.addSubcommand((subcommand) =>
-			subcommand
-				.setName('disable')
-				.setDescription('Disable YouTube subscriber count tracking.')
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
-				.setName('view')
-				.setDescription('View current YouTube subscriber count tracking settings.')
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
-				.setName('test')
-				.setDescription('Test the current YouTube tracking configuration.')
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
-				.setName('force-update')
-				.setDescription('Force an immediate update of the subscriber count.')
-		);
+		.addSubcommand((subcommand) => subcommand.setName('disable').setDescription('Disable YouTube subscriber count tracking.'))
+		.addSubcommand((subcommand) => subcommand.setName('view').setDescription('View current YouTube subscriber count tracking settings.'))
+		.addSubcommand((subcommand) => subcommand.setName('test').setDescription('Test the current YouTube tracking configuration.'))
+		.addSubcommand((subcommand) => subcommand.setName('force-update').setDescription('Force an immediate update of the subscriber count.'));
 }

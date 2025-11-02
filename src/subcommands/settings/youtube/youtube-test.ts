@@ -4,17 +4,8 @@ import { ChannelType, MessageFlags } from 'discord.js';
 import type { ChatInputCommandInteraction, Message } from 'discord.js';
 import { GuildYouTubeSettingsService } from '../../../services/guildYouTubeSettingsService';
 import { YouTubeService } from '../../../services/youtubeService';
-import {
-	createComponentDetailsSection,
-	createTextComponent,
-	replyWithComponent,
-	editReplyWithComponent
-} from '../../../lib/components';
-import {
-	getMissingPermissionNames,
-	getMissingPermissionNamesForChannel,
-	mergePermissionNameLists
-} from './youtube-permissions';
+import { createComponentDetailsSection, createTextComponent, replyWithComponent, editReplyWithComponent } from '../../../lib/components';
+import { getMissingPermissionNames, getMissingPermissionNamesForChannel, mergePermissionNameLists } from './youtube-permissions';
 
 export async function chatInputYouTubeTest(command: Subcommand, interaction: ChatInputCommandInteraction) {
 	if (!interaction.guild) {
@@ -58,10 +49,7 @@ export async function chatInputYouTubeTest(command: Subcommand, interaction: Cha
 			getMissingPermissionNamesForChannel(channel, interaction.user)
 		);
 
-		const botMissingPermissions = mergePermissionNameLists(
-			botGuildMissingPermissions,
-			getMissingPermissionNamesForChannel(channel, botMember)
-		);
+		const botMissingPermissions = mergePermissionNameLists(botGuildMissingPermissions, getMissingPermissionNamesForChannel(channel, botMember));
 
 		if (memberMissingPermissions.length > 0 || botMissingPermissions.length > 0) {
 			const issues: string[] = [];
@@ -164,10 +152,7 @@ export async function messageYouTubeTest(command: Subcommand, message: Message) 
 			getMissingPermissionNamesForChannel(channel, message.member ?? message.author)
 		);
 
-		const botMissingPermissions = mergePermissionNameLists(
-			botGuildMissingPermissions,
-			getMissingPermissionNamesForChannel(channel, botMember)
-		);
+		const botMissingPermissions = mergePermissionNameLists(botGuildMissingPermissions, getMissingPermissionNamesForChannel(channel, botMember));
 
 		if (memberMissingPermissions.length > 0 || botMissingPermissions.length > 0) {
 			const issues: string[] = [];

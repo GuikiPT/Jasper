@@ -14,7 +14,12 @@ export class AutomaticSlowmodeListener extends Listener<typeof Events.MessageCre
 
 			if (message.author.id !== wobinId && message.author.id !== lawrenId) return;
 
-			if (message.author.id === wobinId && (message.content.includes('No Category:') || message.content.includes('!gettheclankersoutofthisfuckingserver') || message.content.includes('No command called'))) {
+			if (
+				message.author.id === wobinId &&
+				(message.content.includes('No Category:') ||
+					message.content.includes('!gettheclankersoutofthisfuckingserver') ||
+					message.content.includes('No command called'))
+			) {
 				try {
 					await message.delete();
 					this.container.logger.info('Deleted legacy help message from Wobin', {
@@ -58,7 +63,6 @@ export class AutomaticSlowmodeListener extends Listener<typeof Events.MessageCre
 				}
 			}
 		}
-
 
 		if (!message.guildId) return;
 		if (!message.channel) return;

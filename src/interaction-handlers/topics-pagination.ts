@@ -4,11 +4,7 @@ import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework
 import type { ButtonInteraction } from 'discord.js';
 import { MessageFlags } from 'discord.js';
 
-import {
-	TOPIC_LIST_CUSTOM_ID,
-	TOPIC_LIST_EMPTY_MESSAGE,
-	TOPIC_LIST_ITEMS_PER_PAGE
-} from '../subcommands/settings/topics/utils';
+import { TOPIC_LIST_CUSTOM_ID, TOPIC_LIST_EMPTY_MESSAGE, TOPIC_LIST_ITEMS_PER_PAGE } from '../subcommands/settings/topics/utils';
 
 interface PaginationMetadata {
 	ownerId: string;
@@ -81,10 +77,7 @@ export class TopicListPaginationHandler extends InteractionHandler {
 		const topicValues = topics.map((topic) => topic.value);
 		const requestedPage = data.targetPage;
 
-		const {
-			createPaginatedComponentWithButtons,
-			createPaginationButtons
-		} = await import('../lib/components.js');
+		const { createPaginatedComponentWithButtons, createPaginationButtons } = await import('../lib/components.js');
 
 		const { component, totalPages, currentPage } = createPaginatedComponentWithButtons(
 			'Discussion Topics',

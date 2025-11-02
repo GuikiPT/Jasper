@@ -9,7 +9,7 @@ export class UserRoute extends Route {
 			this.container.logger.error('[POST /hello-world] Handler failed', error);
 			try {
 				(response as any).status?.(500);
-			} catch { }
+			} catch {}
 			(response as any).statusCode = 500;
 			response.json({ error: 'Internal Server Error' });
 		}

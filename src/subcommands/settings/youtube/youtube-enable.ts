@@ -1,23 +1,12 @@
 // youtube-enable module within subcommands/settings/youtube
 import type { Args } from '@sapphire/framework';
 import type { Subcommand } from '@sapphire/plugin-subcommands';
-import {
-	ChannelType,
-	MessageFlags,
-	TextDisplayBuilder,
-	SectionBuilder,
-	ContainerBuilder,
-	ThumbnailBuilder
-} from 'discord.js';
+import { ChannelType, MessageFlags, TextDisplayBuilder, SectionBuilder, ContainerBuilder, ThumbnailBuilder } from 'discord.js';
 import type { ChatInputCommandInteraction, Message } from 'discord.js';
 import { GuildYouTubeSettingsService } from '../../../services/guildYouTubeSettingsService';
 import { YouTubeService } from '../../../services/youtubeService';
 import { createTextComponent, replyWithComponent, editReplyWithComponent } from '../../../lib/components';
-import {
-	getMissingPermissionNames,
-	getMissingPermissionNamesForChannel,
-	mergePermissionNameLists
-} from './youtube-permissions';
+import { getMissingPermissionNames, getMissingPermissionNamesForChannel, mergePermissionNameLists } from './youtube-permissions';
 
 export async function chatInputYouTubeEnable(command: Subcommand, interaction: ChatInputCommandInteraction) {
 	if (!interaction.guild) {
@@ -35,17 +24,17 @@ export async function chatInputYouTubeEnable(command: Subcommand, interaction: C
 
 	// Validate YouTube URL
 	if (!YouTubeService.isValidYouTubeChannelUrl(youtubeUrl)) {
-		return replyWithComponent(interaction, '❌ Invalid YouTube channel URL. Please provide a valid YouTube channel URL (e.g., https://www.youtube.com/@NoTextToSpeech)', true);
+		return replyWithComponent(
+			interaction,
+			'❌ Invalid YouTube channel URL. Please provide a valid YouTube channel URL (e.g., https://www.youtube.com/@NoTextToSpeech)',
+			true
+		);
 	}
 
 	// Validate Discord channel
 	const allowedChannelTypes = [ChannelType.GuildVoice, ChannelType.GuildText];
 	if (!allowedChannelTypes.includes(discordChannel.type)) {
-		return replyWithComponent(
-			interaction,
-			'❌ Please select a text or voice channel for the subscriber count display.',
-			true
-		);
+		return replyWithComponent(interaction, '❌ Please select a text or voice channel for the subscriber count display.', true);
 	}
 
 	const guildChannel = interaction.guild.channels.cache.get(discordChannel.id) ?? null;
@@ -57,7 +46,6 @@ export async function chatInputYouTubeEnable(command: Subcommand, interaction: C
 			true
 		);
 	}
-
 
 	const memberMissingPermissions = mergePermissionNameLists(
 		getMissingPermissionNames(interaction.memberPermissions ?? null),
@@ -94,24 +82,18 @@ export async function chatInputYouTubeEnable(command: Subcommand, interaction: C
 		// Fetch channel metadata to validate accessibility and grab initial details
 		const metadata = await YouTubeService.fetchChannelMetadata(youtubeUrl);
 		if (!metadata || !metadata.subscriberCount) {
-		return editReplyWithComponent(
-			interaction,
-			'❌ Unable to fetch subscriber count from the provided YouTube channel. Please check the URL and try again.',
-			true
-		);
+			return editReplyWithComponent(
+				interaction,
+				'❌ Unable to fetch subscriber count from the provided YouTube channel. Please check the URL and try again.',
+				true
+			);
 		}
 
 		// Save settings
-		await GuildYouTubeSettingsService.enableTracking(
-			interaction.guild.id,
-			youtubeUrl,
-			discordChannel.id,
-			interval,
-			{
-				channelName: metadata.channelName ?? null,
-				channelAvatarUrl: metadata.channelAvatarUrl ?? null
-			}
-		);
+		await GuildYouTubeSettingsService.enableTracking(interaction.guild.id, youtubeUrl, discordChannel.id, interval, {
+			channelName: metadata.channelName ?? null,
+			channelAvatarUrl: metadata.channelAvatarUrl ?? null
+		});
 
 		// Update channel name immediately
 		const newChannelName = YouTubeService.formatChannelName(metadata.subscriberCount);
@@ -143,11 +125,7 @@ export async function chatInputYouTubeEnable(command: Subcommand, interaction: C
 		});
 	} catch (error) {
 		command.container.logger.error('[YouTube Settings] Error enabling tracking:', error);
-		return editReplyWithComponent(
-			interaction,
-			'❌ An error occurred while setting up YouTube tracking. Please try again later.',
-			true
-		);
+		return editReplyWithComponent(interaction, '❌ An error occurred while setting up YouTube tracking. Please try again later.', true);
 	}
 }
 
@@ -166,7 +144,9 @@ export async function messageYouTubeEnable(command: Subcommand, message: Message
 
 	// Validate YouTube URL
 	if (!YouTubeService.isValidYouTubeChannelUrl(youtubeUrl)) {
-		return message.reply('❌ Invalid YouTube channel URL. Please provide a valid YouTube channel URL (e.g., https://www.youtube.com/@NoTextToSpeech)');
+		return message.reply(
+			'❌ Invalid YouTube channel URL. Please provide a valid YouTube channel URL (e.g., https://www.youtube.com/@NoTextToSpeech)'
+		);
 	}
 
 	const allowedChannelTypes = [ChannelType.GuildVoice, ChannelType.GuildText];
@@ -217,22 +197,18 @@ export async function messageYouTubeEnable(command: Subcommand, message: Message
 		const metadata = await YouTubeService.fetchChannelMetadata(youtubeUrl);
 		if (!metadata || !metadata.subscriberCount) {
 			return reply.edit({
-				components: [createTextComponent('❌ Unable to fetch subscriber count from the provided YouTube channel. Please check the URL and try again.')],
+				components: [
+					createTextComponent('❌ Unable to fetch subscriber count from the provided YouTube channel. Please check the URL and try again.')
+				],
 				flags: MessageFlags.IsComponentsV2
 			});
 		}
 
 		// Save settings
-		await GuildYouTubeSettingsService.enableTracking(
-			message.guild.id,
-			youtubeUrl,
-			discordChannel.id,
-			interval,
-			{
-				channelName: metadata.channelName ?? null,
-				channelAvatarUrl: metadata.channelAvatarUrl ?? null
-			}
-		);
+		await GuildYouTubeSettingsService.enableTracking(message.guild.id, youtubeUrl, discordChannel.id, interval, {
+			channelName: metadata.channelName ?? null,
+			channelAvatarUrl: metadata.channelAvatarUrl ?? null
+		});
 
 		// Update channel name immediately
 		const newChannelName = YouTubeService.formatChannelName(metadata.subscriberCount);
@@ -291,9 +267,7 @@ function buildEnableSuccessComponent(params: {
 		`• **Current Subscriber Count:** ${actualMetadata.subscriberCount ?? 'Unknown'}`
 	];
 
-	section.addTextDisplayComponents(
-		new TextDisplayBuilder().setContent(detailLines.join('\n'))
-	);
+	section.addTextDisplayComponents(new TextDisplayBuilder().setContent(detailLines.join('\n')));
 
 	if (actualMetadata.channelAvatarUrl) {
 		section.setThumbnailAccessory(new ThumbnailBuilder().setURL(actualMetadata.channelAvatarUrl));

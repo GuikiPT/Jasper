@@ -63,8 +63,7 @@ export const roleSubcommandMapping: SubcommandMappingGroup = {
 					context: {
 						buckets: ['allowedAdminRoles', 'allowedTagAdminRoles'] as const,
 						allowManageGuild: true,
-						errorMessage:
-							'You need an allowed admin role, allowed tag admin role, or the Manage Server permission to view role settings.'
+						errorMessage: 'You need an allowed admin role, allowed tag admin role, or the Manage Server permission to view role settings.'
 					}
 				}
 			]

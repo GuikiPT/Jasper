@@ -16,10 +16,7 @@ export type RoleBucketKey = (typeof ROLE_BUCKET_KEYS)[number];
 
 // Manages the collection of role buckets controlling command access per guild.
 export class GuildRoleSettingsService extends BaseBucketSettingsService<GuildRoleSettings, RoleBucketKey> {
-	public constructor(
-		database: PrismaClient,
-		guildSettingsService: GuildSettingsService
-	) {
+	public constructor(database: PrismaClient, guildSettingsService: GuildSettingsService) {
 		super(database, guildSettingsService);
 	}
 
@@ -47,8 +44,7 @@ export class GuildRoleSettingsService extends BaseBucketSettingsService<GuildRol
 	}
 
 	// Adds a role to the requested bucket, returning whether the role was new.
-	public async addRole(guildId: string, bucket: RoleBucketKey, roleId: string): Promise<{ added: boolean; roles: string[] }>
-	{
+	public async addRole(guildId: string, bucket: RoleBucketKey, roleId: string): Promise<{ added: boolean; roles: string[] }> {
 		const result = await this.addItemToBucket(
 			guildId,
 			bucket,
@@ -65,12 +61,7 @@ export class GuildRoleSettingsService extends BaseBucketSettingsService<GuildRol
 	}
 
 	// Removes a role from the bucket, reporting removal status.
-	public async removeRole(
-		guildId: string,
-		bucket: RoleBucketKey,
-		roleId: string
-	): Promise<{ removed: boolean; roles: string[] }>
-	{
+	public async removeRole(guildId: string, bucket: RoleBucketKey, roleId: string): Promise<{ removed: boolean; roles: string[] }> {
 		const result = await this.removeItemFromBucket(
 			guildId,
 			bucket,
@@ -88,26 +79,24 @@ export class GuildRoleSettingsService extends BaseBucketSettingsService<GuildRol
 
 	// Replaces the entire bucket contents with the provided collection.
 	public async replaceBucket(guildId: string, bucket: RoleBucketKey, roles: Iterable<string>) {
-		await this.replaceBucketContents(
-			guildId,
-			bucket,
-			roles,
-			async (guildId, bucket, data) => {
-				await this.database.guildRoleSettings.update({
-					where: { guildId },
-					data: { [bucket]: data }
-				});
-			}
-		);
+		await this.replaceBucketContents(guildId, bucket, roles, async (guildId, bucket, data) => {
+			await this.database.guildRoleSettings.update({
+				where: { guildId },
+				data: { [bucket]: data }
+			});
+		});
 	}
 
 	// Resolves all buckets at once to reduce round-trips where needed.
 	public async getAllBuckets(guildId: string): Promise<Record<RoleBucketKey, string[]>> {
 		const settings = await this.getOrCreateSettings(guildId);
-		return ROLE_BUCKET_KEYS.reduce((acc, bucket) => {
-			acc[bucket] = this.parseValue(settings[bucket]);
-			return acc;
-		}, {} as Record<RoleBucketKey, string[]>);
+		return ROLE_BUCKET_KEYS.reduce(
+			(acc, bucket) => {
+				acc[bucket] = this.parseValue(settings[bucket]);
+				return acc;
+			},
+			{} as Record<RoleBucketKey, string[]>
+		);
 	}
 
 	private createBlankSettings(guildId: string) {

@@ -12,10 +12,7 @@ export const CHANNEL_BUCKET_KEYS = [
 export type ChannelBucketKey = (typeof CHANNEL_BUCKET_KEYS)[number];
 
 export class GuildChannelSettingsService extends BaseBucketSettingsService<GuildChannelSettings, ChannelBucketKey> {
-	public constructor(
-		database: PrismaClient,
-		guildSettingsService: GuildSettingsService
-	) {
+	public constructor(database: PrismaClient, guildSettingsService: GuildSettingsService) {
 		super(database, guildSettingsService);
 	}
 
@@ -39,12 +36,7 @@ export class GuildChannelSettingsService extends BaseBucketSettingsService<Guild
 		return this.parseValue(settings[bucket]);
 	}
 
-	public async addChannel(
-		guildId: string,
-		bucket: ChannelBucketKey,
-		channelId: string
-	): Promise<{ added: boolean; channels: string[] }>
-	{
+	public async addChannel(guildId: string, bucket: ChannelBucketKey, channelId: string): Promise<{ added: boolean; channels: string[] }> {
 		const result = await this.addItemToBucket(
 			guildId,
 			bucket,
@@ -60,12 +52,7 @@ export class GuildChannelSettingsService extends BaseBucketSettingsService<Guild
 		return { added: result.added, channels: result.items };
 	}
 
-	public async removeChannel(
-		guildId: string,
-		bucket: ChannelBucketKey,
-		channelId: string
-	): Promise<{ removed: boolean; channels: string[] }>
-	{
+	public async removeChannel(guildId: string, bucket: ChannelBucketKey, channelId: string): Promise<{ removed: boolean; channels: string[] }> {
 		const result = await this.removeItemFromBucket(
 			guildId,
 			bucket,
@@ -81,30 +68,24 @@ export class GuildChannelSettingsService extends BaseBucketSettingsService<Guild
 		return { removed: result.removed, channels: result.items };
 	}
 
-	public async replaceBucket(
-		guildId: string,
-		bucket: ChannelBucketKey,
-		channels: Iterable<string>
-	) {
-		await this.replaceBucketContents(
-			guildId,
-			bucket,
-			channels,
-			async (guildId, bucket, data) => {
-				await this.database.guildChannelSettings.update({
-					where: { guildId },
-					data: { [bucket]: data }
-				});
-			}
-		);
+	public async replaceBucket(guildId: string, bucket: ChannelBucketKey, channels: Iterable<string>) {
+		await this.replaceBucketContents(guildId, bucket, channels, async (guildId, bucket, data) => {
+			await this.database.guildChannelSettings.update({
+				where: { guildId },
+				data: { [bucket]: data }
+			});
+		});
 	}
 
 	public async getAllBuckets(guildId: string): Promise<Record<ChannelBucketKey, string[]>> {
 		const settings = await this.getOrCreateSettings(guildId);
-		return CHANNEL_BUCKET_KEYS.reduce((acc, bucket) => {
-			acc[bucket] = this.parseValue(settings[bucket]);
-			return acc;
-		}, {} as Record<ChannelBucketKey, string[]>);
+		return CHANNEL_BUCKET_KEYS.reduce(
+			(acc, bucket) => {
+				acc[bucket] = this.parseValue(settings[bucket]);
+				return acc;
+			},
+			{} as Record<ChannelBucketKey, string[]>
+		);
 	}
 
 	private createBlankSettings(guildId: string) {

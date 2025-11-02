@@ -73,7 +73,7 @@ export class UserEvent extends Listener {
 				setTimeout(async () => {
 					try {
 						const messages = await thread.messages.fetch({ limit: 5 });
-						const notification = messages.find(m => m.type === MessageType.ChannelPinnedMessage);
+						const notification = messages.find((m) => m.type === MessageType.ChannelPinnedMessage);
 						if (notification) {
 							await notification.delete();
 							this.container.logger.debug('Deleted pin notification message for support thread', {

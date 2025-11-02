@@ -29,11 +29,7 @@ export class GuildSupportSettingsService {
 		return this.database.guildSupportSettings.create({ data: { guildId } });
 	}
 
-	public async setSetting(
-		guildId: string,
-		key: SupportSettingKey,
-		value: string | number | null
-	): Promise<GuildSupportSettings> {
+	public async setSetting(guildId: string, key: SupportSettingKey, value: string | number | null): Promise<GuildSupportSettings> {
 		await this.guildSettingsService.ensureGuild(guildId);
 		return this.database.guildSupportSettings.upsert({
 			where: { guildId },

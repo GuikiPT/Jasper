@@ -3,12 +3,7 @@ import type { Args } from '@sapphire/framework';
 import type { Message } from 'discord.js';
 import { MessageFlags } from 'discord.js';
 
-import {
-	executePrefixRequest,
-	type PrefixChatInputInteraction,
-	type PrefixCommand,
-	ephemeralResponse
-} from './utils';
+import { executePrefixRequest, type PrefixChatInputInteraction, type PrefixCommand, ephemeralResponse } from './utils';
 
 export async function messagePrefixSet(command: PrefixCommand, message: Message, args: Args) {
 	const providedPrefix = await args.pick('string').catch(() => null);

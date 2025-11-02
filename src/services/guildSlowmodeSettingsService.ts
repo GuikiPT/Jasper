@@ -25,10 +25,9 @@ export class GuildSlowmodeSettingsService {
 
 	public async updateSettings(
 		guildId: string,
-		updates: Partial<Pick<
-			GuildSlowmodeSettings,
-			'enabled' | 'messageThreshold' | 'messageTimeWindow' | 'cooldownDuration' | 'resetTime' | 'maxSlowmode'
-		>>
+		updates: Partial<
+			Pick<GuildSlowmodeSettings, 'enabled' | 'messageThreshold' | 'messageTimeWindow' | 'cooldownDuration' | 'resetTime' | 'maxSlowmode'>
+		>
 	): Promise<GuildSlowmodeSettings> {
 		await this.getOrCreateSettings(guildId);
 		return this.database.guildSlowmodeSettings.update({

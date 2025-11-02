@@ -29,7 +29,8 @@ import type { SnipedMessage } from '../../services/snipeManager';
 		examples: ['/snipe', '{{prefix}}snipe'],
 		notes: [
 			'Only staff and admin buckets can use this command.',
-			'Channel must be added to the allowed snipe channels bucket via `/settings channels add`.']
+			'Channel must be added to the allowed snipe channels bucket via `/settings channels add`.'
+		]
 	},
 	fullCategory: ['Moderation'],
 	runIn: [CommandOptionsRunTypeEnum.GuildAny],
@@ -82,9 +83,7 @@ export class SnipeCommand extends Command {
 
 		// Check if channel is allowed for sniping
 		const channelService = this.container.guildChannelSettingsService;
-		const allowedChannels = channelService
-			? await channelService.listBucket(interaction.guildId, 'allowedSnipeChannels')
-			: [];
+		const allowedChannels = channelService ? await channelService.listBucket(interaction.guildId, 'allowedSnipeChannels') : [];
 
 		if (!allowedChannels.includes(interaction.channel.id)) {
 			return editReplyWithComponent(interaction, 'Snipe is not enabled for this channel.');
@@ -142,9 +141,7 @@ export class SnipeCommand extends Command {
 
 		// Check if channel is allowed for sniping
 		const channelService = this.container.guildChannelSettingsService;
-		const allowedChannels = channelService
-			? await channelService.listBucket(message.guildId, 'allowedSnipeChannels')
-			: [];
+		const allowedChannels = channelService ? await channelService.listBucket(message.guildId, 'allowedSnipeChannels') : [];
 
 		if (!allowedChannels.includes(message.channelId)) {
 			const channel = message.channel as any;

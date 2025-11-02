@@ -10,7 +10,7 @@ export class UserRoute extends Route {
 			try {
 				// Prefer status() when available
 				(response as any).status?.(500);
-			} catch { }
+			} catch {}
 			// Fallback
 			(response as any).statusCode = 500;
 			response.json({ error: 'Internal Server Error' });

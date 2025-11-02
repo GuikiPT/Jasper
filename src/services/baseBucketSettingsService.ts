@@ -28,9 +28,7 @@ export abstract class BaseBucketSettingsService<TSettings, TBucketKey extends st
 			if (value.length === 0) return [];
 			try {
 				const parsed = JSON.parse(value);
-				return Array.isArray(parsed)
-					? parsed.filter((entry): entry is string => typeof entry === 'string')
-					: [];
+				return Array.isArray(parsed) ? parsed.filter((entry): entry is string => typeof entry === 'string') : [];
 			} catch (error) {
 				Logger.debug('Failed to parse bucket JSON', { error });
 				return [];

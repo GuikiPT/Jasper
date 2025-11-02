@@ -1,17 +1,7 @@
 // tag-index module within subcommands/support/tag
-export type {
-	NormalizedImportEntry,
-	NormalizedImportResult,
-	TagChatInputInteraction,
-	TagCommand
-} from './utils';
+export type { NormalizedImportEntry, NormalizedImportResult, TagChatInputInteraction, TagCommand } from './utils';
 
-export {
-	MAX_EMBED_DESCRIPTION_LENGTH,
-	MAX_EMBED_FOOTER_LENGTH,
-	MAX_EMBED_TITLE_LENGTH,
-	MAX_TAG_NAME_LENGTH
-} from './utils';
+export { MAX_EMBED_DESCRIPTION_LENGTH, MAX_EMBED_FOOTER_LENGTH, MAX_EMBED_TITLE_LENGTH, MAX_TAG_NAME_LENGTH } from './utils';
 
 export { chatInputTagCreate } from './tag-create';
 export { chatInputTagDelete } from './tag-delete';

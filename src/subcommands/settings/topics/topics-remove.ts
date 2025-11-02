@@ -113,7 +113,7 @@ async function handleTopicRemove({ command, guildId, topicValue, position, deny,
 			topicToRemove = topics[position - 1];
 		} else if (topicValue) {
 			// Remove by exact topic value match
-			topicToRemove = topics.find(topic => topic.value === topicValue.trim());
+			topicToRemove = topics.find((topic) => topic.value === topicValue.trim());
 
 			if (!topicToRemove) {
 				return respond('No matching topic found. Make sure the topic text matches exactly.');

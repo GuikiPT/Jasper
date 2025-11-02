@@ -62,7 +62,7 @@ export class SupportThreadReminderButtonHandler extends InteractionHandler {
 		const thread = await this.fetchThread(data.threadId);
 		if (!thread) {
 			return interaction.update({
-				components: [this.buildExpiredComponent()],
+				components: [this.buildExpiredComponent()]
 			});
 		}
 
@@ -170,20 +170,14 @@ export class SupportThreadReminderButtonHandler extends InteractionHandler {
 
 	private buildAcknowledgedComponent(userId: string): ContainerBuilder {
 		const container = new ContainerBuilder();
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`✅ Thread kept open by <@${userId}>.`)
-		);
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent('We’ll notify you again if we detect another period of inactivity.')
-		);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`✅ Thread kept open by <@${userId}>.`));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('We’ll notify you again if we detect another period of inactivity.'));
 		return container;
 	}
 
 	private buildExpiredComponent(): ContainerBuilder {
 		const container = new ContainerBuilder();
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent('This reminder is no longer active.')
-		);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('This reminder is no longer active.'));
 		return container;
 	}
 }

@@ -214,18 +214,11 @@ export class AllowedGuildRoleBucketsPrecondition extends AllFlowsPrecondition {
 		logger.debug('[AllowedGuildRoleBuckets] Access granted', this.buildMeta({ ...details, outcome: 'success' }));
 	}
 
-	private logDenial(
-		reason: 'missing-member' | 'no-buckets' | 'no-config' | 'forbidden',
-		details: BucketLogDetails
-	) {
+	private logDenial(reason: 'missing-member' | 'no-buckets' | 'no-config' | 'forbidden', details: BucketLogDetails) {
 		const logger = this.container.logger;
 		if (!logger) return;
 		const meta = this.buildMeta({ ...details, outcome: 'denied', reason });
-		const level = details.silent
-			? 'debug'
-			: reason === 'forbidden'
-				? 'warn'
-				: 'info';
+		const level = details.silent ? 'debug' : reason === 'forbidden' ? 'warn' : 'info';
 		logger[level]('[AllowedGuildRoleBuckets] Access denied', meta);
 	}
 

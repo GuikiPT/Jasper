@@ -40,34 +40,18 @@ export const registerSlowmodeSubcommandGroup = (group: SlashCommandSubcommandGro
 			sub
 				.setName('configure')
 				.setDescription('Update slowmode settings for this server.')
-				.addBooleanOption((option) =>
-					option
-						.setName('enabled')
-						.setDescription('Enable or disable automatic slowmode.')
+				.addBooleanOption((option) => option.setName('enabled').setDescription('Enable or disable automatic slowmode.'))
+				.addIntegerOption((option) =>
+					option.setName('threshold').setDescription('Messages required within the time window before slowmode is applied.').setMinValue(1)
 				)
 				.addIntegerOption((option) =>
-					option
-						.setName('threshold')
-						.setDescription('Messages required within the time window before slowmode is applied.')
-						.setMinValue(1)
+					option.setName('window').setDescription('Time window (in seconds) used to count message activity.').setMinValue(1)
 				)
 				.addIntegerOption((option) =>
-					option
-						.setName('window')
-						.setDescription('Time window (in seconds) used to count message activity.')
-						.setMinValue(1)
+					option.setName('cooldown').setDescription('Minimum seconds between slowmode adjustments.').setMinValue(1)
 				)
 				.addIntegerOption((option) =>
-					option
-						.setName('cooldown')
-						.setDescription('Minimum seconds between slowmode adjustments.')
-						.setMinValue(1)
-				)
-				.addIntegerOption((option) =>
-					option
-						.setName('reset')
-						.setDescription('Seconds of inactivity before slowmode is reset to minimum (1 second).')
-						.setMinValue(1)
+					option.setName('reset').setDescription('Seconds of inactivity before slowmode is reset to minimum (1 second).').setMinValue(1)
 				)
 				.addIntegerOption((option) =>
 					option
@@ -254,16 +238,11 @@ export async function executeSlowmodeUpdate({ command, guildId, updates, respond
 	}
 
 	// Fallback to plain text for message commands
-	return respond(
-		`Updated slowmode settings:\n${formatSlowmodeSettings(updated, { trackedChannels })}`
-	);
+	return respond(`Updated slowmode settings:\n${formatSlowmodeSettings(updated, { trackedChannels })}`);
 }
 
 export function formatSlowmodeSettings(
-	settings: Pick<
-		GuildSlowmodeSettings,
-		'enabled' | 'messageThreshold' | 'messageTimeWindow' | 'cooldownDuration' | 'resetTime' | 'maxSlowmode'
-	>,
+	settings: Pick<GuildSlowmodeSettings, 'enabled' | 'messageThreshold' | 'messageTimeWindow' | 'cooldownDuration' | 'resetTime' | 'maxSlowmode'>,
 	channelData: { trackedChannels: string[] }
 ) {
 	const formatChannels = (channels: string[]) => (channels.length ? channels.map((id) => `<#${id}>`).join(', ') : '*(none)*');
@@ -366,34 +345,22 @@ function sanitizeUpdates(updates: SlowmodeUpdateInput): SlowmodeUpdateInput | nu
 	return Object.keys(result).length > 0 ? result : null;
 }
 
-function buildUpdatePayload(
-	current: GuildSlowmodeSettings,
-	updates: SlowmodeUpdateInput
-): Partial<GuildSlowmodeSettings> | null {
+function buildUpdatePayload(current: GuildSlowmodeSettings, updates: SlowmodeUpdateInput): Partial<GuildSlowmodeSettings> | null {
 	const payload: Partial<GuildSlowmodeSettings> = {};
 
 	if (updates.enabled !== undefined && updates.enabled !== current.enabled) {
 		payload.enabled = updates.enabled;
 	}
 
-	if (
-		updates.messageThreshold !== undefined &&
-		updates.messageThreshold !== current.messageThreshold
-	) {
+	if (updates.messageThreshold !== undefined && updates.messageThreshold !== current.messageThreshold) {
 		payload.messageThreshold = updates.messageThreshold;
 	}
 
-	if (
-		updates.messageTimeWindow !== undefined &&
-		updates.messageTimeWindow !== current.messageTimeWindow
-	) {
+	if (updates.messageTimeWindow !== undefined && updates.messageTimeWindow !== current.messageTimeWindow) {
 		payload.messageTimeWindow = updates.messageTimeWindow;
 	}
 
-	if (
-		updates.cooldownDuration !== undefined &&
-		updates.cooldownDuration !== current.cooldownDuration
-	) {
+	if (updates.cooldownDuration !== undefined && updates.cooldownDuration !== current.cooldownDuration) {
 		payload.cooldownDuration = updates.cooldownDuration;
 	}
 
