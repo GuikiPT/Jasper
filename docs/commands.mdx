@@ -21,6 +21,7 @@ Notes
 | --- | --- |
 | [`/help`](#help) | Interactive, searchable command catalogue with autocomplete. |
 | [`/ping`](#ping) | Measures gateway and interaction latency for Jasper. |
+| [`/topic`](#topic) | Send a random saved discussion topic. |
 
 <a id="help"></a>
 ### `/help`
@@ -39,6 +40,7 @@ Provide an interactive command catalogue with autocomplete for commands and subc
 
 **Permissions**
 
+- Support Roles
 - Allowed Tag Roles
 - Allowed Staff Roles
 - Allowed Admin Roles
@@ -106,15 +108,6 @@ Describes the interaction round-trip time (the delay between triggering the comm
 
 </details>
 
-## Moderation Commands
-
-### Quick Reference
-
-| Command | Summary |
-| --- | --- |
-| [`/topic`](#topic) | Send a random saved discussion topic. |
-| [`/snipe`](#snipe) | Recover the most recently deleted message when allowed. |
-
 <a id="topic"></a>
 ### `/topic`
 
@@ -143,7 +136,21 @@ Send a random discussion topic saved for the guild.
 
 `/topic` | `j!topic`
 
+**Notes**
+
+- Topics are configured through `/settings topics`.
+- Only allowed staff or admins can call this command.
+
 </details>
+
+## Moderation Commands
+
+### Quick Reference
+
+| Command | Summary |
+| --- | --- |
+| [`/snipe`](#snipe) | Recover the most recently deleted message when allowed. |
+| [`/virustotal`](#virustotal) | Analyze files, URLs, domains, and IP addresses using VirusTotal. |
 
 <a id="snipe"></a>
 ### `/snipe`
@@ -186,6 +193,177 @@ Retrieve the most recently deleted message in the current channel.
 <summary>View details</summary>
 
 Describes how deleted message content, attachments, and embeds are reconstructed from the snipe cache when the channel allows it. Confirms the recovered message posts publicly while the slash command reply stays ephemeral.
+
+</details>
+
+<a id="virustotal"></a>
+### `/virustotal`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Submit suspicious files, URLs, domains, and IP addresses to VirusTotal for comprehensive security analysis.
+
+**Where it works**
+
+- Guild channels
+
+**Permissions**
+
+- Allowed Staff Roles
+- Allowed Admin Roles
+- Manage Server (Discord permission, implicit)
+
+**Subcommands**
+
+- [`ip`](#virustotal-ip) - Analyze an IP address for malicious activity.
+- [`domain`](#virustotal-domain) - Check a domain for malicious activity and reputation.
+- [`file`](#virustotal-file) - Upload and scan a file for malware.
+- [`url`](#virustotal-url) - Scan a URL for malicious content.
+
+**General Options (all subcommands)**
+
+- `ephemeral` (boolean, optional): Whether the response should be visible only to you. Defaults to `true`.
+
+**Notes**
+
+- Results include detection ratios from multiple antivirus engines.
+- All analysis data is provided by VirusTotal's comprehensive threat intelligence platform.
+- Files up to 650MB are supported for scanning.
+- Responses include detailed reports as downloadable text files.
+
+</details>
+
+<a id="virustotal-ip"></a>
+#### `/virustotal ip`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Analyze an IP address for malicious activity and reputation data.
+
+**Options**
+
+- `address` (string, required): The IP address to analyze.
+- `ephemeral` (boolean, optional): Whether the response should be visible only to you.
+
+**Syntax**
+
+`/virustotal ip address:<ip_address> [ephemeral:true|false]`
+
+**Response includes**
+
+- Security status (Safe/Suspicious/Malicious)
+- Geographic information (country, continent, AS owner)
+- Detection summary from multiple security engines
+- Community votes and reputation score
+- Detailed analysis results with downloadable report
+- Link to web-based VirusTotal report
+
+</details>
+
+<a id="virustotal-domain"></a>
+#### `/virustotal domain`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Check a domain for malicious activity and reputation across multiple security sources.
+
+**Options**
+
+- `name` (string, required): The domain name to analyze.
+- `ephemeral` (boolean, optional): Whether the response should be visible only to you.
+
+**Syntax**
+
+`/virustotal domain name:<domain> [ephemeral:true|false]`
+
+**Response includes**
+
+- Security status assessment
+- Domain reputation and categories
+- Detection summary from security engines
+- Community votes and threat intelligence
+- Detailed analysis results with downloadable report
+- Link to web-based VirusTotal report
+
+</details>
+
+<a id="virustotal-file"></a>
+#### `/virustotal file`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Upload and scan a file for malware using VirusTotal's comprehensive analysis engine.
+
+**Options**
+
+- `attachment` (file, required): The file to scan for malware (max 650MB).
+- `ephemeral` (boolean, optional): Whether the response should be visible only to you.
+
+**Syntax**
+
+`/virustotal file attachment:<file> [ephemeral:true|false]`
+
+**Response includes**
+
+- Security status with threat level assessment
+- File information (hashes, size, type)
+- Detection summary from 70+ antivirus engines
+- Malicious detections by engine name
+- File integrity verification
+- Progress tracking for upload and analysis
+- Detailed analysis results with downloadable report
+- Link to web-based VirusTotal report
+
+**Security Features**
+
+- Secure file download with integrity verification
+- Memory usage monitoring and cleanup
+- Hash verification (SHA256, MD5, SHA1)
+- Rate limiting to prevent API abuse
+- Automatic retry with exponential backoff
+
+</details>
+
+<a id="virustotal-url"></a>
+#### `/virustotal url`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Submit a URL to VirusTotal for security scanning and threat analysis.
+
+**Options**
+
+- `link` (string, required): The URL to scan for threats.
+- `ephemeral` (boolean, optional): Whether the response should be visible only to you.
+
+**Syntax**
+
+`/virustotal url link:<url> [ephemeral:true|false]`
+
+**Response includes**
+
+- Security status and threat assessment
+- URL information (title, HTTP status, reputation)
+- Detection summary from multiple security engines
+- Community votes and categories
+- Progress tracking during analysis
+- Detailed scan results with downloadable report
+- Link to web-based VirusTotal report
 
 </details>
 
@@ -286,6 +464,7 @@ Start the interactive workflow to create a new support tag.
 
 **Permissions**
 
+- Support Roles
 - Allowed Tag Roles
 - Allowed Staff Roles
 - Allowed Admin Roles
@@ -312,6 +491,7 @@ Remove an existing tag by name.
 
 **Permissions**
 
+- Support Roles
 - Allowed Tag Roles
 - Allowed Staff Roles
 - Allowed Admin Roles
@@ -338,6 +518,7 @@ Update the content of an existing tag.
 
 **Permissions**
 
+- Support Roles
 - Allowed Tag Roles
 - Allowed Staff Roles
 - Allowed Admin Roles
@@ -414,6 +595,7 @@ Show metadata for a tag, including creator and usage stats.
 
 **Permissions**
 
+- Support Roles
 - Allowed Tag Roles
 - Allowed Staff Roles
 - Allowed Admin Roles
@@ -440,6 +622,7 @@ List every available tag.
 
 **Permissions**
 
+- Support Roles
 - Allowed Tag Roles
 - Allowed Staff Roles
 - Allowed Admin Roles
@@ -490,6 +673,7 @@ Preview a tag's rendered content without sending it publicly.
 
 **Permissions**
 
+- Support Roles
 - Allowed Tag Roles
 - Allowed Staff Roles
 - Allowed Admin Roles
@@ -517,6 +701,7 @@ Send a saved tag to the current channel or mention a user directly.
 
 **Permissions**
 
+- Support Roles
 - Allowed Tag Roles
 - Allowed Staff Roles
 - Allowed Admin Roles
