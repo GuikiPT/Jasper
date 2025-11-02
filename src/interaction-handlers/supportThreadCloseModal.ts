@@ -11,10 +11,7 @@ import {
 	type ModalSubmitInteraction,
 	type ThreadChannel
 } from 'discord.js';
-import {
-	SUPPORT_THREAD_CLOSE_MODAL_PREFIX,
-	SUPPORT_THREAD_CLOSE_REASON_FIELD
-} from '../lib/supportThreadConstants.js';
+import { SUPPORT_THREAD_CLOSE_MODAL_PREFIX, SUPPORT_THREAD_CLOSE_REASON_FIELD } from '../lib/supportThreadConstants.js';
 
 interface CloseModalMetadata {
 	threadId: string;
@@ -102,7 +99,10 @@ export class SupportThreadCloseModalHandler extends InteractionHandler {
 
 			const wasArchived = freshThread.archived;
 			if (wasArchived) {
-				await freshThread.setArchived(false, `Temporarily reopening by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}.`);
+				await freshThread.setArchived(
+					false,
+					`Temporarily reopening by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}.`
+				);
 				await new Promise((resolve) => setTimeout(resolve, 1000));
 			}
 
@@ -122,7 +122,10 @@ export class SupportThreadCloseModalHandler extends InteractionHandler {
 			});
 
 			await freshThread.setLocked(true, `Locked by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id} via modal.`);
-			await freshThread.setArchived(true, `Archived by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id} via modal.`);
+			await freshThread.setArchived(
+				true,
+				`Archived by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id} via modal.`
+			);
 
 			await this.container.supportThreadService.markThreadClosed(thread.id);
 
@@ -170,7 +173,7 @@ export class SupportThreadCloseModalHandler extends InteractionHandler {
 			let newTags = [...thread.appliedTags];
 			newTags = newTags.filter((tagId) => tagId !== resolvedTagId);
 			if (newTags.length >= 5) {
-				newTags = newTags.slice(-(4));
+				newTags = newTags.slice(-4);
 			}
 			newTags.push(resolvedTagId);
 
@@ -185,18 +188,10 @@ export class SupportThreadCloseModalHandler extends InteractionHandler {
 
 	private buildManualClosureComponent(userId: string, reason: string): ContainerBuilder {
 		const container = new ContainerBuilder();
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`## Thread closed by <@${userId}>`)
-		);
-		container.addSeparatorComponents(
-			new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-		);
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent('### Provided reason')
-		);
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(reason)
-		);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`## Thread closed by <@${userId}>`));
+		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### Provided reason'));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(reason));
 		return container;
 	}
 

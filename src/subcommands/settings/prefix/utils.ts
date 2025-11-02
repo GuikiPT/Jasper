@@ -23,15 +23,7 @@ interface PrefixHandlerParams {
 	defaultPrefix: string | null;
 }
 
-export async function executePrefixRequest({
-	command,
-	guildId,
-	providedPrefix,
-	deny,
-	respond,
-	respondComponents,
-	defer
-}: PrefixExecutionContext) {
+export async function executePrefixRequest({ command, guildId, providedPrefix, deny, respond, respondComponents, defer }: PrefixExecutionContext) {
 	if (!guildId) {
 		return deny('This command can only be used inside a server.');
 	}
@@ -56,9 +48,7 @@ export async function executePrefixRequest({
 	// Use components if available
 	if (respondComponents && !providedPrefix) {
 		const { createListComponent } = await import('../../../lib/components.js');
-		const resolvedPrefix = result.content.includes('current prefix is')
-			? result.content.match(/`(.+?)`/)?.[1] || 'None'
-			: 'None';
+		const resolvedPrefix = result.content.includes('current prefix is') ? result.content.match(/`(.+?)`/)?.[1] || 'None' : 'None';
 
 		const component = createListComponent(
 			'Server Prefix',

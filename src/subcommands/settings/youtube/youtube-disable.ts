@@ -20,11 +20,7 @@ export async function chatInputYouTubeDisable(command: Subcommand, interaction: 
 	try {
 		const settings = await GuildYouTubeSettingsService.getSettings(interaction.guild.id);
 		if (!settings || !settings.enabled) {
-		return editReplyWithComponent(
-			interaction,
-			'❌ YouTube tracking is not currently enabled for this server.',
-			true
-		);
+			return editReplyWithComponent(interaction, '❌ YouTube tracking is not currently enabled for this server.', true);
 		}
 
 		await GuildYouTubeSettingsService.disableTracking(interaction.guild.id);
@@ -41,11 +37,7 @@ YouTube subscriber count tracking has been disabled for this server.`;
 		});
 	} catch (error) {
 		command.container.logger.error('[YouTube Settings] Error disabling tracking:', error);
-		return editReplyWithComponent(
-			interaction,
-			'❌ An error occurred while disabling YouTube tracking. Please try again later.',
-			true
-		);
+		return editReplyWithComponent(interaction, '❌ An error occurred while disabling YouTube tracking. Please try again later.', true);
 	}
 }
 

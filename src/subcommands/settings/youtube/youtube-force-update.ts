@@ -5,6 +5,7 @@ import type { Args } from '@sapphire/framework';
 import { GuildYouTubeSettingsService } from '../../../services/guildYouTubeSettingsService.js';
 import { YouTubeService } from '../../../services/youtubeService.js';
 import { createComponentDetailsSection, createTextComponent, replyWithComponent } from '../../../lib/components.js';
+import { Logger } from '../../../lib/logger.js';
 
 export async function chatInputYouTubeForceUpdate(_command: Subcommand, interaction: ChatInputCommandInteraction) {
 	if (!interaction.guildId) {
@@ -67,7 +68,7 @@ ${result.message || 'An unknown error occurred while updating the subscriber cou
 			});
 		}
 	} catch (error) {
-		console.error('Error in YouTube force update subcommand:', error);
+		Logger.error('Error in YouTube force update subcommand', error, { guildId: interaction.guildId });
 
 		const message = `❌ **Error**
 
@@ -152,7 +153,7 @@ ${result.message || 'An unknown error occurred while updating the subscriber cou
 			});
 		}
 	} catch (error) {
-		console.error('Error in YouTube force update subcommand:', error);
+		Logger.error('Error in YouTube force update subcommand', error, { guildId: message.guildId });
 
 		const errorMessage = `❌ **Error**
 

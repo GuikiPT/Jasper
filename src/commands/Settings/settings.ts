@@ -83,7 +83,8 @@ import {
 	name: 'settings',
 	description: 'Configure server-specific settings.',
 	detailedDescription: {
-		summary: 'Administer Jasper\'s guild configuration including prefixes, role buckets, channel allow lists, support forum options, automatic slowmode, and YouTube subscriber count tracking.',
+		summary:
+			"Administer Jasper's guild configuration including prefixes, role buckets, channel allow lists, support forum options, automatic slowmode, and YouTube subscriber count tracking.",
 		chatInputUsage: '/settings <group> <action>',
 		messageUsage: '{{prefix}}settings <group> <action>',
 		notes: [
@@ -125,10 +126,7 @@ import {
 					'Permissions: Allowed Admin Roles, Allowed Tag Admin Roles, or Manage Server permission.',
 					'Setting choices (bucket): allowedAdminRoles, allowedStaffRoles, allowedTagAdminRoles, allowedTagRoles, ignoredSnipedRoles, supportRoles.'
 				],
-				examples: [
-					'/settings roles add setting:allowedAdminRoles role:@Leadership',
-					'{{prefix}}settings roles add allowedTagRoles @Helper'
-				],
+				examples: ['/settings roles add setting:allowedAdminRoles role:@Leadership', '{{prefix}}settings roles add allowedTagRoles @Helper'],
 				aliases: ['role add']
 			},
 			{
@@ -157,10 +155,7 @@ import {
 					'Permissions: Allowed Admin Roles, Allowed Tag Admin Roles, or Manage Server permission.',
 					'Use `setting` choices allowedAdminRoles, allowedStaffRoles, allowedTagAdminRoles, allowedTagRoles, ignoredSnipedRoles, supportRoles or omit to list every bucket.'
 				],
-				examples: [
-					'/settings roles list setting:allowedStaffRoles',
-					'{{prefix}}settings roles list'
-				],
+				examples: ['/settings roles list setting:allowedStaffRoles', '{{prefix}}settings roles list'],
 				aliases: ['role list']
 			},
 			{
@@ -332,10 +327,7 @@ import {
 				description: 'Disable YouTube subscriber count tracking.',
 				chatInputUsage: '/settings youtube disable',
 				messageUsage: '{{prefix}}settings youtube disable',
-				notes: [
-					'Permissions: Manage Channels permission.',
-					'This will stop automatic updates but won\'t change the current channel name.'
-				],
+				notes: ['Permissions: Manage Channels permission.', "This will stop automatic updates but won't change the current channel name."],
 				aliases: ['youtube disable']
 			},
 			{
@@ -344,10 +336,7 @@ import {
 				description: 'View current YouTube subscriber count tracking configuration.',
 				chatInputUsage: '/settings youtube view',
 				messageUsage: '{{prefix}}settings youtube view',
-				notes: [
-					'Permissions: Manage Channels permission.',
-					'Shows current settings including last known subscriber count.'
-				],
+				notes: ['Permissions: Manage Channels permission.', 'Shows current settings including last known subscriber count.'],
 				aliases: ['youtube view']
 			},
 			{
@@ -356,10 +345,7 @@ import {
 				description: 'Test the YouTube tracking configuration and update immediately.',
 				chatInputUsage: '/settings youtube test',
 				messageUsage: '{{prefix}}settings youtube test',
-				notes: [
-					'Permissions: Manage Channels permission.',
-					'Forces an immediate update of the subscriber count and channel name.'
-				],
+				notes: ['Permissions: Manage Channels permission.', 'Forces an immediate update of the subscriber count and channel name.'],
 				aliases: ['youtube test']
 			}
 		]

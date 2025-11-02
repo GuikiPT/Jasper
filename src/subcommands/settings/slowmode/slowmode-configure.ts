@@ -31,10 +31,7 @@ export async function messageSlowmodeConfigure(command: SlowmodeCommand, message
 	});
 }
 
-export async function chatInputSlowmodeConfigure(
-	command: SlowmodeCommand,
-	interaction: SlowmodeChatInputInteraction
-) {
+export async function chatInputSlowmodeConfigure(command: SlowmodeCommand, interaction: SlowmodeChatInputInteraction) {
 	const updates: SlowmodeUpdateInput = {};
 
 	const enabled = interaction.options.getBoolean('enabled');
@@ -64,11 +61,12 @@ export async function chatInputSlowmodeConfigure(
 		guildId: interaction.guildId ?? null,
 		updates,
 		respond: (content) => interaction.editReply({ content, allowedMentions: { users: [], roles: [] } }),
-		respondComponents: (components) => interaction.editReply({
-			components,
-			flags: MessageFlags.IsComponentsV2,
-			allowedMentions: { users: [], roles: [] }
-		}),
+		respondComponents: (components) =>
+			interaction.editReply({
+				components,
+				flags: MessageFlags.IsComponentsV2,
+				allowedMentions: { users: [], roles: [] }
+			}),
 		deny: (content) => denyInteraction(interaction, content),
 		defer: () => deferInteraction(interaction)
 	});

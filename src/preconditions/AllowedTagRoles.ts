@@ -18,11 +18,7 @@ export class AllowedTagRolesPrecondition extends AllFlowsPrecondition {
 		return this.checkMemberAccess(interaction.guildId, interaction.member ?? null, false);
 	}
 
-	private async checkMemberAccess(
-		guildId: string | null,
-		member: GuildMember | APIInteractionGuildMember | null,
-		silentOnFail: boolean
-	) {
+	private async checkMemberAccess(guildId: string | null, member: GuildMember | APIInteractionGuildMember | null, silentOnFail: boolean) {
 		if (!guildId || !member) {
 			this.logDenial('missing-member', { guildId, member, silent: silentOnFail });
 			return this.error({
@@ -31,10 +27,7 @@ export class AllowedTagRolesPrecondition extends AllFlowsPrecondition {
 			});
 		}
 
-		const [allowedRoles, allowedAdminRoles] = await Promise.all([
-			this.fetchAllowedRoles(guildId),
-			this.fetchAllowedAdminRoles(guildId)
-		]);
+		const [allowedRoles, allowedAdminRoles] = await Promise.all([this.fetchAllowedRoles(guildId), this.fetchAllowedAdminRoles(guildId)]);
 
 		if (allowedRoles.length === 0 && allowedAdminRoles.length === 0) {
 			this.logDenial('no-config', { guildId, member, silent: silentOnFail });
@@ -130,11 +123,7 @@ export class AllowedTagRolesPrecondition extends AllFlowsPrecondition {
 		const logger = this.container.logger;
 		if (!logger) return;
 		const meta = { ...this.buildMeta(details), reason };
-		const level = details.silent
-			? 'debug'
-			: reason === 'forbidden'
-				? 'warn'
-				: 'info';
+		const level = details.silent ? 'debug' : reason === 'forbidden' ? 'warn' : 'info';
 		logger[level]('[AllowedTagRoles] Access denied', meta);
 	}
 

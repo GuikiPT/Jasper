@@ -35,13 +35,6 @@ export const registerPrefixSubcommandGroup = (group: SlashCommandSubcommandGroup
 			subcommand
 				.setName('set')
 				.setDescription('Set a new prefix for this server.')
-				.addStringOption((option) =>
-					option
-						.setName('value')
-						.setDescription('New prefix to save.')
-						.setRequired(true)
-						.setMaxLength(16)
-				)
+				.addStringOption((option) => option.setName('value').setDescription('New prefix to save.').setRequired(true).setMaxLength(16))
 		)
-		.addSubcommand((subcommand) =>
-			subcommand.setName('view').setDescription('View the current prefix for this server.'));
+		.addSubcommand((subcommand) => subcommand.setName('view').setDescription('View the current prefix for this server.'));

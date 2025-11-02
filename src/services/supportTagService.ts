@@ -94,21 +94,13 @@ export class SupportTagService {
 				where: { guildId },
 				orderBy: { name: 'asc' }
 			});
-			return tags
-				.filter((tag) => tag.name.toLowerCase().includes(normalized))
-				.slice(0, Math.max(limit, 0));
+			return tags.filter((tag) => tag.name.toLowerCase().includes(normalized)).slice(0, Math.max(limit, 0));
 		} catch (error) {
 			throw this.transformError(error);
 		}
 	}
 
-	public async createTag(
-		guildId: string,
-		data: Omit<
-			GuildSupportTagSettings,
-			'id' | 'guildId' | 'createdAt' | 'updatedAt'
-		> & { name: string }
-	) {
+	public async createTag(guildId: string, data: Omit<GuildSupportTagSettings, 'id' | 'guildId' | 'createdAt' | 'updatedAt'> & { name: string }) {
 		try {
 			return await this.database.guildSupportTagSettings.create({
 				data: {
@@ -189,8 +181,8 @@ export class SupportTagService {
 					const existing = options.overwrite
 						? null
 						: await tx.guildSupportTagSettings.findFirst({
-							where: { guildId, name: entry.name }
-						});
+								where: { guildId, name: entry.name }
+							});
 
 					if (!existing) {
 						await tx.guildSupportTagSettings.create({

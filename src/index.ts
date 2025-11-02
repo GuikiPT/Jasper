@@ -75,22 +75,10 @@ const client = new SapphireClient({
 });
 
 container.guildSettingsService = new GuildSettingsService(container.database);
-container.guildRoleSettingsService = new GuildRoleSettingsService(
-	container.database,
-	container.guildSettingsService
-);
-container.guildChannelSettingsService = new GuildChannelSettingsService(
-	container.database,
-	container.guildSettingsService
-);
-container.guildSupportSettingsService = new GuildSupportSettingsService(
-	container.database,
-	container.guildSettingsService
-);
-container.guildSlowmodeSettingsService = new GuildSlowmodeSettingsService(
-	container.database,
-	container.guildSettingsService
-);
+container.guildRoleSettingsService = new GuildRoleSettingsService(container.database, container.guildSettingsService);
+container.guildChannelSettingsService = new GuildChannelSettingsService(container.database, container.guildSettingsService);
+container.guildSupportSettingsService = new GuildSupportSettingsService(container.database, container.guildSettingsService);
+container.guildSlowmodeSettingsService = new GuildSlowmodeSettingsService(container.database, container.guildSettingsService);
 container.guildTopicSettingsService = new GuildTopicSettingsService(container.database);
 container.supportTagService = new SupportTagService(container.database);
 container.supportThreadService = new SupportThreadService(container.database);
@@ -114,18 +102,7 @@ const main = async () => {
 		await client.login(envParseString('DISCORD_TOKEN'));
 		client.logger.info('logged in');
 	} catch (error) {
-		if (error instanceof Error) {
-			Logger.fatal('Fatal error during startup', {
-				ts: new Date().toISOString(),
-				error: {
-					name: error.name,
-					message: error.message,
-					stack: error.stack ?? ''
-				}
-			});
-		} else {
-			Logger.fatal('Fatal error during startup', String(error));
-		}
+		Logger.fatal('Fatal error during startup', error);
 		await client.destroy();
 		process.exit(1);
 	}

@@ -34,11 +34,12 @@ export async function messageRoleList(command: RoleCommand, message: Message, ar
 					flags: MessageFlags.IsComponentsV2,
 					allowedMentions: { users: [], roles: [] }
 				}),
-			respondComponents: (components) => message.reply({
-				components,
-				flags: MessageFlags.IsComponentsV2,
-				allowedMentions: { users: [], roles: [] }
-			})
+			respondComponents: (components) =>
+				message.reply({
+					components,
+					flags: MessageFlags.IsComponentsV2,
+					allowedMentions: { users: [], roles: [] }
+				})
 		});
 	} catch (error) {
 		return message.reply({
@@ -59,16 +60,18 @@ export async function chatInputRoleList(command: RoleCommand, interaction: RoleC
 		guildId: interaction.guildId ?? null,
 		bucket,
 		deny: (content) => denyInteraction(interaction, content),
-		respond: (content) => interaction.editReply({
-			components: [createTextComponent(content)],
-			flags: MessageFlags.IsComponentsV2,
-			allowedMentions: { users: [], roles: [] }
-		}),
-		respondComponents: (components) => interaction.editReply({
-			components,
-			flags: MessageFlags.IsComponentsV2,
-			allowedMentions: { users: [], roles: [] }
-		}),
+		respond: (content) =>
+			interaction.editReply({
+				components: [createTextComponent(content)],
+				flags: MessageFlags.IsComponentsV2,
+				allowedMentions: { users: [], roles: [] }
+			}),
+		respondComponents: (components) =>
+			interaction.editReply({
+				components,
+				flags: MessageFlags.IsComponentsV2,
+				allowedMentions: { users: [], roles: [] }
+			}),
 		defer: () => interaction.deferReply({ flags: MessageFlags.Ephemeral })
 	});
 }

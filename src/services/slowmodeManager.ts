@@ -36,9 +36,12 @@ interface GuildState {
 
 export class SlowmodeManager {
 	private readonly guildStates = new Map<string, GuildState>();
- 	private readonly logger = createSubsystemLogger('Slowmode');
+	private readonly logger = createSubsystemLogger('Slowmode');
 
-	public constructor(private readonly client: SapphireClient, private readonly database: PrismaClient) { }
+	public constructor(
+		private readonly client: SapphireClient,
+		private readonly database: PrismaClient
+	) {}
 
 	public async handleMessage(message: Message) {
 		if (!message.guildId) return;
@@ -392,11 +395,7 @@ export class SlowmodeManager {
 		);
 	}
 
-	private async disableChannelIfTracked(
-		guildId: string,
-		channelId: string,
-		options: { reason: string }
-	) {
+	private async disableChannelIfTracked(guildId: string, channelId: string, options: { reason: string }) {
 		const guildState = this.guildStates.get(guildId);
 		if (!guildState) return;
 		const state = guildState.channels.get(channelId);
@@ -407,10 +406,10 @@ export class SlowmodeManager {
 			prune: true
 		});
 		this.logger.debug('Stopped tracking channel', {
-		guildId,
-		channelId,
-		reason: options.reason
-	});
+			guildId,
+			channelId,
+			reason: options.reason
+		});
 	}
 
 	private createConfigKey(config: SlowmodeConfig | null): string {

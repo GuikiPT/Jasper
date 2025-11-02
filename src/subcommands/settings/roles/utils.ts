@@ -59,12 +59,7 @@ export const registerRoleSubcommandGroup = (group: SlashCommandSubcommandGroupBu
 						.setRequired(true)
 						.addChoices(...ROLE_BUCKETS.map((bucket) => ({ name: bucket.label, value: bucket.key })))
 				)
-				.addRoleOption((option) =>
-					option
-						.setName('role')
-						.setDescription('Role to add to the list.')
-						.setRequired(true)
-				)
+				.addRoleOption((option) => option.setName('role').setDescription('Role to add to the list.').setRequired(true))
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
@@ -77,12 +72,7 @@ export const registerRoleSubcommandGroup = (group: SlashCommandSubcommandGroupBu
 						.setRequired(true)
 						.addChoices(...ROLE_BUCKETS.map((bucket) => ({ name: bucket.label, value: bucket.key })))
 				)
-				.addRoleOption((option) =>
-					option
-						.setName('role')
-						.setDescription('Role to remove from the list.')
-						.setRequired(true)
-				)
+				.addRoleOption((option) => option.setName('role').setDescription('Role to remove from the list.').setRequired(true))
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
@@ -107,9 +97,7 @@ export async function parseBucket(args: Args, required: boolean): Promise<RoleBu
 
 	if (result.isErr()) {
 		if (required) {
-			throw new Error(
-				`You must provide a role setting. Available options: ${ROLE_BUCKETS.map((b) => b.key).join(', ')}`
-			);
+			throw new Error(`You must provide a role setting. Available options: ${ROLE_BUCKETS.map((b) => b.key).join(', ')}`);
 		}
 		return null;
 	}
@@ -175,15 +163,7 @@ export async function executeRoleMutation({
 	}
 }
 
-export async function executeRoleList({
-	command,
-	guildId,
-	bucket,
-	deny,
-	respond,
-	respondComponents,
-	defer
-}: RoleListContext) {
+export async function executeRoleList({ command, guildId, bucket, deny, respond, respondComponents, defer }: RoleListContext) {
 	if (!guildId) {
 		return deny('This command can only be used inside a server.');
 	}
@@ -249,7 +229,6 @@ export async function executeRoleList({
 export function bucketLabel(bucket: RoleBucketKey) {
 	return ROLE_BUCKETS.find((entry) => entry.key === bucket)?.label ?? bucket;
 }
-
 
 export const denyInteraction = (interaction: RoleChatInputInteraction, content: string) =>
 	interaction.reply({

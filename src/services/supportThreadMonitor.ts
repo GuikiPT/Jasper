@@ -1,13 +1,21 @@
 // supportThreadMonitor module within services
 import type { GuildSupportSettings, PrismaClient, SupportThread as SupportThreadRecord } from '@prisma/client';
 import type { SapphireClient } from '@sapphire/framework';
-import { ChannelType, MessageFlags, type Message, type ThreadChannel, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { createSubsystemLogger } from '../lib/subsystemLogger';
 import {
-	SUPPORT_THREAD_ACTION_CLOSE,
-	SUPPORT_THREAD_ACTION_KEEP_OPEN,
-	SUPPORT_THREAD_BUTTON_PREFIX
-} from '../lib/supportThreadConstants.js';
+	ChannelType,
+	MessageFlags,
+	type Message,
+	type ThreadChannel,
+	ContainerBuilder,
+	TextDisplayBuilder,
+	SeparatorBuilder,
+	SeparatorSpacingSize,
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle
+} from 'discord.js';
+import { createSubsystemLogger } from '../lib/subsystemLogger';
+import { SUPPORT_THREAD_ACTION_CLOSE, SUPPORT_THREAD_ACTION_KEEP_OPEN, SUPPORT_THREAD_BUTTON_PREFIX } from '../lib/supportThreadConstants.js';
 import { GuildSupportSettingsService } from './guildSupportSettingsService';
 import { SupportThreadService } from './supportThreadService';
 
@@ -24,7 +32,7 @@ export class SupportThreadMonitor {
 		private readonly supportThreadService: SupportThreadService,
 		private readonly supportSettingsService: GuildSupportSettingsService,
 		private readonly database: PrismaClient
-	) { }
+	) {}
 
 	public start(intervalMs: number = DEFAULT_REMINDER_INTERVAL_MS) {
 		if (this.checkTimer) return;
@@ -88,7 +96,7 @@ export class SupportThreadMonitor {
 			try {
 				const messages = await thread.messages.fetch({ limit: 100 });
 				const firstOwnerMessage = messages
-					.filter(m => m.author.id === ownerId)
+					.filter((m) => m.author.id === ownerId)
 					.sort((a, b) => a.createdTimestamp - b.createdTimestamp)
 					.first();
 				initialMessageId = firstOwnerMessage?.id;
@@ -281,8 +289,8 @@ export class SupportThreadMonitor {
 				await this.dismissReminderMessage(freshThread, record.reminderMessageId);
 			}
 
-			await freshThread.setLocked(true, 'I\'m closing the thread automatically after op inactivity');
-			await freshThread.setArchived(true, 'I\'m closing the thread automatically after op inactivity');
+			await freshThread.setLocked(true, "I'm closing the thread automatically after op inactivity");
+			await freshThread.setArchived(true, "I'm closing the thread automatically after op inactivity");
 
 			await this.supportThreadService.markThreadClosed(record.threadId);
 			this.logger.info('Auto-closed inactive support thread', {
@@ -302,20 +310,14 @@ export class SupportThreadMonitor {
 		const container = new ContainerBuilder();
 		const lastActivityTimestamp = Math.floor(record.lastAuthorMessageAt.getTime() / 1000);
 
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`## Still need help, <@${ownerId}>?`)
-		);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`## Still need help, <@${ownerId}>?`));
 		container.addTextDisplayComponents(
 			new TextDisplayBuilder().setContent(
 				`We haven’t seen a message from you since <t:${lastActivityTimestamp}:R>. Do you want to keep this thread open or close it?`
 			)
 		);
-		container.addSeparatorComponents(
-			new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-		);
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent('Choose an option below to continue.')
-		);
+		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('Choose an option below to continue.'));
 
 		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
 			new ButtonBuilder()
@@ -336,18 +338,14 @@ export class SupportThreadMonitor {
 	private buildAutoCloseComponent(ownerId: string): ContainerBuilder {
 		const container = new ContainerBuilder();
 
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('## Thread closed due to inactivity'));
 		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent('## Thread closed due to inactivity')
+			new TextDisplayBuilder().setContent(
+				'Because we didn’t receive a response, the thread was closed automatically. If you still need help, please open a new thread.'
+			)
 		);
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent('Because we didn’t receive a response, the thread was closed automatically. If you still need help, please open a new thread.')
-		);
-		container.addSeparatorComponents(
-			new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-		);
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`-# Last active author: <@${ownerId}>`)
-		);
+		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Last active author: <@${ownerId}>`));
 
 		return container;
 	}
@@ -370,7 +368,7 @@ export class SupportThreadMonitor {
 			let newTags = [...thread.appliedTags];
 			newTags = newTags.filter((tagId) => tagId !== resolvedTagId);
 			if (newTags.length >= 5) {
-				newTags = newTags.slice(-(4));
+				newTags = newTags.slice(-4);
 			}
 			newTags.push(resolvedTagId);
 

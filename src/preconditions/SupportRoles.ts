@@ -17,11 +17,7 @@ export class SupportRolesPrecondition extends AllFlowsPrecondition {
 		return this.checkMemberAccess(interaction.guildId, interaction.member ?? null, false);
 	}
 
-	private async checkMemberAccess(
-		guildId: string | null,
-		member: GuildMember | APIInteractionGuildMember | null,
-		silentOnFail: boolean
-	) {
+	private async checkMemberAccess(guildId: string | null, member: GuildMember | APIInteractionGuildMember | null, silentOnFail: boolean) {
 		if (!guildId || !member) {
 			this.logDenial('missing-member', { guildId, member, silent: silentOnFail });
 			return this.error({
@@ -96,18 +92,11 @@ export class SupportRolesPrecondition extends AllFlowsPrecondition {
 		logger.debug('[SupportRoles] Access granted', this.buildMeta(details));
 	}
 
-	private logDenial(
-		reason: 'missing-member' | 'no-config' | 'forbidden',
-		details: SupportLogDetails
-	) {
+	private logDenial(reason: 'missing-member' | 'no-config' | 'forbidden', details: SupportLogDetails) {
 		const logger = this.container.logger;
 		if (!logger) return;
 		const meta = { ...this.buildMeta(details), reason };
-		const level = details.silent
-			? 'debug'
-			: reason === 'forbidden'
-				? 'warn'
-				: 'info';
+		const level = details.silent ? 'debug' : reason === 'forbidden' ? 'warn' : 'info';
 		logger[level]('[SupportRoles] Access denied', meta);
 	}
 

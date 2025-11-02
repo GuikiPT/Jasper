@@ -4,10 +4,7 @@ import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework
 import type { ButtonInteraction } from 'discord.js';
 import { MessageFlags } from 'discord.js';
 
-import {
-	SUPPORT_TAG_LIST_CUSTOM_ID,
-	SUPPORT_TAG_LIST_ITEMS_PER_PAGE
-} from '../subcommands/support/tag/constants';
+import { SUPPORT_TAG_LIST_CUSTOM_ID, SUPPORT_TAG_LIST_ITEMS_PER_PAGE } from '../subcommands/support/tag/constants';
 import {
 	SUPPORT_TAG_TABLE_MISSING_MESSAGE,
 	isSupportTagPrismaTableMissingError,
@@ -84,10 +81,7 @@ export class SupportTagListPaginationHandler extends InteractionHandler {
 		const tagNames = tags.map((tag) => tag.name);
 		const requestedPage = data.targetPage;
 
-		const {
-			createPaginatedComponentWithButtons,
-			createPaginationButtons
-		} = await import('../lib/components.js');
+		const { createPaginatedComponentWithButtons, createPaginationButtons } = await import('../lib/components.js');
 
 		const { component, totalPages, currentPage } = createPaginatedComponentWithButtons(
 			'Support Tags',

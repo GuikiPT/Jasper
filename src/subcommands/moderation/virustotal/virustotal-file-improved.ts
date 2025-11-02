@@ -153,7 +153,7 @@ export async function chatInputVirusTotalFile(_command: Subcommand, interaction:
 
 		// Wait for analysis completion
 		const waitTime = skipUpload ? VIRUSTOTAL_CONFIG.TIMING.ANALYSIS_WAIT_EXISTING_MS : VIRUSTOTAL_CONFIG.TIMING.ANALYSIS_WAIT_NEW_MS;
-		await new Promise(resolve => setTimeout(resolve, waitTime));
+		await new Promise((resolve) => setTimeout(resolve, waitTime));
 
 		// Get analysis results
 		let analysisData: VirusTotalApiResponse<VirusTotalFileAttributes>;
@@ -206,23 +206,21 @@ export async function chatInputVirusTotalFile(_command: Subcommand, interaction:
 		const results = attributes.last_analysis_results;
 		const status = getSecurityStatus(stats);
 
-		const lastAnalysisDate = attributes.last_analysis_date
-			? new Date(attributes.last_analysis_date * 1000).toLocaleDateString()
-			: 'Unknown';
+		const lastAnalysisDate = attributes.last_analysis_date ? new Date(attributes.last_analysis_date * 1000).toLocaleDateString() : 'Unknown';
 
 		// Create detailed report
 		const detailedReport = createDetailedReport(
 			REPORT_TEMPLATES.FILE_HEADER,
 			{
-				'File': file.name,
-				'Size': `${fileSizeMB.toFixed(2)} MB`
+				File: file.name,
+				Size: `${fileSizeMB.toFixed(2)} MB`
 			},
 			stats,
 			results,
 			{
-				'SHA256': attributes.sha256 || 'Unknown',
-				'MD5': attributes.md5 || 'Unknown',
-				'SHA1': attributes.sha1 || 'Unknown',
+				SHA256: attributes.sha256 || 'Unknown',
+				MD5: attributes.md5 || 'Unknown',
+				SHA1: attributes.sha1 || 'Unknown',
 				'Last Analysis Date': lastAnalysisDate
 			}
 		);
@@ -247,7 +245,9 @@ export async function chatInputVirusTotalFile(_command: Subcommand, interaction:
 					`• **Clean:** \`${stats.harmless || 0}\` engines`,
 					`• **Undetected:** \`${stats.undetected || 0}\` engines`,
 					stats['type-unsupported'] ? `• **Type Unsupported:** \`${stats['type-unsupported']}\` engines` : null
-				].filter(Boolean).join('\n')
+				]
+					.filter(Boolean)
+					.join('\n')
 			},
 			{
 				title: '📅 **Analysis Information**',
@@ -270,14 +270,15 @@ export async function chatInputVirusTotalFile(_command: Subcommand, interaction:
 		);
 
 		await interaction.editReply({
-			files: [{
-				attachment: Buffer.from(detailedReport),
-				name: `virustotal-file-report.txt`
-			}],
+			files: [
+				{
+					attachment: Buffer.from(detailedReport),
+					name: `virustotal-file-report.txt`
+				}
+			],
 			components,
 			flags: MessageFlags.IsComponentsV2
 		});
-
 	} catch (error) {
 		const errorMessage = handleVirusTotalError(error, {
 			guildId: interaction.guildId,

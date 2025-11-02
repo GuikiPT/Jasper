@@ -2,13 +2,7 @@
 import type { Message } from 'discord.js';
 import { MessageFlags } from 'discord.js';
 
-import {
-	executeSlowmodeView,
-	denyInteraction,
-	deferInteraction,
-	type SlowmodeChatInputInteraction,
-	type SlowmodeCommand
-} from './utils';
+import { executeSlowmodeView, denyInteraction, deferInteraction, type SlowmodeChatInputInteraction, type SlowmodeCommand } from './utils';
 
 export async function messageSlowmodeView(command: SlowmodeCommand, message: Message) {
 	return executeSlowmodeView({
@@ -32,11 +26,12 @@ export async function chatInputSlowmodeView(command: SlowmodeCommand, interactio
 		command,
 		guildId: interaction.guildId ?? null,
 		respond: (content) => interaction.editReply({ content, allowedMentions: { users: [], roles: [] } }),
-		respondComponents: (components) => interaction.editReply({
-			components,
-			flags: MessageFlags.IsComponentsV2,
-			allowedMentions: { users: [], roles: [] }
-		}),
+		respondComponents: (components) =>
+			interaction.editReply({
+				components,
+				flags: MessageFlags.IsComponentsV2,
+				allowedMentions: { users: [], roles: [] }
+			}),
 		deny: (content) => denyInteraction(interaction, content),
 		defer: () => deferInteraction(interaction)
 	});

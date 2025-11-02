@@ -11,11 +11,12 @@ export async function messageSupportView(command: SupportCommand, message: Messa
 			guildId: message.guild?.id ?? null,
 			deny: (content) => message.reply({ content, allowedMentions: { users: [], roles: [] } }),
 			respond: (content) => message.reply({ content, allowedMentions: { users: [], roles: [] } }),
-			respondComponents: (components) => message.reply({
-				components,
-				flags: MessageFlags.IsComponentsV2,
-				allowedMentions: { users: [], roles: [] }
-			})
+			respondComponents: (components) =>
+				message.reply({
+					components,
+					flags: MessageFlags.IsComponentsV2,
+					allowedMentions: { users: [], roles: [] }
+				})
 		});
 	} catch (error) {
 		return message.reply({ content: formatError(error), allowedMentions: { users: [], roles: [] } });
@@ -29,11 +30,12 @@ export async function chatInputSupportView(command: SupportCommand, interaction:
 			guildId: interaction.guild?.id ?? null,
 			deny: (content) => interaction.editReply({ content, allowedMentions: { users: [], roles: [] } }),
 			respond: (content) => interaction.editReply({ content, allowedMentions: { users: [], roles: [] } }),
-			respondComponents: (components) => interaction.editReply({
-				components,
-				flags: MessageFlags.IsComponentsV2,
-				allowedMentions: { users: [], roles: [] }
-			}),
+			respondComponents: (components) =>
+				interaction.editReply({
+					components,
+					flags: MessageFlags.IsComponentsV2,
+					allowedMentions: { users: [], roles: [] }
+				}),
 			defer: () => interaction.deferReply({ flags: MessageFlags.Ephemeral })
 		});
 	} catch (error) {

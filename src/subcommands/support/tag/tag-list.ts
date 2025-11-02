@@ -10,10 +10,7 @@ import {
 	replyEphemeral
 } from './utils';
 
-import {
-	SUPPORT_TAG_LIST_CUSTOM_ID,
-	SUPPORT_TAG_LIST_ITEMS_PER_PAGE
-} from './constants';
+import { SUPPORT_TAG_LIST_CUSTOM_ID, SUPPORT_TAG_LIST_ITEMS_PER_PAGE } from './constants';
 
 const SUPPORT_TAG_LIST_EMPTY_MESSAGE = 'No support tags have been created yet.';
 

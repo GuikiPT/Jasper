@@ -2,7 +2,15 @@
 import type { Args } from '@sapphire/framework';
 import type { Message } from 'discord.js';
 import { MessageFlags } from 'discord.js';
-import { executeSupportSet, denyInteraction, parseSetting, parseSettingChoice, formatError, type SupportCommand, type SupportChatInputInteraction } from './utils';
+import {
+	executeSupportSet,
+	denyInteraction,
+	parseSetting,
+	parseSettingChoice,
+	formatError,
+	type SupportCommand,
+	type SupportChatInputInteraction
+} from './utils';
 
 export async function messageSupportSet(command: SupportCommand, message: Message, args: Args) {
 	try {

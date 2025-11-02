@@ -236,18 +236,13 @@ export class SupportTagCommand extends Subcommand {
 				.setDescription(this.description)
 				.setIntegrationTypes(this.integrationTypes)
 				.setContexts(this.contexts)
-				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
-					sub.setName('create').setDescription('Create a new support tag.'))
+				.addSubcommand((sub: SlashCommandSubcommandBuilder) => sub.setName('create').setDescription('Create a new support tag.'))
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
 					sub
 						.setName('delete')
 						.setDescription('Delete an existing tag.')
 						.addStringOption((option: SlashCommandStringOption) =>
-							option
-								.setName('name')
-								.setDescription('Name of the tag to delete.')
-								.setRequired(true)
-								.setAutocomplete(true)
+							option.setName('name').setDescription('Name of the tag to delete.').setRequired(true).setAutocomplete(true)
 						)
 				)
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
@@ -255,36 +250,22 @@ export class SupportTagCommand extends Subcommand {
 						.setName('edit')
 						.setDescription('Update an existing tag.')
 						.addStringOption((option: SlashCommandStringOption) =>
-							option
-								.setName('name')
-								.setDescription('Name of the tag to edit.')
-								.setRequired(true)
-								.setAutocomplete(true)
+							option.setName('name').setDescription('Name of the tag to edit.').setRequired(true).setAutocomplete(true)
 						)
 				)
-				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
-					sub.setName('export').setDescription('Export all tags to a JSON file.'))
+				.addSubcommand((sub: SlashCommandSubcommandBuilder) => sub.setName('export').setDescription('Export all tags to a JSON file.'))
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
 					sub
 						.setName('import')
 						.setDescription('Import tags from JSON data.')
 						.addStringOption((option: SlashCommandStringOption) =>
-							option
-								.setName('payload')
-								.setDescription('JSON array payload describing the tags to import.')
-								.setRequired(false)
+							option.setName('payload').setDescription('JSON array payload describing the tags to import.').setRequired(false)
 						)
 						.addAttachmentOption((option) =>
-							option
-								.setName('file')
-								.setDescription('JSON file containing tags to import.')
-								.setRequired(false)
+							option.setName('file').setDescription('JSON file containing tags to import.').setRequired(false)
 						)
 						.addBooleanOption((option: SlashCommandBooleanOption) =>
-							option
-								.setName('overwrite')
-								.setDescription('Replace existing tags instead of merging.')
-								.setRequired(false)
+							option.setName('overwrite').setDescription('Replace existing tags instead of merging.').setRequired(false)
 						)
 				)
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
@@ -292,26 +273,16 @@ export class SupportTagCommand extends Subcommand {
 						.setName('info')
 						.setDescription('Show metadata about a tag.')
 						.addStringOption((option: SlashCommandStringOption) =>
-							option
-								.setName('name')
-								.setDescription('Name of the tag.')
-								.setRequired(true)
+							option.setName('name').setDescription('Name of the tag.').setRequired(true)
 						)
 				)
-				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
-					sub
-						.setName('list')
-						.setDescription('List available support tags.')
-				)
+				.addSubcommand((sub: SlashCommandSubcommandBuilder) => sub.setName('list').setDescription('List available support tags.'))
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
 					sub
 						.setName('raw')
 						.setDescription('Show the raw embed payload for a tag.')
 						.addStringOption((option: SlashCommandStringOption) =>
-							option
-								.setName('name')
-								.setDescription('Name of the tag to inspect.')
-								.setRequired(true)
+							option.setName('name').setDescription('Name of the tag to inspect.').setRequired(true)
 						)
 				)
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
@@ -319,16 +290,10 @@ export class SupportTagCommand extends Subcommand {
 						.setName('show')
 						.setDescription('Preview a tag embed.')
 						.addStringOption((option: SlashCommandStringOption) =>
-							option
-								.setName('name')
-								.setDescription('Name of the tag to preview.')
-								.setRequired(true)
+							option.setName('name').setDescription('Name of the tag to preview.').setRequired(true)
 						)
 						.addBooleanOption((option: SlashCommandBooleanOption) =>
-							option
-								.setName('ephemeral')
-								.setDescription('Show the preview only to you.')
-								.setRequired(false)
+							option.setName('ephemeral').setDescription('Show the preview only to you.').setRequired(false)
 						)
 				)
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
@@ -336,17 +301,10 @@ export class SupportTagCommand extends Subcommand {
 						.setName('use')
 						.setDescription('Send a tag to the current channel.')
 						.addStringOption((option: SlashCommandStringOption) =>
-							option
-								.setName('name')
-								.setDescription('Name of the tag to send.')
-								.setRequired(true)
-								.setAutocomplete(true)
+							option.setName('name').setDescription('Name of the tag to send.').setRequired(true).setAutocomplete(true)
 						)
 						.addUserOption((option: SlashCommandUserOption) =>
-							option
-								.setName('user')
-								.setDescription('Mention a user alongside the tag.')
-								.setRequired(false)
+							option.setName('user').setDescription('Mention a user alongside the tag.').setRequired(false)
 						)
 				)
 		);

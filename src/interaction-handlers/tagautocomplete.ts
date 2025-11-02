@@ -3,12 +3,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
 import type { ApplicationCommandOptionChoiceData, AutocompleteInteraction } from 'discord.js';
 
-import {
-	ensureAllowedTagRoleAccess,
-	ensureSupportRoleAccess,
-	ensureTagChannelAccess,
-	normalizeTagName
-} from '../subcommands/support/tag/utils';
+import { ensureAllowedTagRoleAccess, ensureSupportRoleAccess, ensureTagChannelAccess, normalizeTagName } from '../subcommands/support/tag/utils';
 
 const HANDLED_SUBCOMMANDS = new Set(['delete', 'edit', 'use']);
 

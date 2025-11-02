@@ -16,7 +16,7 @@ export interface SupportThreadReminderPayload {
 }
 
 export class SupportThreadService {
-	public constructor(private readonly database: PrismaClient) { }
+	public constructor(private readonly database: PrismaClient) {}
 
 	public getThread(threadId: string): Promise<SupportThread | null> {
 		return this.database.supportThread.findUnique({ where: { threadId } });
@@ -82,10 +82,7 @@ export class SupportThreadService {
 				closedAt: null,
 				lastAuthorMessageId: { not: null }, // Only send reminders if we have a valid author message
 				lastAuthorMessageAt: { lt: cutoff },
-				OR: [
-					{ lastReminderAt: null },
-					{ lastReminderAt: { lt: cutoff } }
-				],
+				OR: [{ lastReminderAt: null }, { lastReminderAt: { lt: cutoff } }],
 				...(guildId ? { guildId } : {})
 			}
 		});

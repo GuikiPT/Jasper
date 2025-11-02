@@ -5,13 +5,7 @@ import { registerSupportSubcommandGroup } from './utils';
 import { chatInputSupportSet, messageSupportSet } from './support-set';
 import { chatInputSupportView, messageSupportView } from './support-view';
 
-export {
-	registerSupportSubcommandGroup,
-	chatInputSupportSet,
-	chatInputSupportView,
-	messageSupportSet,
-	messageSupportView
-};
+export { registerSupportSubcommandGroup, chatInputSupportSet, chatInputSupportView, messageSupportSet, messageSupportView };
 
 export const supportSubcommandMapping: SubcommandMappingGroup = {
 	name: 'support',

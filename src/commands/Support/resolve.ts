@@ -25,9 +25,7 @@ import { replyWithComponent, editReplyWithComponent } from '../../lib/components
 	detailedDescription: {
 		summary: 'Summarises the current support forum thread, applies the configured resolved tag, and archives the thread.',
 		chatInputUsage: '/resolve [question] [answer]',
-		examples: [
-			"/resolve question:'How do I reset my password?' answer:'Use `/settings > Account` and choose Reset Password.'"
-		],
+		examples: ["/resolve question:'How do I reset my password?' answer:'Use `/settings > Account` and choose Reset Password.'"],
 		notes: [
 			'Only works inside the configured support forum thread.',
 			'Requires an allowed support, staff, or admin role and the Manage Threads permission.'
@@ -63,18 +61,10 @@ export class ResolveCommand extends Command {
 				.setIntegrationTypes(this.integrationTypes)
 				.setContexts(this.contexts)
 				.addStringOption((option: SlashCommandStringOption) =>
-					option
-						.setName('question')
-						.setDescription('Summarized question that was asked')
-						.setRequired(false)
-						.setMaxLength(1000)
+					option.setName('question').setDescription('Summarized question that was asked').setRequired(false).setMaxLength(1000)
 				)
 				.addStringOption((option: SlashCommandStringOption) =>
-					option
-						.setName('answer')
-						.setDescription('Summarized answer/solution provided')
-						.setRequired(false)
-						.setMaxLength(2000)
+					option.setName('answer').setDescription('Summarized answer/solution provided').setRequired(false).setMaxLength(2000)
 				)
 		);
 	}
@@ -125,7 +115,11 @@ export class ResolveCommand extends Command {
 		const supportSettings = await supportService.getSettings(guildId);
 
 		if (!supportSettings) {
-			return replyWithComponent(interaction, 'Support settings have not been configured yet. Please ask an admin to run `/settings support set`.', true);
+			return replyWithComponent(
+				interaction,
+				'Support settings have not been configured yet. Please ask an admin to run `/settings support set`.',
+				true
+			);
 		}
 
 		// Validate this is the configured support forum
@@ -134,26 +128,33 @@ export class ResolveCommand extends Command {
 		}
 
 		if (!supportSettings.resolvedTagId) {
-			return replyWithComponent(interaction, 'No resolved tag is configured for this server. Please ask an admin to configure it using `/settings support set`.', true);
+			return replyWithComponent(
+				interaction,
+				'No resolved tag is configured for this server. Please ask an admin to configure it using `/settings support set`.',
+				true
+			);
 		}
 
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		// Check if the resolved tag exists in the forum
-		const resolvedTag = forumChannel.availableTags.find(tag => tag.id === supportSettings.resolvedTagId);
+		const resolvedTag = forumChannel.availableTags.find((tag) => tag.id === supportSettings.resolvedTagId);
 		if (!resolvedTag) {
-			return editReplyWithComponent(interaction, 'The configured resolved tag no longer exists in the forum. Please ask an admin to update the configuration.');
+			return editReplyWithComponent(
+				interaction,
+				'The configured resolved tag no longer exists in the forum. Please ask an admin to update the configuration.'
+			);
 		}
 
 		// Manage thread tags - remove existing if 5+ and add resolved tag
 		let newTags = [...thread.appliedTags];
 
 		// Remove resolved tag if it already exists (to avoid duplicates)
-		newTags = newTags.filter(tagId => tagId !== supportSettings.resolvedTagId);
+		newTags = newTags.filter((tagId) => tagId !== supportSettings.resolvedTagId);
 
 		// If we have 5 or more tags, remove the oldest ones to make room
 		if (newTags.length >= 5) {
-			newTags = newTags.slice(-(4)); // Keep last 4 tags
+			newTags = newTags.slice(-4); // Keep last 4 tags
 		}
 
 		// Add the resolved tag
@@ -165,14 +166,20 @@ export class ResolveCommand extends Command {
 
 			// Check if thread is archived and unarchive it if needed
 			if (freshThread.archived) {
-				await freshThread.setArchived(false, `Temporarily reopening thread by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}.`);
+				await freshThread.setArchived(
+					false,
+					`Temporarily reopening thread by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}.`
+				);
 				// Wait a moment for Discord to process the unarchive
-				await new Promise(resolve => setTimeout(resolve, 1000));
+				await new Promise((resolve) => setTimeout(resolve, 1000));
 			}
 
 			// Apply the resolved tag
-			await freshThread.setAppliedTags(newTags, `Thread resolved by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}${answer ? ` | Answer: ${answer}` : ''}`);
- 
+			await freshThread.setAppliedTags(
+				newTags,
+				`Thread resolved by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}${answer ? ` | Answer: ${answer}` : ''}`
+			);
+
 			// Send resolution message as component
 			const resolutionComponent = this.createResolutionComponent(question, answer, interaction.user.id);
 			await freshThread.send({
@@ -182,14 +189,19 @@ export class ResolveCommand extends Command {
 			});
 
 			// Archive and lock the thread
-			await freshThread.setLocked(true, `Thread locked by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}${answer ? ` | Answer: ${answer}` : ''}`);
-			await freshThread.setArchived(true, `Thread archived by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}${answer ? ` | Answer: ${answer}` : ''}`);
+			await freshThread.setLocked(
+				true,
+				`Thread locked by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}${answer ? ` | Answer: ${answer}` : ''}`
+			);
+			await freshThread.setArchived(
+				true,
+				`Thread archived by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}${answer ? ` | Answer: ${answer}` : ''}`
+			);
 
 			await this.markSupportThreadClosed(freshThread);
 
 			// Simple success response
 			return editReplyWithComponent(interaction, '✅ Thread resolved successfully!');
-
 		} catch (error) {
 			this.container.logger.error('Failed to apply thread resolution:', error);
 			return editReplyWithComponent(interaction, 'Failed to apply thread resolution. I might not have the necessary permissions.');
@@ -229,53 +241,32 @@ export class ResolveCommand extends Command {
 		const container = new ContainerBuilder();
 
 		// Add title with resolver mention
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`## Thread marked as resolved by <@${resolverUserId}>`)
-		);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`## Thread marked as resolved by <@${resolverUserId}>`));
 
 		// Add separator
-		container.addSeparatorComponents(
-			new SeparatorBuilder()
-				.setSpacing(SeparatorSpacingSize.Small)
-				.setDivider(true)
-		);
+		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 
 		// Add question section if provided
 		if (question) {
-			container.addTextDisplayComponents(
-				new TextDisplayBuilder().setContent('### Question')
-			);
-			container.addTextDisplayComponents(
-				new TextDisplayBuilder().setContent(question)
-			);
-			container.addSeparatorComponents(
-				new SeparatorBuilder()
-					.setSpacing(SeparatorSpacingSize.Small)
-					.setDivider(true)
-			);
+			container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### Question'));
+			container.addTextDisplayComponents(new TextDisplayBuilder().setContent(question));
+			container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 		}
 
 		// Add answer section if provided
 		if (answer) {
-			container.addTextDisplayComponents(
-				new TextDisplayBuilder().setContent('### Answer')
-			);
-			container.addTextDisplayComponents(
-				new TextDisplayBuilder().setContent(answer)
-			);
-			container.addSeparatorComponents(
-				new SeparatorBuilder()
-					.setSpacing(SeparatorSpacingSize.Small)
-					.setDivider(true)
-			);
+			container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### Answer'));
+			container.addTextDisplayComponents(new TextDisplayBuilder().setContent(answer));
+			container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 		}
 
 		// Add footer notice
 		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent('-# This thread has been marked as resolved. If you need further assistance, please create a new thread.')
+			new TextDisplayBuilder().setContent(
+				'-# This thread has been marked as resolved. If you need further assistance, please create a new thread.'
+			)
 		);
 
 		return container;
 	}
-
 }

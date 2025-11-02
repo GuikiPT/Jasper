@@ -1,5 +1,16 @@
 // components module within lib
-import { MessageFlags, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize, ButtonBuilder, ButtonStyle, ActionRowBuilder, SectionBuilder, ThumbnailBuilder } from 'discord.js';
+import {
+	MessageFlags,
+	ContainerBuilder,
+	TextDisplayBuilder,
+	SeparatorBuilder,
+	SeparatorSpacingSize,
+	ButtonBuilder,
+	ButtonStyle,
+	ActionRowBuilder,
+	SectionBuilder,
+	ThumbnailBuilder
+} from 'discord.js';
 
 // Helper factories for Discord components, keeping message construction consistent.
 import type { CommandInteraction, Message } from 'discord.js';
@@ -37,20 +48,16 @@ function truncateTitle(title: string): string {
  * Creates a component-based reply with just text content
  */
 export function createTextComponent(content: string) {
-	return new ContainerBuilder()
-		.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(truncateText(content))
-		);
+	return new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(truncateText(content)));
 }
 
 /**
  * Creates a component-based reply with longer text content for error messages
  */
 export function createErrorTextComponent(content: string) {
-	return new ContainerBuilder()
-		.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(truncateText(content, 2000)) // Much longer limit for error messages
-		);
+	return new ContainerBuilder().addTextDisplayComponents(
+		new TextDisplayBuilder().setContent(truncateText(content, 2000)) // Much longer limit for error messages
+	);
 }
 
 /**
@@ -71,9 +78,7 @@ export function replyEphemeralComponent(interaction: CommandInteraction, content
 export function replyWithComponent(interaction: CommandInteraction, content: string, ephemeral: boolean = false) {
 	const components = [createErrorTextComponent(content)]; // Use error text component for longer content
 
-	const flags = ephemeral
-		? MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
-		: MessageFlags.IsComponentsV2;
+	const flags = ephemeral ? MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 : MessageFlags.IsComponentsV2;
 
 	return interaction.reply({
 		components,
@@ -87,9 +92,7 @@ export function replyWithComponent(interaction: CommandInteraction, content: str
 export function editReplyWithComponent(interaction: CommandInteraction, content: string, ephemeral: boolean = false) {
 	const components = [createErrorTextComponent(content)]; // Use error text component for longer content
 
-	const flags = ephemeral
-		? MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
-		: MessageFlags.IsComponentsV2;
+	const flags = ephemeral ? MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 : MessageFlags.IsComponentsV2;
 
 	return interaction.editReply({
 		components,
@@ -119,9 +122,7 @@ export function createComponentDetailsSection(params: {
 	}
 
 	if (bodyParts.length > 0) {
-		section.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(bodyParts.join('\n\n'))
-		);
+		section.addTextDisplayComponents(new TextDisplayBuilder().setContent(bodyParts.join('\n\n')));
 	}
 
 	if (thumbnailUrl) {
@@ -141,20 +142,14 @@ export function createListComponent(title: string, items: string[], emptyMessage
 	const truncatedTitle = truncateTitle(title);
 
 	// Add title
-	container.addTextDisplayComponents(
-		new TextDisplayBuilder().setContent(`### ${truncatedTitle}`)
-	);
+	container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${truncatedTitle}`));
 
 	// Add separator after title
-	container.addSeparatorComponents(
-		new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-	);
+	container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 
 	if (items.length === 0) {
 		// Add empty message
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`*${truncateText(emptyMessage, 1900)}*`)
-		);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`*${truncateText(emptyMessage, 1900)}*`));
 	} else {
 		// Determine separator based on content length or force
 		const averageItemLength = items.reduce((sum, item) => sum + item.length, 0) / items.length;
@@ -196,9 +191,7 @@ export function createListComponent(title: string, items: string[], emptyMessage
 			// Check if we can fit the "more" text
 			if (currentLength + moreText.length <= maxLength) {
 				const finalContent = fittingItems.join(separator) + moreText;
-				container.addTextDisplayComponents(
-					new TextDisplayBuilder().setContent(finalContent)
-				);
+				container.addTextDisplayComponents(new TextDisplayBuilder().setContent(finalContent));
 			} else {
 				// If we can't fit the "more" text, remove the last item and try again
 				if (fittingItems.length > 1) {
@@ -208,26 +201,18 @@ export function createListComponent(title: string, items: string[], emptyMessage
 					const contentWithoutLast = fittingItems.join(separator) + newMoreText;
 
 					if (contentWithoutLast.length <= maxLength) {
-						container.addTextDisplayComponents(
-							new TextDisplayBuilder().setContent(contentWithoutLast)
-						);
+						container.addTextDisplayComponents(new TextDisplayBuilder().setContent(contentWithoutLast));
 					} else {
 						// Fallback: just show what we can fit
-						container.addTextDisplayComponents(
-							new TextDisplayBuilder().setContent(fittingItems.join(separator))
-						);
+						container.addTextDisplayComponents(new TextDisplayBuilder().setContent(fittingItems.join(separator)));
 					}
 				} else {
-					container.addTextDisplayComponents(
-						new TextDisplayBuilder().setContent(fittingItems.join(separator))
-					);
+					container.addTextDisplayComponents(new TextDisplayBuilder().setContent(fittingItems.join(separator)));
 				}
 			}
 		} else {
 			// All items fit, show them all
-			container.addTextDisplayComponents(
-				new TextDisplayBuilder().setContent(fittingItems.join(separator))
-			);
+			container.addTextDisplayComponents(new TextDisplayBuilder().setContent(fittingItems.join(separator)));
 		}
 	}
 
@@ -280,22 +265,16 @@ export function createMultiSectionComponent(
 		}
 
 		// Combine title and content in a single component to save component count
-		if (!addComponent(() =>
-			container.addTextDisplayComponents(
-				new TextDisplayBuilder().setContent(sectionContent)
-			)
-		)) {
+		if (!addComponent(() => container.addTextDisplayComponents(new TextDisplayBuilder().setContent(sectionContent)))) {
 			return null;
 		}
 
 		// Only add separator between sections (not after each section)
 		const isLastSection = index === limitedSections.length - 1;
 		if (!isLastSection) {
-			if (!addComponent(() =>
-				container.addSeparatorComponents(
-					new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-				)
-			)) {
+			if (
+				!addComponent(() => container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)))
+			) {
 				return null;
 			}
 		}
@@ -321,19 +300,13 @@ export function createPaginatedComponentWithButtons(
 
 	if (items.length === 0) {
 		// Add title
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`### ${truncatedTitle}`)
-		);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${truncatedTitle}`));
 
 		// Add separator after title
-		container.addSeparatorComponents(
-			new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-		);
+		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 
 		// Add empty message
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`*${truncateText(emptyMessage, 1900)}*`)
-		);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`*${truncateText(emptyMessage, 1900)}*`));
 
 		return { component: container, totalPages: 0, currentPage: 1 };
 	}
@@ -349,14 +322,10 @@ export function createPaginatedComponentWithButtons(
 
 	// Add title with page info
 	const titleWithPage = totalPages > 1 ? `${truncatedTitle} (Page ${validPage}/${totalPages})` : truncatedTitle;
-	container.addTextDisplayComponents(
-		new TextDisplayBuilder().setContent(`### ${titleWithPage}`)
-	);
+	container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${titleWithPage}`));
 
 	// Add separator after title
-	container.addSeparatorComponents(
-		new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-	);
+	container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 
 	// Add page items with numbered format
 	const numberedItems = pageItems.map((item, index) => {
@@ -365,20 +334,14 @@ export function createPaginatedComponentWithButtons(
 	});
 
 	const content = numberedItems.join('\n');
-	container.addTextDisplayComponents(
-		new TextDisplayBuilder().setContent(truncateText(content, 1900))
-	);
+	container.addTextDisplayComponents(new TextDisplayBuilder().setContent(truncateText(content, 1900)));
 
 	// Add pagination info if multiple pages
 	if (totalPages > 1) {
-		container.addSeparatorComponents(
-			new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-		);
+		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 
 		const paginationInfo = `Showing ${pageItems.length} of ${items.length} items`;
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`*${paginationInfo}*`)
-		);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`*${paginationInfo}*`));
 	}
 
 	return { component: container, totalPages, currentPage: validPage };
@@ -387,12 +350,7 @@ export function createPaginatedComponentWithButtons(
 /**
  * Creates navigation buttons for pagination
  */
-export function createPaginationButtons(
-	currentPage: number,
-	totalPages: number,
-	customId: string,
-	options: { ownerId?: string } = {}
-) {
+export function createPaginationButtons(currentPage: number, totalPages: number, customId: string, options: { ownerId?: string } = {}) {
 	if (totalPages <= 1) return [];
 
 	const buttons = [];
@@ -435,12 +393,7 @@ export function createPaginationButtons(
 /**
  * Creates a paginated component with multiple pages for large lists
  */
-export function createPaginatedListComponent(
-	title: string,
-	items: string[],
-	emptyMessage: string = 'No items found.',
-	itemsPerPage: number = 10
-) {
+export function createPaginatedListComponent(title: string, items: string[], emptyMessage: string = 'No items found.', itemsPerPage: number = 10) {
 	const container = new ContainerBuilder();
 
 	// Truncate title to fit Discord limits
@@ -448,19 +401,13 @@ export function createPaginatedListComponent(
 
 	if (items.length === 0) {
 		// Add title
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`### ${truncatedTitle}`)
-		);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${truncatedTitle}`));
 
 		// Add separator after title
-		container.addSeparatorComponents(
-			new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-		);
+		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 
 		// Add empty message
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`*${truncateText(emptyMessage, 1900)}*`)
-		);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`*${truncateText(emptyMessage, 1900)}*`));
 
 		return container;
 	}
@@ -476,14 +423,10 @@ export function createPaginatedListComponent(
 
 	// Add title with page info
 	const titleWithPage = totalPages > 1 ? `${truncatedTitle} (Page ${currentPage}/${totalPages})` : truncatedTitle;
-	container.addTextDisplayComponents(
-		new TextDisplayBuilder().setContent(`### ${titleWithPage}`)
-	);
+	container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${titleWithPage}`));
 
 	// Add separator after title
-	container.addSeparatorComponents(
-		new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-	);
+	container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 
 	// Add page items with numbered format
 	const numberedItems = pageItems.map((item, index) => {
@@ -492,20 +435,14 @@ export function createPaginatedListComponent(
 	});
 
 	const content = numberedItems.join('\n');
-	container.addTextDisplayComponents(
-		new TextDisplayBuilder().setContent(truncateText(content, 1900))
-	);
+	container.addTextDisplayComponents(new TextDisplayBuilder().setContent(truncateText(content, 1900)));
 
 	// Add pagination info if multiple pages
 	if (totalPages > 1) {
-		container.addSeparatorComponents(
-			new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-		);
+		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 
 		const paginationInfo = `Showing ${pageItems.length} of ${items.length} items`;
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`*${paginationInfo}*`)
-		);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`*${paginationInfo}*`));
 	}
 
 	return container;
@@ -535,9 +472,7 @@ export async function respondWithComponent(
 				flags: MessageFlags.IsComponentsV2
 			});
 		} else {
-			const flags = context.ephemeral
-				? MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
-				: MessageFlags.IsComponentsV2;
+			const flags = context.ephemeral ? MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 : MessageFlags.IsComponentsV2;
 
 			return context.interaction.reply({
 				components,
@@ -559,7 +494,7 @@ export async function respondWithComponent(
  * This is a temporary solution since message commands don't support components
  */
 function extractContentFromComponent(_component: ContainerBuilder): string {
-	// This is a simplified extraction - in a real implementation you'd want to 
+	// This is a simplified extraction - in a real implementation you'd want to
 	// properly parse the component structure and convert it to readable text
-	return "Component-based response (use slash commands for better formatting)";
+	return 'Component-based response (use slash commands for better formatting)';
 }

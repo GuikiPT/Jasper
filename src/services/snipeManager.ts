@@ -47,7 +47,10 @@ export class SnipeManager {
 	private readonly ignoredDeletionIds = new Set<string>();
 	private readonly MESSAGE_RETENTION_MS = 5 * 60 * 1000; // 5 minutes
 
-	public constructor(private readonly client: SapphireClient, private readonly database: PrismaClient) {
+	public constructor(
+		private readonly client: SapphireClient,
+		private readonly database: PrismaClient
+	) {
 		// Clean up old messages every 30 seconds
 		setInterval(() => this.cleanupOldMessages(), 30_000);
 	}
@@ -77,7 +80,7 @@ export class SnipeManager {
 		if (message.author?.bot) return;
 
 		// Skip if message content is empty and has no attachments/embeds
-		if (!message.content && (!message.attachments?.size) && (!message.embeds?.length)) return;
+		if (!message.content && !message.attachments?.size && !message.embeds?.length) return;
 
 		// Check if channel is in allowed snipe channels
 		const isChannelAllowed = await this.isChannelAllowed(message.guildId, message.channelId);
@@ -127,18 +130,20 @@ export class SnipeManager {
 					id: message.guild.id,
 					name: message.guild.name
 				},
-				attachments: message.attachments?.map(att => ({
-					id: att.id,
-					name: att.name,
-					url: att.url,
-					proxyURL: att.proxyURL,
-					size: att.size
-				})) || [],
-				embeds: message.embeds?.map(embed => ({
-					title: embed.title || undefined,
-					description: embed.description || undefined,
-					url: embed.url || undefined
-				})) || [],
+				attachments:
+					message.attachments?.map((att) => ({
+						id: att.id,
+						name: att.name,
+						url: att.url,
+						proxyURL: att.proxyURL,
+						size: att.size
+					})) || [],
+				embeds:
+					message.embeds?.map((embed) => ({
+						title: embed.title || undefined,
+						description: embed.description || undefined,
+						url: embed.url || undefined
+					})) || [],
 				deletedAt: new Date(),
 				createdAt: message.createdAt || new Date()
 			};
