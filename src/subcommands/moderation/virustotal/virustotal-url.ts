@@ -1,0 +1,238 @@
+import axios from 'axios';
+import type { Subcommand } from '@sapphire/plugin-subcommands';
+import { TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize, FileBuilder, ContainerBuilder, MessageFlags, ButtonBuilder, ButtonStyle, ActionRowBuilder, type MessageActionRowComponentBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder } from 'discord.js';
+
+import { VirusTotalChatInputInteraction } from './types';
+
+export async function chatInputVirusTotalUrl(_command: Subcommand, interaction: VirusTotalChatInputInteraction) {
+	const url = interaction.options.getString('link', true);
+	const ephemeral = interaction.options.getBoolean('ephemeral') ?? true;
+
+	await interaction.deferReply(ephemeral ? { flags: MessageFlags.Ephemeral } : undefined);
+
+	try {
+		const apiKey = process.env.VIRUSTOTAL_API_KEY;
+		if (!apiKey) {
+			await interaction.editReply({
+				content: '❌ VirusTotal API key is not configured. Please contact an administrator.'
+			});
+			return;
+		}
+
+		// Step 1: Submit URL for analysis
+		const submitOptions = {
+			method: 'POST',
+			url: 'https://www.virustotal.com/api/v3/urls',
+			headers: {
+				accept: 'application/json',
+				'content-type': 'application/x-www-form-urlencoded',
+				'x-apikey': apiKey
+			},
+			data: `url=${encodeURIComponent(url)}`
+		};
+
+		await axios.request(submitOptions); // Start analysis
+
+		// Step 2: Notify user that scanning is in progress
+		const endTime = Math.floor(Date.now() / 1000) + 30; // Unix timestamp for 30 seconds from now
+		const progressComponents = [
+			new ContainerBuilder()
+				.addTextDisplayComponents(
+					new TextDisplayBuilder().setContent(`🔍 **VirusTotal URL Analysis**\n\nAnalyzing URL: \`${url}\`\n\n⏳ **Scanning in progress...** Results will be ready <t:${endTime}:R>.`)
+				)
+				.addSeparatorComponents(
+					new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+				)
+				.addMediaGalleryComponents(
+					new MediaGalleryBuilder()
+						.addItems(
+							new MediaGalleryItemBuilder()
+								.setURL('https://i.imgur.com/OuNrmUW.gif')
+						)
+				)
+		];
+
+		await interaction.editReply({
+			components: progressComponents,
+			flags: MessageFlags.IsComponentsV2
+		});
+
+		// Step 3: Wait 30 seconds for analysis to complete
+		await new Promise(resolve => setTimeout(resolve, 30000)); // Wait 30 seconds
+
+		// Step 3: Create URL ID and fetch results
+		const urlId = Buffer.from(url).toString('base64url');
+
+		const urlOptions = {
+			method: 'GET',
+			url: `https://www.virustotal.com/api/v3/urls/${urlId}`,
+			headers: {
+				accept: 'application/json',
+				'x-apikey': apiKey
+			}
+		};
+
+		const urlResponse = await axios.request(urlOptions);
+		const urlData = urlResponse.data;
+
+		const stats = urlData.data.attributes.last_analysis_stats;
+		const malicious = stats.malicious || 0;
+		const suspicious = stats.suspicious || 0;
+		const harmless = stats.harmless || 0;
+		const undetected = stats.undetected || 0;
+
+		let status = '🟢 **SAFE**';
+		if (malicious > 0) {
+			status = '🔴 **MALICIOUS**';
+		} else if (suspicious > 0) {
+			status = '🟡 **SUSPICIOUS**';
+		}
+
+		const attributes = urlData.data.attributes;
+		const totalVotes = attributes.total_votes || {};
+		const harmlessVotes = totalVotes.harmless || 0;
+		const maliciousVotes = totalVotes.malicious || 0;
+		const tags = attributes.tags || [];
+		const categories = attributes.categories || {};
+		const title = attributes.title || 'No title detected';
+		const httpCode = attributes.last_http_response_code || 'Unknown';
+		const reputation = attributes.reputation || 0;
+		const timesSubmitted = attributes.times_submitted || 1;
+
+		const lastAnalysisDate = attributes.last_analysis_date
+			? new Date(attributes.last_analysis_date * 1000).toLocaleDateString()
+			: 'Unknown';
+
+		const results = attributes.last_analysis_results || {};
+		const maliciousEngines = Object.entries(results)
+			.filter(([_, result]: [string, any]) => result.category === 'malicious')
+			.map(([engine]) => `${engine}`)
+			.slice(0, 3);
+
+		const detailedReport = `
+VIRUSTOTAL URL ANALYSIS REPORT
+==============================
+
+URL: ${url}
+TITLE: ${title}
+HTTP STATUS: ${httpCode}
+
+REPUTATION SCORE: ${reputation}/100
+TIMES SUBMITTED: ${timesSubmitted}
+
+LAST ANALYSIS DATE: ${lastAnalysisDate}
+
+DETECTION SUMMARY:
+- MALICIOUS: ${malicious} engines
+- SUSPICIOUS: ${suspicious} engines
+- CLEAN: ${harmless} engines
+- UNDETECTED: ${undetected} engines
+
+COMMUNITY VOTES:
+- HARMLESS: ${harmlessVotes}
+- MALICIOUS: ${maliciousVotes}
+
+CATEGORIES: ${Object.keys(categories).length > 0 ? Object.keys(categories).join(', ') : 'None'}
+
+TAGS: ${tags.length > 0 ? tags.join(', ') : 'None'}
+
+MALICIOUS DETECTIONS:
+${maliciousEngines.length > 0 ? maliciousEngines.map(engine => `- ${engine}`).join('\n') : 'None detected'}
+
+DETAILED ANALYSIS RESULTS:
+${Object.entries(attributes.last_analysis_results || {})
+				.map(([engine, result]: [string, any]) => `${engine}: ${result.category} (${result.result || 'N/A'})`)
+				.join('\n')}
+
+Generated by Jasper Bot - ${new Date().toISOString()}
+Powered by VirusTotal API
+		`.trim();
+
+		const components = [
+			new ContainerBuilder()
+				.addTextDisplayComponents(
+					new TextDisplayBuilder().setContent("## VirusTotal URL Report")
+				)
+				.addSeparatorComponents(
+					new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+				)
+
+				.addTextDisplayComponents(
+					new TextDisplayBuilder().setContent(`❓ **Security Status:** ${status}`)
+				)
+				.addSeparatorComponents(
+					new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+				)
+
+				.addTextDisplayComponents(
+					new TextDisplayBuilder().setContent(
+						`🔗 **URL Information**\n\n` +
+						`• **URL:** \`${url}\`\n` +
+						`• **Title:** \`${title}\`\n` +
+						`• **HTTP Status:** \`${httpCode}\`\n` +
+						`• **Reputation:** \`${reputation}/100\``
+					)
+				)
+				.addSeparatorComponents(
+					new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+				)
+
+				.addTextDisplayComponents(
+					new TextDisplayBuilder().setContent(
+						`📈 **Detection Summary:**\n\n` +
+						`• **Malicious:** \`${malicious}\` engines\n` +
+						`• **Suspicious:** \`${suspicious}\` engines\n` +
+						`• **Clean:** \`${harmless}\` engines\n` +
+						`• **Undetected:** \`${undetected}\` engines`
+					)
+				)
+				.addSeparatorComponents(
+					new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+				)
+
+				.addTextDisplayComponents(
+					new TextDisplayBuilder().setContent(
+						`�️ **Community Votes:**\n` +
+						`\`${harmlessVotes}\` ✅ | \`${maliciousVotes}\` ❌\n\n` +
+						`📅 **Last Analyzed:**\n` +
+						`\`${lastAnalysisDate}\`\n\n` +
+						`🔄 **Times Submitted:**\n` +
+						`\`${timesSubmitted}\`` +
+						(Object.keys(categories).length > 0 ? `\n🏷️ **Categories:** \`${Object.keys(categories).join(', ')}\`` : '') +
+						(tags.length > 0 ? `\n🏷️ **Tags:** \`${tags.join(', ')}\`` : '') +
+						(maliciousEngines.length > 0 ? `\n⚠️ **Detected by:** \`${maliciousEngines.join(', ')}\`` : '')
+					)
+				)
+				.addSeparatorComponents(
+					new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
+				)
+
+				.addFileComponents(
+					new FileBuilder().setURL(`attachment://virustotal-url-report.txt`)
+				)
+
+				.addActionRowComponents(
+					new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+						new ButtonBuilder()
+							.setStyle(ButtonStyle.Link)
+							.setLabel("View Web Report")
+							.setURL(`https://www.virustotal.com/gui/url/${encodeURIComponent(url)}`)
+					)
+				)
+		];
+
+		await interaction.editReply({
+			files: [{
+				attachment: Buffer.from(detailedReport),
+				name: `virustotal-url-report.txt`
+			}],
+			components,
+			flags: MessageFlags.IsComponentsV2
+		});
+	} catch (error) {
+		console.error('VirusTotal API error:', error);
+		await interaction.editReply({
+			content: '❌ An error occurred while analyzing the URL. Please try again later.'
+		});
+	}
+}

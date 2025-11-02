@@ -1,6 +1,6 @@
 {
   "name": "jasper-revamp",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "main": "dist/index.js",
   "author": "GuikiPT",
   "license": "UNLICENSE",
@@ -21,6 +21,7 @@
     "@sapphire/type": "^2.6.0",
     "@sapphire/utilities": "^3.18.2",
     "@skyra/env-utilities": "^2.0.1",
+    "axios": "^1.13.1",
     "colorette": "^2.0.20",
     "discord.js": "^14.22.1"
   },

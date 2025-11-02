@@ -22,23 +22,23 @@ import { createErrorTextComponent } from '../../lib/components.js';
 type DetailedDescriptionMetadata =
 	| string
 	| {
-			summary?: string;
+		summary?: string;
+		chatInputUsage?: string;
+		messageUsage?: string;
+		examples?: string[];
+		notes?: string[];
+		subcommands?: Array<{
+			group?: string;
+			name: string;
+			description?: string;
 			chatInputUsage?: string;
 			messageUsage?: string;
 			examples?: string[];
 			notes?: string[];
-			subcommands?: Array<{
-				group?: string;
-				name: string;
-				description?: string;
-				chatInputUsage?: string;
-				messageUsage?: string;
-				examples?: string[];
-				notes?: string[];
-				aliases?: string[];
-				keywords?: string[];
-			}>;
-		};
+			aliases?: string[];
+			keywords?: string[];
+		}>;
+	};
 
 interface NormalisedSubcommandMetadata {
 	group?: string;
@@ -114,6 +114,11 @@ export class HelpCommand extends Command {
 		ping: 'ping',
 		topic: 'topic',
 		snipe: 'snipe',
+		virustotal: 'virustotal',
+		'virustotal ip': 'virustotal-ip',
+		'virustotal domain': 'virustotal-domain',
+		'virustotal file': 'virustotal-file',
+		'virustotal url': 'virustotal-url',
 		resolve: 'resolve',
 		tag: 'tag',
 		'tag create': 'tag-create',
