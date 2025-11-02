@@ -4,6 +4,7 @@ import type { Subcommand } from '@sapphire/plugin-subcommands';
 import { TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize, FileBuilder, ContainerBuilder, MessageFlags, ButtonBuilder, ButtonStyle, ActionRowBuilder, type MessageActionRowComponentBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder } from 'discord.js';
 
 import { VirusTotalChatInputInteraction } from './types';
+import { Logger } from '../../../lib/logger';
 
 const SECURITY_CONFIG = {
 	DOWNLOAD_TIMEOUT_MS: 60000,
@@ -456,8 +457,7 @@ Powered by VirusTotal API
 			global.gc();
 		}
 
-		console.error('[SECURITY] VirusTotal API error:', {
-			error: error instanceof Error ? error.message : 'Unknown error',
+		Logger.error('[SECURITY] VirusTotal API error', error, {
 			guildId: interaction.guildId,
 			userId: interaction.user.id,
 			filename: file.name,

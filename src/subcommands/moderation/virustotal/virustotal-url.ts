@@ -1,8 +1,18 @@
 import axios from 'axios';
 import type { Subcommand } from '@sapphire/plugin-subcommands';
-import { TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize, FileBuilder, ContainerBuilder, MessageFlags, ButtonBuilder, ButtonStyle, ActionRowBuilder, type MessageActionRowComponentBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder } from 'discord.js';
+import { MessageFlags } from 'discord.js';
 
 import { VirusTotalChatInputInteraction } from './types';
+import {
+	validateApiKey,
+	getSecurityStatus,
+	getMaliciousEngines,
+	createReportComponents,
+	createProgressComponents,
+	handleVirusTotalError,
+	formatUnixDate
+} from './utils';
+import { VIRUSTOTAL_CONFIG } from './constants';
 
 export async function chatInputVirusTotalUrl(_command: Subcommand, interaction: VirusTotalChatInputInteraction) {
 	const url = interaction.options.getString('link', true);
@@ -11,18 +21,12 @@ export async function chatInputVirusTotalUrl(_command: Subcommand, interaction: 
 	await interaction.deferReply(ephemeral ? { flags: MessageFlags.Ephemeral } : undefined);
 
 	try {
-		const apiKey = process.env.VIRUSTOTAL_API_KEY;
-		if (!apiKey) {
-			await interaction.editReply({
-				content: '❌ VirusTotal API key is not configured. Please contact an administrator.'
-			});
-			return;
-		}
+		const apiKey = validateApiKey();
 
 		// Step 1: Submit URL for analysis
 		const submitOptions = {
 			method: 'POST',
-			url: 'https://www.virustotal.com/api/v3/urls',
+			url: `${VIRUSTOTAL_CONFIG.API.BASE_URL}${VIRUSTOTAL_CONFIG.API.ENDPOINTS.URLS}`,
 			headers: {
 				accept: 'application/json',
 				'content-type': 'application/x-www-form-urlencoded',
@@ -34,23 +38,12 @@ export async function chatInputVirusTotalUrl(_command: Subcommand, interaction: 
 		await axios.request(submitOptions); // Start analysis
 
 		// Step 2: Notify user that scanning is in progress
-		const endTime = Math.floor(Date.now() / 1000) + 30; // Unix timestamp for 30 seconds from now
-		const progressComponents = [
-			new ContainerBuilder()
-				.addTextDisplayComponents(
-					new TextDisplayBuilder().setContent(`🔍 **VirusTotal URL Analysis**\n\nAnalyzing URL: \`${url}\`\n\n⏳ **Scanning in progress...** Results will be ready <t:${endTime}:R>.`)
-				)
-				.addSeparatorComponents(
-					new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-				)
-				.addMediaGalleryComponents(
-					new MediaGalleryBuilder()
-						.addItems(
-							new MediaGalleryItemBuilder()
-								.setURL('https://i.imgur.com/OuNrmUW.gif')
-						)
-				)
-		];
+		const progressComponents = createProgressComponents(
+			'VirusTotal URL Analysis',
+			`Analyzing URL: \`${url}\``,
+			false,
+			30
+		);
 
 		await interaction.editReply({
 			components: progressComponents,
@@ -58,14 +51,14 @@ export async function chatInputVirusTotalUrl(_command: Subcommand, interaction: 
 		});
 
 		// Step 3: Wait 30 seconds for analysis to complete
-		await new Promise(resolve => setTimeout(resolve, 30000)); // Wait 30 seconds
+		await new Promise(resolve => setTimeout(resolve, 30000));
 
-		// Step 3: Create URL ID and fetch results
+		// Step 4: Create URL ID and fetch results
 		const urlId = Buffer.from(url).toString('base64url');
 
 		const urlOptions = {
 			method: 'GET',
-			url: `https://www.virustotal.com/api/v3/urls/${urlId}`,
+			url: `${VIRUSTOTAL_CONFIG.API.BASE_URL}${VIRUSTOTAL_CONFIG.API.ENDPOINTS.URLS}/${urlId}`,
 			headers: {
 				accept: 'application/json',
 				'x-apikey': apiKey
@@ -76,19 +69,10 @@ export async function chatInputVirusTotalUrl(_command: Subcommand, interaction: 
 		const urlData = urlResponse.data;
 
 		const stats = urlData.data.attributes.last_analysis_stats;
-		const malicious = stats.malicious || 0;
-		const suspicious = stats.suspicious || 0;
-		const harmless = stats.harmless || 0;
-		const undetected = stats.undetected || 0;
-
-		let status = '🟢 **SAFE**';
-		if (malicious > 0) {
-			status = '🔴 **MALICIOUS**';
-		} else if (suspicious > 0) {
-			status = '🟡 **SUSPICIOUS**';
-		}
-
 		const attributes = urlData.data.attributes;
+		const status = getSecurityStatus(stats);
+
+		// Extract relevant information
 		const totalVotes = attributes.total_votes || {};
 		const harmlessVotes = totalVotes.harmless || 0;
 		const maliciousVotes = totalVotes.malicious || 0;
@@ -98,17 +82,10 @@ export async function chatInputVirusTotalUrl(_command: Subcommand, interaction: 
 		const httpCode = attributes.last_http_response_code || 'Unknown';
 		const reputation = attributes.reputation || 0;
 		const timesSubmitted = attributes.times_submitted || 1;
+		const lastAnalysisDate = formatUnixDate(attributes.last_analysis_date);
+		const maliciousEngines = getMaliciousEngines(attributes.last_analysis_results || {});
 
-		const lastAnalysisDate = attributes.last_analysis_date
-			? new Date(attributes.last_analysis_date * 1000).toLocaleDateString()
-			: 'Unknown';
-
-		const results = attributes.last_analysis_results || {};
-		const maliciousEngines = Object.entries(results)
-			.filter(([_, result]: [string, any]) => result.category === 'malicious')
-			.map(([engine]) => `${engine}`)
-			.slice(0, 3);
-
+		// Build detailed report
 		const detailedReport = `
 VIRUSTOTAL URL ANALYSIS REPORT
 ==============================
@@ -123,10 +100,10 @@ TIMES SUBMITTED: ${timesSubmitted}
 LAST ANALYSIS DATE: ${lastAnalysisDate}
 
 DETECTION SUMMARY:
-- MALICIOUS: ${malicious} engines
-- SUSPICIOUS: ${suspicious} engines
-- CLEAN: ${harmless} engines
-- UNDETECTED: ${undetected} engines
+- MALICIOUS: ${stats.malicious || 0} engines
+- SUSPICIOUS: ${stats.suspicious || 0} engines
+- CLEAN: ${stats.harmless || 0} engines
+- UNDETECTED: ${stats.undetected || 0} engines
 
 COMMUNITY VOTES:
 - HARMLESS: ${harmlessVotes}
@@ -148,91 +125,57 @@ Generated by Jasper Bot - ${new Date().toISOString()}
 Powered by VirusTotal API
 		`.trim();
 
-		const components = [
-			new ContainerBuilder()
-				.addTextDisplayComponents(
-					new TextDisplayBuilder().setContent("## VirusTotal URL Report")
-				)
-				.addSeparatorComponents(
-					new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-				)
-
-				.addTextDisplayComponents(
-					new TextDisplayBuilder().setContent(`❓ **Security Status:** ${status}`)
-				)
-				.addSeparatorComponents(
-					new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-				)
-
-				.addTextDisplayComponents(
-					new TextDisplayBuilder().setContent(
-						`🔗 **URL Information**\n\n` +
-						`• **URL:** \`${url}\`\n` +
-						`• **Title:** \`${title}\`\n` +
-						`• **HTTP Status:** \`${httpCode}\`\n` +
-						`• **Reputation:** \`${reputation}/100\``
-					)
-				)
-				.addSeparatorComponents(
-					new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-				)
-
-				.addTextDisplayComponents(
-					new TextDisplayBuilder().setContent(
-						`📈 **Detection Summary:**\n\n` +
-						`• **Malicious:** \`${malicious}\` engines\n` +
-						`• **Suspicious:** \`${suspicious}\` engines\n` +
-						`• **Clean:** \`${harmless}\` engines\n` +
-						`• **Undetected:** \`${undetected}\` engines`
-					)
-				)
-				.addSeparatorComponents(
-					new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-				)
-
-				.addTextDisplayComponents(
-					new TextDisplayBuilder().setContent(
-						`�️ **Community Votes:**\n` +
-						`\`${harmlessVotes}\` ✅ | \`${maliciousVotes}\` ❌\n\n` +
-						`📅 **Last Analyzed:**\n` +
-						`\`${lastAnalysisDate}\`\n\n` +
-						`🔄 **Times Submitted:**\n` +
-						`\`${timesSubmitted}\`` +
-						(Object.keys(categories).length > 0 ? `\n🏷️ **Categories:** \`${Object.keys(categories).join(', ')}\`` : '') +
-						(tags.length > 0 ? `\n🏷️ **Tags:** \`${tags.join(', ')}\`` : '') +
-						(maliciousEngines.length > 0 ? `\n⚠️ **Detected by:** \`${maliciousEngines.join(', ')}\`` : '')
-					)
-				)
-				.addSeparatorComponents(
-					new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-				)
-
-				.addFileComponents(
-					new FileBuilder().setURL(`attachment://virustotal-url-report.txt`)
-				)
-
-				.addActionRowComponents(
-					new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
-						new ButtonBuilder()
-							.setStyle(ButtonStyle.Link)
-							.setLabel("View Web Report")
-							.setURL(`https://www.virustotal.com/gui/url/${encodeURIComponent(url)}`)
-					)
-				)
+		// Build report sections
+		const sections = [
+			{
+				title: '🔗 **URL Information**',
+				content:
+					`• **URL:** \`${url}\`\n` +
+					`• **Title:** \`${title}\`\n` +
+					`• **HTTP Status:** \`${httpCode}\`\n` +
+					`• **Reputation:** \`${reputation}/100\``
+			},
+			{
+				title: '📈 **Detection Summary:**',
+				content:
+					`• **Malicious:** \`${stats.malicious || 0}\` engines\n` +
+					`• **Suspicious:** \`${stats.suspicious || 0}\` engines\n` +
+					`• **Clean:** \`${stats.harmless || 0}\` engines\n` +
+					`• **Undetected:** \`${stats.undetected || 0}\` engines`
+			},
+			{
+				title: '🗳️ **Community & Analysis**',
+				content:
+					`**Community Votes:**\n` +
+					`\`${harmlessVotes}\` ✅ | \`${maliciousVotes}\` ❌\n\n` +
+					`**Last Analyzed:**\n` +
+					`\`${lastAnalysisDate}\`\n\n` +
+					`**Times Submitted:**\n` +
+					`\`${timesSubmitted}\`` +
+					(Object.keys(categories).length > 0 ? `\n**Categories:** \`${Object.keys(categories).join(', ')}\`` : '') +
+					(tags.length > 0 ? `\n**Tags:** \`${tags.join(', ')}\`` : '') +
+					(maliciousEngines.length > 0 ? `\n⚠️ **Detected by:** \`${maliciousEngines.join(', ')}\`` : '')
+			}
 		];
+
+		const components = createReportComponents(
+			'VirusTotal URL Report',
+			status,
+			sections,
+			`https://www.virustotal.com/gui/url/${encodeURIComponent(url)}`,
+			'virustotal-url-report.txt'
+		);
 
 		await interaction.editReply({
 			files: [{
 				attachment: Buffer.from(detailedReport),
-				name: `virustotal-url-report.txt`
+				name: 'virustotal-url-report.txt'
 			}],
 			components,
 			flags: MessageFlags.IsComponentsV2
 		});
 	} catch (error) {
-		console.error('VirusTotal API error:', error);
-		await interaction.editReply({
-			content: '❌ An error occurred while analyzing the URL. Please try again later.'
-		});
+		const errorMessage = handleVirusTotalError(error, { url });
+		await interaction.editReply({ content: errorMessage });
 	}
 }

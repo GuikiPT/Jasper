@@ -385,11 +385,9 @@ export function createReportComponents(
  * Enhanced error handling for VirusTotal operations
  */
 export function handleVirusTotalError(error: unknown, context: Record<string, any> = {}): string {
-	console.error('[SECURITY] VirusTotal operation error:', {
-		error: error instanceof Error ? error.message : 'Unknown error',
-		stack: error instanceof Error ? error.stack : undefined,
-		...context
-	});
+	// Use Logger instead of console.error
+	const { Logger } = require('../../lib/logger');
+	Logger.error('[SECURITY] VirusTotal operation error', error, context);
 
 	if (axios.isAxiosError(error)) {
 		const axiosError = error as AxiosError;
@@ -422,4 +420,41 @@ export function handleVirusTotalError(error: unknown, context: Record<string, an
 	}
 
 	return ERROR_MESSAGES.GENERIC_ERROR;
+}
+
+/**
+ * Common function to fetch VirusTotal data for domains, IPs, or URLs
+ */
+export async function fetchVirusTotalData<T>(endpoint: string): Promise<T> {
+	try {
+		const apiKey = validateApiKey();
+		if (!apiKey) {
+			throw new Error(ERROR_MESSAGES.API_KEY_MISSING);
+		}
+
+		return await makeVirusTotalRequest<T>({
+			method: 'GET',
+			url: `${VIRUSTOTAL_CONFIG.API.BASE_URL}${endpoint}`,
+			headers: {
+				accept: 'application/json',
+				'x-apikey': apiKey
+			}
+		});
+	} catch (error) {
+		throw error;
+	}
+}
+
+/**
+ * Common function to handle interaction deferral
+ */
+export async function deferInteractionReply(interaction: any, ephemeral: boolean): Promise<void> {
+	await interaction.deferReply(ephemeral ? { flags: 1 << 6 } : undefined);
+}
+
+/**
+ * Common function to format date from Unix timestamp
+ */
+export function formatUnixDate(timestamp: number | undefined): string {
+	return timestamp ? new Date(timestamp * 1000).toLocaleDateString() : 'Unknown';
 }
