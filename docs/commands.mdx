@@ -467,292 +467,114 @@ Exports all saved topics as JSON file.
 
 **Syntax**: `/settings topics export` | `j!settings topics export`
 
-### Support (`/settings support`)
+### Support - Forum Configuration
 
-Configures the support forum integration used by `/resolve` and the inactivity automation for support threads.
-
-**Subcommands**
-- [`/settings support set`](#settings-support-set) - Configure the forum channel or resolved tag.
-- [`/settings support view`](#settings-support-view) - Display the current support configuration.
+Configures support forum integration for `/resolve` command and automatic thread monitoring.
 
 <a id="settings-support-set"></a>
-#### `/settings support set`
+#### `/settings support set` - Configure Support Settings
 
-<details>
-<summary>View details</summary>
+Sets support forum channel, resolved tag, and inactivity timers.
 
-**Purpose**
+**Permissions**: Admin Roles, Tag Admin Roles, Manage Server
 
-Configure the support forum channel, resolved tag, and inactivity timers used by `/resolve` and the support thread monitor.
+**Options**:
+- `setting` (choice, required) - One of: `supportForumChannelId`, `resolvedTagId`, `inactivityReminderMinutes`, `autoCloseMinutes`
+- `value` (string, optional) - Channel ID, Tag ID, or minutes (1-10080). Leave blank to clear channel/tag settings
 
-**Permissions**
-
-- Allowed Admin Roles.
-- Allowed Tag Admin Roles.
-- Manage Server (Discord permission).
-
-**Options**
-
-- `setting` (choice, required): `supportForumChannelId`, `resolvedTagId`, `inactivityReminderMinutes`, or `autoCloseMinutes`.
-- `value` (string, optional):
-  - Channel ID for `supportForumChannelId` (must be a forum channel).
-  - Tag ID for `resolvedTagId`.
-  - Number of minutes (1-10080) for `inactivityReminderMinutes` or `autoCloseMinutes`.
-  - Leave blank to clear `supportForumChannelId` or `resolvedTagId`.
-
-**Syntax**
-
-`/settings support set setting:<option> [value:<id>]` | `j!settings support set <option> [value]`
-
-**Validation**
-
-`supportForumChannelId` must reference a forum channel. Minute-based options must be between 1 and 10080 (inclusive).
-
-</details>
+**Syntax**: `/settings support set setting:<option> [value:<id>]` | `j!settings support set <option> [value]`
 
 <a id="settings-support-view"></a>
-#### `/settings support view`
+#### `/settings support view` - View Support Configuration
 
-<details>
-<summary>View details</summary>
+Displays configured support forum, resolved tag, and inactivity timers.
 
-**Purpose**
+**Permissions**: Admin Roles, Tag Admin Roles, Manage Server
 
-Display the configured support forum channel, resolved tag, and inactivity timers.
+**Syntax**: `/settings support view` | `j!settings support view`
 
-**Permissions**
+### Slowmode - Automatic Slowmode
 
-- Allowed Admin Roles.
-- Allowed Tag Admin Roles.
-- Manage Server (Discord permission).
-
-**Options**
-
-None.
-
-**Syntax**
-
-`/settings support view` | `j!settings support view`
-
-</details>
-
-### Slowmode (`/settings slowmode`)
-
-Controls Jasper's automatic slowmode system.
-
-**Subcommands**
-- [`/settings slowmode view`](#settings-slowmode-view) - Show the automatic slowmode status.
-- [`/settings slowmode configure`](#settings-slowmode-configure) - Update the automation thresholds and timers.
+Controls automatic slowmode system that adjusts channel slowmode based on activity.
 
 <a id="settings-slowmode-view"></a>
-#### `/settings slowmode view`
+#### `/settings slowmode view` - View Slowmode Config
 
-<details>
-<summary>View details</summary>
+Shows automatic slowmode configuration and tracked channels.
 
-**Purpose**
+**Permissions**: Admin Roles
 
-Show the automatic slowmode configuration and tracked channels.
-
-**Permissions**
-
-- Allowed Admin Roles.
-
-**Options**
-
-None.
-
-**Syntax**
-
-`/settings slowmode view` | `j!settings slowmode view`
-
-</details>
+**Syntax**: `/settings slowmode view` | `j!settings slowmode view`
 
 <a id="settings-slowmode-configure"></a>
-#### `/settings slowmode configure`
+#### `/settings slowmode configure` - Configure Slowmode
 
-<details>
-<summary>View details</summary>
+Updates automation thresholds and timers for automatic slowmode.
 
-**Purpose**
+**Permissions**: Admin Roles
 
-Update the automation thresholds and timers for automatic slowmode.
+**Options**:
+- `enabled` (boolean, optional) - Enable/disable automatic slowmode
+- `threshold` (integer, optional) - Messages required within window
+- `window` (integer, optional) - Activity window in seconds
+- `cooldown` (integer, optional) - Seconds between adjustments
+- `reset` (integer, optional) - Inactivity seconds before timer resets to 1
+- `max` (integer, optional) - Maximum slowmode duration (up to 21,600 seconds)
 
-**Permissions**
+**Syntax**: `/settings slowmode configure [enabled] [threshold] [window] [cooldown] [reset] [max]` | `j!settings slowmode configure enabled=true threshold=10 window=60`
 
-- Allowed Admin Roles.
+### YouTube - Subscriber Count Tracking
 
-**Options (slash)**
-
-- `enabled` (boolean, optional): Enable or disable automatic slowmode.
-- `threshold` (integer, optional): Messages required within the window.
-- `window` (integer, optional): Activity window in seconds.
-- `cooldown` (integer, optional): Seconds between adjustments.
-- `reset` (integer, optional): Seconds of inactivity before the timer resets to 1 second.
-- `max` (integer, optional): Maximum slowmode duration in seconds (up to 21,600).
-
-**Syntax**
-
-`/settings slowmode configure [enabled] [threshold] [window] [cooldown] [reset] [max]` | `j!settings slowmode configure enabled=true threshold=10 window=60`
-
-</details>
-
-### YouTube (`/settings youtube`)
-
-Configures automated YouTube subscriber tracking that renames a Discord channel with the live subscriber count.
-
-**Subcommands**
-- [`/settings youtube enable`](#settings-youtube-enable) - Enable tracking for a YouTube channel and target Discord channel.
-- [`/settings youtube disable`](#settings-youtube-disable) - Turn off subscriber tracking while keeping existing channel names untouched.
-- [`/settings youtube view`](#settings-youtube-view) - Display the saved tracking configuration and the most recent metrics.
-- [`/settings youtube test`](#settings-youtube-test) - Validate permissions and trigger an immediate update to confirm the setup.
-- [`/settings youtube force-update`](#settings-youtube-force-update) - Manually force the subscriber count refresh outside the normal interval.
+Configures automated YouTube subscriber tracking that updates a Discord channel name with live subscriber counts.
 
 <a id="settings-youtube-enable"></a>
-#### `/settings youtube enable`
+#### `/settings youtube enable` - Enable Tracking
 
-<details>
-<summary>View details</summary>
+Configures Jasper to poll a YouTube channel and update Discord channel name with subscriber count.
 
-**Purpose**
+**Permissions**: Admin Roles, Manage Channels (required for invoker and bot)
 
-Configure Jasper to poll a YouTube channel and update a Discord channel name with the latest subscriber count.
+**Options**:
+- `youtube_url` (string, required) - YouTube channel URL (e.g., `https://www.youtube.com/@ChannelName`)
+- `discord_channel` (channel, required) - Channel to rename with subscriber count
+- `interval` (integer, optional) - Minutes between updates (5-1440, default: 30)
 
-**Permissions**
+**Syntax**: `/settings youtube enable youtube_url:<url> discord_channel:<#channel> [interval:<minutes>]` | `j!settings youtube enable <youtube_url> <#channel> [interval_minutes]`
 
-- Allowed Admin Roles.
-- Manage Channels (Discord permission, required for both the invoker and Jasper on the selected channel).
-
-**Options**
-
-- `youtube_url` (string, required): YouTube channel URL such as `https://www.youtube.com/@NoTextToSpeech`.
-- `discord_channel` (channel, required): Text or voice channel whose name Jasper will keep in sync.
-- `interval` (integer, optional): Minutes between updates (5-1440, defaults to 30).
-
-**Syntax**
-
-`/settings youtube enable youtube_url:<url> discord_channel:<#channel> [interval:<minutes>]` | `j!settings youtube enable <youtube_url> <#channel> [interval_minutes]`
-
-**Additional Notes**
-
-- Jasper validates both member and bot permissions before saving the configuration.
-- Voice channels provide the cleanest display; text channels are supported but will also be renamed.
-
-</details>
+**Note**: Voice channels recommended for cleanest display
 
 <a id="settings-youtube-disable"></a>
-#### `/settings youtube disable`
+#### `/settings youtube disable` - Disable Tracking
 
-<details>
-<summary>View details</summary>
+Stops automatic subscriber tracking. Channel keeps current name.
 
-**Purpose**
+**Permissions**: Admin Roles, Manage Channels
 
-Stop automatic subscriber tracking and scheduled updates for the guild.
-
-**Permissions**
-
-- Allowed Admin Roles.
-- Manage Channels (Discord permission).
-
-**Options**
-
-None.
-
-**Syntax**
-
-`/settings youtube disable` | `j!settings youtube disable`
-
-**Notes**
-
-- The tracked channel keeps its current name; rename it manually if you want to remove the counter.
-
-</details>
+**Syntax**: `/settings youtube disable` | `j!settings youtube disable`
 
 <a id="settings-youtube-view"></a>
-#### `/settings youtube view`
+#### `/settings youtube view` - View Configuration
 
-<details>
-<summary>View details</summary>
+Shows YouTube tracking configuration including status, channels, interval, and latest subscriber count.
 
-**Purpose**
+**Permissions**: Admin Roles, Manage Channels
 
-Show the stored YouTube tracking configuration, including status, channel targets, interval, and latest subscriber count.
-
-**Permissions**
-
-- Allowed Admin Roles.
-- Manage Channels (Discord permission).
-
-**Options**
-
-None.
-
-**Syntax**
-
-`/settings youtube view` | `j!settings youtube view`
-
-**Notes**
-
-- When tracking is disabled or incomplete, the response clearly indicates which fields are missing.
-
-</details>
+**Syntax**: `/settings youtube view` | `j!settings youtube view`
 
 <a id="settings-youtube-test"></a>
-#### `/settings youtube test`
+#### `/settings youtube test` - Test Configuration
 
-<details>
-<summary>View details</summary>
+Validates configuration by forcing update and checking permissions.
 
-**Purpose**
+**Permissions**: Admin Roles, Manage Channels
 
-Verify the saved configuration by forcing a single update, checking permissions, and attempting to rename the configured channel.
-
-**Permissions**
-
-- Allowed Admin Roles.
-- Manage Channels (Discord permission).
-
-**Options**
-
-None.
-
-**Syntax**
-
-`/settings youtube test` | `j!settings youtube test`
-
-**Notes**
-
-- The check fails if the configured Discord channel no longer exists or if either party lacks Manage Channels on it.
-- For testing to succeed, the configured channel must be a voice channel so Jasper can apply the subscriber count name.
-
-</details>
+**Syntax**: `/settings youtube test` | `j!settings youtube test`
 
 <a id="settings-youtube-force-update"></a>
-#### `/settings youtube force-update`
+#### `/settings youtube force-update` - Force Update
 
-<details>
-<summary>View details</summary>
+Immediately refreshes subscriber count outside normal interval.
 
-**Purpose**
+**Permissions**: Admin Roles, Manage Channels
 
-Immediately refresh the stored subscriber count using the saved configuration without running the full diagnostic workflow.
-
-**Permissions**
-
-- Allowed Admin Roles.
-- Manage Channels (Discord permission).
-
-**Options**
-
-None.
-
-**Syntax**
-
-`/settings youtube force-update` | `j!settings youtube force-update`
-
-**Notes**
-
-- Returns the latest subscriber count and timestamp. Use this when you want a manual refresh between scheduled intervals.
-
-</details>
+**Syntax**: `/settings youtube force-update` | `j!settings youtube force-update`
