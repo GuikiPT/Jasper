@@ -14,6 +14,13 @@ interface AutomodRules {
 	rules: Record<string, AutomodRule>;
 }
 
+export interface AutomodMatch {
+	matchedRule: string;
+	matchedRuleId: string;
+	matchType: 'word' | 'regex';
+	matchedPattern: string;
+}
+
 export interface AutomodCheckResult {
 	isBlocked: boolean;
 	matchedRule?: string;
@@ -22,6 +29,8 @@ export interface AutomodCheckResult {
 	matchedPattern?: string;
 	isAllowed?: boolean;
 	allowedPattern?: string;
+	allMatches?: AutomodMatch[];
+	matchCount?: number;
 }
 
 export class AutomodRuleChecker {
@@ -46,14 +55,56 @@ export class AutomodRuleChecker {
 	 * Check if a word or phrase violates any automod rules
 	 */
 	public checkContent(content: string): AutomodCheckResult {
+		const allMatches: AutomodMatch[] = [];
+		let firstBlockedResult: AutomodCheckResult | null = null;
+		let allowedResult: AutomodCheckResult | null = null;
+
 		for (const [ruleId, rule] of Object.entries(this.rules.rules)) {
 			const result = this.checkAgainstRule(content, rule, ruleId);
+
+			if (result.isAllowed && !allowedResult) {
+				allowedResult = result;
+			}
+
 			if (result.isBlocked) {
-				return result;
+				// Add to all matches
+				allMatches.push({
+					matchedRule: result.matchedRule!,
+					matchedRuleId: result.matchedRuleId!,
+					matchType: result.matchType!,
+					matchedPattern: result.matchedPattern!
+				});
+
+				// Keep track of first blocked result for backwards compatibility
+				if (!firstBlockedResult) {
+					firstBlockedResult = result;
+				}
 			}
 		}
 
-		return { isBlocked: false };
+		// If content is explicitly allowed, return that result
+		if (allowedResult) {
+			return {
+				...allowedResult,
+				allMatches,
+				matchCount: allMatches.length
+			};
+		}
+
+		// If we have matches, return the first one with all matches info
+		if (allMatches.length > 0 && firstBlockedResult) {
+			return {
+				...firstBlockedResult,
+				allMatches,
+				matchCount: allMatches.length
+			};
+		}
+
+		return {
+			isBlocked: false,
+			allMatches: [],
+			matchCount: 0
+		};
 	}
 
 	/**

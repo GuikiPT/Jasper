@@ -120,20 +120,49 @@ export class AutomodCheckCommand extends Command {
 		if (result.isBlocked) {
 			// Red container for blocked content
 			resultContainer.setAccentColor(0xff4444);
-			resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent('## 🚫 BLOCKED'));
-			resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent('This content would be flagged by automod'));
+
+			const matchCount = result.matchCount || 1;
+			const headerText = matchCount > 1 ? `## 🚫 BLOCKED (${matchCount} matches)` : '## 🚫 BLOCKED';
+			const subText =
+				matchCount > 1
+					? `This content would be flagged by automod (${matchCount} rule violations found)`
+					: 'This content would be flagged by automod';
+
+			resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(headerText));
+			resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(subText));
 
 			// Add spacing
 			resultContainer.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small));
 
-			// Rule details
-			resultContainer.addTextDisplayComponents(
-				new TextDisplayBuilder().setContent(
-					`**Rule:** \`${result.matchedRuleId} - ${result.matchedRule}\`\n` +
-						`**Type:** \`${result.matchType === 'word' ? 'Word/Phrase Match' : 'Regex Pattern'}\`\n` +
-						`**Pattern:** \`${result.matchedPattern}\``
-				)
-			);
+			if (matchCount > 1 && result.allMatches && result.allMatches.length > 1) {
+				// Show all matches when there are multiple
+				resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent('## **All Rule Violations:**'));
+
+				result.allMatches.forEach((match, index) => {
+					// Escape backticks and other markdown characters in the pattern
+					const escapedPattern = match.matchedPattern.replace(/`/g, '\\`').replace(/\\/g, '\\\\');
+
+					resultContainer.addTextDisplayComponents(
+						new TextDisplayBuilder().setContent(`### ${index + 1}. **Rule:** \`${match.matchedRuleId} - ${match.matchedRule}\``)
+					);
+					resultContainer.addTextDisplayComponents(
+						new TextDisplayBuilder().setContent(`- **Type:** \`${match.matchType === 'word' ? 'Word/Phrase Match' : 'Regex Pattern'}\``)
+					);
+					resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(`- **Pattern:** \`${escapedPattern}\``));
+				});
+			} else {
+				// Show single match details (backwards compatibility)
+				// Escape backticks and other markdown characters in the pattern
+				const escapedPattern = result.matchedPattern!.replace(/`/g, '\\`').replace(/\\/g, '\\\\');
+
+				resultContainer.addTextDisplayComponents(
+					new TextDisplayBuilder().setContent(`### - **Rule:** \`${result.matchedRuleId} - ${result.matchedRule}\``)
+				);
+				resultContainer.addTextDisplayComponents(
+					new TextDisplayBuilder().setContent(`- **Type:** \`${result.matchType === 'word' ? 'Word/Phrase Match' : 'Regex Pattern'}\``)
+				);
+				resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(`- **Pattern:** \`${escapedPattern}\``));
+			}
 		} else if (result.isAllowed) {
 			// Green container for explicitly allowed content
 			resultContainer.setAccentColor(0x00ff00);
@@ -160,7 +189,15 @@ export class AutomodCheckCommand extends Command {
 		resultContainer.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 		const rules = this.container.automodRuleChecker.getRuleNames();
 		const ruleCount = Object.keys(rules).length;
-		const footerText = `-# Checked against ${ruleCount} automod rule${ruleCount !== 1 ? 's' : ''} • Does not check for bypasses`;
+
+		let footerText = `-# Checked against ${ruleCount} automod rule${ruleCount !== 1 ? 's' : ''}`;
+
+		// Add match count information if there are multiple matches
+		if (result.isBlocked && result.matchCount && result.matchCount > 1) {
+			footerText += ` • Found ${result.matchCount} violations`;
+		}
+
+		footerText += ' • Does not check for bypasses';
 		resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(footerText));
 
 		return [contentContainer, resultContainer];
