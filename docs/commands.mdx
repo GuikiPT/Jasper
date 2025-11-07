@@ -149,8 +149,126 @@ Send a random discussion topic saved for the guild.
 
 | Command | Summary |
 | --- | --- |
+| [`/automod-check`](#automod-check) | Check if a word or phrase would be blocked by automod rules. |
 | [`/snipe`](#snipe) | Recover the most recently deleted message when allowed. |
 | [`/virustotal`](#virustotal) | Analyze files, URLs, domains, and IP addresses using VirusTotal. |
+
+<a id="automod-check"></a>
+### `/automod-check`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Test words or phrases against the bot's automod rules to determine if they would be flagged or allowed.
+
+**Where it works**
+
+- Guild channels
+
+**Permissions**
+
+- Allowed Staff Roles
+- Allowed Admin Roles
+
+**Options**
+
+- `content` (string, required): The word or phrase to check against automod rules (max 1000 characters).
+- `ephemeral` (boolean, optional): Whether the response should be visible only to you. Defaults to `true`.
+
+**Syntax**
+
+`/automod-check content:"text to check" [ephemeral:true|false]`
+
+**Examples**
+
+```
+/automod-check content:"discord.gg/test"
+/automod-check content:"those clankers bro" ephemeral:false
+/automod-check content:"hey <@1152813525912264834>"
+/automod-check content:"check out https://cdn.discordapp.com/emojis/123.png"
+/automod-check content:"I love custard pie"
+```
+
+**Response Format**
+
+The command displays results in two color-coded containers:
+- **Container 1**: Shows the checked content (neutral color)
+- **Container 2**: Shows the result with color coding (red for blocked, green for clean/allowed)
+
+**Response Types**
+
+- 🚫 **BLOCKED**: Content would be flagged by automod with details about which rule and pattern matched
+- ✅ **ALLOWED**: Content is explicitly allowed despite matching a pattern, with exception details
+- ✅ **CLEAN**: Content passes all automod checks with no violations detected
+
+**Rule Categories**
+
+The system checks against 5 comprehensive rule categories:
+
+1. **Spoiler spam, markdown, soundmojis, staff ping** (63 blocked words, 10 regex patterns, 2 allowed exceptions)
+   - Staff member pings and mentions
+   - Special Unicode characters and formatting abuse
+   - Soundmoji patterns and markdown manipulation
+   - IP addresses and phone number links
+
+2. **Soft Custom Keywords (with Links)** (114 blocked words, 3 regex patterns, 39 allowed exceptions)
+   - Malicious domains and URL shorteners
+   - Inappropriate content and mild profanity
+   - Discord invite links (with NTTS server exceptions)
+   - Scam and phishing patterns
+
+3. **Medium Custom Keywords** (106 blocked words, 1 regex pattern, 45 allowed exceptions)
+   - Sexual content and adult terminology
+   - Moderate offensive language
+   - Adult websites and services
+   - Phone number detection patterns
+
+4. **Hard Custom Keywords** (99 blocked words, 1 regex pattern, 18 allowed exceptions)
+   - Racial slurs and hate speech
+   - Severe offensive language
+   - Advanced slur detection patterns
+   - Nazi and discriminatory symbols
+
+5. **Scam Nuker** (21 blocked words, 8 regex patterns, 1 allowed exception)
+   - Known scam domains and services
+   - Fake giveaway and nitro drop links
+   - Malicious Steam community links
+   - Complex scam link detection patterns
+
+**Match Types**
+
+- **Word/Phrase**: Direct text matches with wildcard support (`*`)
+- **Regex Pattern**: Advanced pattern matching for complex rules
+- **Special Character Handling**: Proper detection of Discord mentions, URLs, and special characters
+
+**Notes**
+
+- Rules are processed in order (1-5) and the first match determines the result
+- Allowed words take precedence over blocked words within the same rule
+- Uses word boundaries for normal text and contains matching for special characters
+- Does not check for bypasses or obfuscation attempts
+- Results display rule ID, name, match type, and specific pattern that triggered
+
+**Technical Details**
+
+- **Total Coverage**: 403 blocked words, 23 regex patterns, 105 allowed exceptions
+- **Pattern Matching**: Uses word boundaries for normal text, contains matching for Discord mentions and URLs
+- **Rule Processing**: Sequential evaluation (Rule 1→5), first match wins
+- **Wildcard Support**: `*` wildcards supported in blocked/allowed words (e.g., `clanker*` matches `clankers`, `clankering`)
+- **Exception Handling**: Allowed words override blocked words within the same rule
+- **Performance**: Optimized for real-time checking with minimal false positives
+
+**Use Cases**
+
+- **Content Moderation**: Test if user messages would trigger automod
+- **Rule Validation**: Verify new rules work as expected before deployment
+- **Exception Testing**: Confirm allowed words bypass blocks correctly
+- **Staff Training**: Help moderators understand what content gets flagged
+- **Policy Development**: Analyze rule effectiveness and coverage gaps
+
+</details>
 
 <a id="snipe"></a>
 ### `/snipe`

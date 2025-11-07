@@ -20,6 +20,7 @@ import { GuildTopicSettingsService } from './services/guildTopicSettingsService'
 import { SupportTagService } from './services/supportTagService';
 import { SupportThreadService } from './services/supportThreadService';
 import { SupportThreadMonitor } from './services/supportThreadMonitor';
+import { AutomodRuleChecker } from './services/automodRuleChecker';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const logLevel = isProduction ? LogLevel.Info : LogLevel.Debug;
@@ -91,6 +92,7 @@ container.supportThreadMonitor = new SupportThreadMonitor(
 
 container.slowmodeManager = new SlowmodeManager(client, container.database);
 container.snipeManager = new SnipeManager(client, container.database);
+container.automodRuleChecker = new AutomodRuleChecker();
 
 // Handles the startup pipeline of verifying dependencies and logging into Discord.
 const main = async () => {
