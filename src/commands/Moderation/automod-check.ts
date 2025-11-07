@@ -13,7 +13,7 @@ import {
 	type ChatInputCommandInteraction
 } from 'discord.js';
 import { replyWithComponent, editReplyWithComponent } from '../../lib/components.js';
-import { type AutomodCheckResult } from '../../services/automodRuleChecker.js';
+import { type AutomodCheckResult, type AutomodMatch } from '../../services/automodRuleChecker.js';
 
 // Implements the moderation `automod-check` command for checking words/phrases against automod rules.
 
@@ -135,21 +135,50 @@ export class AutomodCheckCommand extends Command {
 			resultContainer.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small));
 
 			if (matchCount > 1 && result.allMatches && result.allMatches.length > 1) {
-				// Show all matches when there are multiple
+				// Group matches by rule for better display
+				const matchesByRule = new Map<string, AutomodMatch[]>();
+				result.allMatches.forEach((match) => {
+					const ruleKey = `${match.matchedRuleId} - ${match.matchedRule}`;
+					if (!matchesByRule.has(ruleKey)) {
+						matchesByRule.set(ruleKey, []);
+					}
+					matchesByRule.get(ruleKey)!.push(match);
+				});
+
 				resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent('## **All Rule Violations:**'));
 
-				result.allMatches.forEach((match, index) => {
-					// Escape backticks and other markdown characters in the pattern
-					const escapedPattern = match.matchedPattern.replace(/`/g, '\\`').replace(/\\/g, '\\\\');
+				let violationNumber = 1;
+				for (const [ruleKey, matches] of matchesByRule) {
+					if (matches.length === 1) {
+						// Single match for this rule
+						const match = matches[0];
+						const escapedPattern = match.matchedPattern.replace(/`/g, '\\`').replace(/\\/g, '\\\\');
 
-					resultContainer.addTextDisplayComponents(
-						new TextDisplayBuilder().setContent(`### ${index + 1}. **Rule:** \`${match.matchedRuleId} - ${match.matchedRule}\``)
-					);
-					resultContainer.addTextDisplayComponents(
-						new TextDisplayBuilder().setContent(`- **Type:** \`${match.matchType === 'word' ? 'Word/Phrase Match' : 'Regex Pattern'}\``)
-					);
-					resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(`- **Pattern:** \`${escapedPattern}\``));
-				});
+						resultContainer.addTextDisplayComponents(
+							new TextDisplayBuilder().setContent(`### ${violationNumber}. **Rule:** \`${ruleKey}\``)
+						);
+						resultContainer.addTextDisplayComponents(
+							new TextDisplayBuilder().setContent(
+								`- **Type:** \`${match.matchType === 'word' ? 'Word/Phrase Match' : 'Regex Pattern'}\``
+							)
+						);
+						resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(`- **Pattern:** \`${escapedPattern}\``));
+					} else {
+						// Multiple matches for this rule
+						resultContainer.addTextDisplayComponents(
+							new TextDisplayBuilder().setContent(`### ${violationNumber}. **Rule:** \`${ruleKey}\` (${matches.length} patterns)`)
+						);
+						matches.forEach((match: AutomodMatch, index: number) => {
+							const escapedPattern = match.matchedPattern.replace(/`/g, '\\`').replace(/\\/g, '\\\\');
+							resultContainer.addTextDisplayComponents(
+								new TextDisplayBuilder().setContent(
+									`- **${index + 1}.** \`${match.matchType === 'word' ? 'Word/Phrase' : 'Regex'}\`: \`${escapedPattern}\``
+								)
+							);
+						});
+					}
+					violationNumber++;
+				}
 			} else {
 				// Show single match details (backwards compatibility)
 				// Escape backticks and other markdown characters in the pattern

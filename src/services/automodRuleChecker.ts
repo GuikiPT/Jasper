@@ -33,6 +33,12 @@ export interface AutomodCheckResult {
 	matchCount?: number;
 }
 
+interface RuleCheckResult {
+	isAllowed: boolean;
+	allowedPattern?: string;
+	matches: AutomodMatch[];
+}
+
 export class AutomodRuleChecker {
 	private rules: AutomodRules = { rules: {} };
 
@@ -56,30 +62,24 @@ export class AutomodRuleChecker {
 	 */
 	public checkContent(content: string): AutomodCheckResult {
 		const allMatches: AutomodMatch[] = [];
-		let firstBlockedResult: AutomodCheckResult | null = null;
 		let allowedResult: AutomodCheckResult | null = null;
 
 		for (const [ruleId, rule] of Object.entries(this.rules.rules)) {
-			const result = this.checkAgainstRule(content, rule, ruleId);
+			const ruleResult = this.checkAgainstRule(content, rule, ruleId);
 
-			if (result.isAllowed && !allowedResult) {
-				allowedResult = result;
+			// If content is explicitly allowed by this rule, track it
+			if (ruleResult.isAllowed && !allowedResult) {
+				allowedResult = {
+					isBlocked: false,
+					matchedRule: rule.name,
+					matchedRuleId: ruleId,
+					isAllowed: true,
+					allowedPattern: ruleResult.allowedPattern
+				};
 			}
 
-			if (result.isBlocked) {
-				// Add to all matches
-				allMatches.push({
-					matchedRule: result.matchedRule!,
-					matchedRuleId: result.matchedRuleId!,
-					matchType: result.matchType!,
-					matchedPattern: result.matchedPattern!
-				});
-
-				// Keep track of first blocked result for backwards compatibility
-				if (!firstBlockedResult) {
-					firstBlockedResult = result;
-				}
-			}
+			// Add all matches from this rule to the global matches array
+			allMatches.push(...ruleResult.matches);
 		}
 
 		// If content is explicitly allowed, return that result
@@ -91,10 +91,15 @@ export class AutomodRuleChecker {
 			};
 		}
 
-		// If we have matches, return the first one with all matches info
-		if (allMatches.length > 0 && firstBlockedResult) {
+		// If we have matches, return blocked result with all matches info
+		if (allMatches.length > 0) {
+			const firstMatch = allMatches[0];
 			return {
-				...firstBlockedResult,
+				isBlocked: true,
+				matchedRule: firstMatch.matchedRule,
+				matchedRuleId: firstMatch.matchedRuleId,
+				matchType: firstMatch.matchType,
+				matchedPattern: firstMatch.matchedPattern,
 				allMatches,
 				matchCount: allMatches.length
 			};
@@ -110,36 +115,34 @@ export class AutomodRuleChecker {
 	/**
 	 * Check content against a specific rule
 	 */
-	private checkAgainstRule(content: string, rule: AutomodRule, ruleId: string): AutomodCheckResult {
+	private checkAgainstRule(content: string, rule: AutomodRule, ruleId: string): RuleCheckResult {
 		const lowerContent = content.toLowerCase();
+		const matches: AutomodMatch[] = [];
 
 		// First check if content is explicitly allowed
 		for (const allowedPattern of rule.allowedWords) {
 			if (this.matchesPattern(lowerContent, allowedPattern.toLowerCase())) {
 				return {
-					isBlocked: false,
-					matchedRule: rule.name,
-					matchedRuleId: ruleId,
 					isAllowed: true,
-					allowedPattern: allowedPattern
+					allowedPattern: allowedPattern,
+					matches: []
 				};
 			}
 		}
 
-		// Check blocked words (with wildcard support)
+		// Check blocked words (with wildcard support) - collect ALL matches
 		for (const blockedWord of rule.blockedWords) {
 			if (this.matchesPattern(lowerContent, blockedWord.toLowerCase())) {
-				return {
-					isBlocked: true,
+				matches.push({
 					matchedRule: rule.name,
 					matchedRuleId: ruleId,
 					matchType: 'word',
 					matchedPattern: blockedWord
-				};
+				});
 			}
 		}
 
-		// Check regex patterns
+		// Check regex patterns - collect ALL matches
 		for (const regexPattern of rule.regexPatterns) {
 			try {
 				let regex: RegExp;
@@ -168,20 +171,22 @@ export class AutomodRuleChecker {
 				}
 
 				if (regex.test(content)) {
-					return {
-						isBlocked: true,
+					matches.push({
 						matchedRule: rule.name,
 						matchedRuleId: ruleId,
 						matchType: 'regex',
 						matchedPattern: regexPattern
-					};
+					});
 				}
 			} catch (error) {
 				console.warn(`Invalid regex pattern: ${regexPattern}`, error);
 			}
 		}
 
-		return { isBlocked: false };
+		return {
+			isAllowed: false,
+			matches
+		};
 	}
 
 	/**
