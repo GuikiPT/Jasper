@@ -1,53 +1,68 @@
-# TypeScript Complete Sapphire Bot example
+# Jasper
 
-This is a more complete setup of a Discord bot using the [sapphire framework][sapphire] written in TypeScript.
+**Jasper** is a robust Discord bot made for NoTextToSpeech Server built using the [Sapphire Framework](https://www.sapphirejs.dev/) and [Prisma](https://www.prisma.io/).
 
-It is similar to the [starter setup](../with-typescript-starter/), but adds more data structures and a more complete setup.
+It utilizes TypeScript for type safety and modern development standards.
 
-## How to use it?
+## 🚀 Features
 
-### Prerequisite
+-   **Framework**: It is built on SapphireJS for modular command and event handling, using a custom made subcommand handling system to load subcommands dinamically.
+-   **Database**: Uses Prisma ORM for type-safe database interactions and migrations scripts.
+-   **Language**: Written completely in TypeScript.
+-   **Service-Oriented**: Business logic is separated into injectable services.
 
-```sh
-npm install
-```
+## 📋 Prerequisites
+
+Before you begin, ensure you have met the following requirements:
+
+-   **Node.js**: v20 or higher.
+-   **Database**: A database supported by Prisma (PostgreSQL is recommended, but works with MySQL, SQLite, etc.).
+
+## 🛠️ Installation
+
+1.  **Clone the repository**:
+    ```bash
+    git clone https://github.com/GuikiPT/JasperRevamp.git
+    cd JasperRevamp
+    ```
+
+2.  **Install dependencies**:
+    ```bash
+    npm install
+    ```
+
+3.  **Configuration**:
+    Create a `.env` file in the root directory. You can use `.env.example` as a reference if available, or add the following:
+
+    ```env
+    # Discord Bot Token
+    DISCORD_TOKEN=your_discord_bot_token_here
+
+    # Database Connection URL (Example for PostgreSQL)
+    DATABASE_URL="postgresql://user:password@localhost:5432/jasper_db?schema=public"
+
+    # Sapphire specific (Optional)
+    NODE_ENV=development
+    ```
+
+4.  **Database Setup**:
+    Initialize your database schema using Prisma.
+    
+    ```bash
+    # Generate Prisma Client
+    npm run db:generate
+
+    # Push schema to the database (for development)
+    npm run db:migrate
+    
+    # (Optional) Seed the database if seed script is configured
+    npm run db:seed
+    ```
+
+## 💻 Running the Bot
 
 ### Development
+To run the bot in development mode with hot-reloading (restarts on file changes):
 
-This example can be run with `tsc-watch` to watch the files and automatically restart your bot.
-
-```sh
+```bash
 npm run watch:start
-```
-
-### Production
-
-You can also run the bot with `npm dev`, this will first build your code and then run `node ./dist/index.js`. But this is not the recommended way to run a bot in production.
-
-## License
-
-Dedicated to the public domain via the [Unlicense], courtesy of the Sapphire Community and its contributors.
-
-[sapphire]: https://github.com/sapphiredev/framework
-[unlicense]: https://github.com/sapphiredev/examples/blob/main/LICENSE.md
-
-## Logging and error handling
-
-This project includes a lightweight logger utility at `src/lib/logger.ts` that wraps the Sapphire logger and provides consistent structured logs with timestamps and optional metadata. Use it for risky operations such as database access or network calls.
-
-- Use `Logger.debug/info/warn/error/fatal(message, error?, meta?)`.
-- Catch Prisma/database errors, log context (e.g., guildId, userId), and reply with concise user-friendly messages.
-- Global safety nets in `src/index.ts` capture unhandled rejections and uncaught exceptions.
-
-Example:
-
-```ts
-import { Logger } from './lib/logger';
-
-try {
-	await doRiskyThing();
-} catch (error) {
-	Logger.error('Risky thing failed', error, { guildId });
-	return interaction.reply({ content: 'Something went wrong. Please try again later.' });
-}
-```
