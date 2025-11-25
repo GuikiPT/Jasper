@@ -1,5 +1,8 @@
 # Jasper
 
+> [!WARNING]  
+> I'm rewriting mostly of all code and documentation since I wan't to OpenSource the bot code.
+
 **Jasper** is a robust Discord bot made for NoTextToSpeech Server built using the [Sapphire Framework](https://www.sapphirejs.dev/) and [Prisma](https://www.prisma.io/).
 
 It utilizes TypeScript for type safety and modern development standards.
