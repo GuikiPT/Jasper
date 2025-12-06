@@ -239,7 +239,7 @@ export class HelpCommand extends Command {
 	// Slash /help handler: resolve entry (if any) and send contextual help
 	public override async chatInputRun(interaction: ChatInputCommandInteraction) {
 		const requested = interaction.options.getString('command');
-		const isEphemeral = interaction.options.getBoolean('ephemeral') ?? false;
+		const isEphemeral = interaction.options.getBoolean('ephemeral') ?? true;
 		const normalizedQuery = requested?.trim() ?? '';
 		const entries = this.collectEntries();
 		const entry = this.findEntry(entries, normalizedQuery);

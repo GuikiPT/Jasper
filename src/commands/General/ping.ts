@@ -13,7 +13,8 @@ import {
 	ButtonBuilder,
 	ButtonStyle,
 	SlashCommandBuilder,
-	SlashCommandBooleanOption
+	SlashCommandBooleanOption,
+	MessageFlags
 } from 'discord.js';
 
 
@@ -85,7 +86,7 @@ export class UserCommand extends Command {
 		try {
 			const isEphemeral = interaction.options.getBoolean('ephemeral') ?? false;
 			// Defer immediately to show "thinking" state and prevent timeout
-			await interaction.deferReply({ flags: isEphemeral ? ['Ephemeral'] : [] });
+			await interaction.deferReply({ flags: isEphemeral ? MessageFlags.Ephemeral : [] });
 		} catch (error) {
 			this.container.logger.error('Failed to defer ping response', error, {
 				guildId: interaction.guildId ?? 'dm'
@@ -93,7 +94,7 @@ export class UserCommand extends Command {
 			if (!interaction.deferred && !interaction.replied) {
 				return interaction.reply({
 					content: 'I could not start the ping measurement because Discord rejected the response. Please try again.',
-					flags: ['Ephemeral']
+					flags: MessageFlags.Ephemeral
 				});
 			}
 		}
