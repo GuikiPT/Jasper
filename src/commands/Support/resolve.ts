@@ -1,4 +1,4 @@
-// resolve module within commands/Support
+// Resolve command - closes support forum threads with optional summary
 import { ApplyOptions } from '@sapphire/decorators';
 import { BucketScope, Command, CommandOptionsRunTypeEnum } from '@sapphire/framework';
 import {
@@ -16,8 +16,6 @@ import {
 	type SlashCommandStringOption
 } from 'discord.js';
 import { replyWithComponent, editReplyWithComponent } from '../../lib/components.js';
-
-// Implements the `/resolve` workflow for closing support threads with a summary.
 
 @ApplyOptions<Command.Options>({
 	name: 'resolve',
@@ -50,9 +48,9 @@ import { replyWithComponent, editReplyWithComponent } from '../../lib/components
 })
 export class ResolveCommand extends Command {
 	private readonly integrationTypes: ApplicationIntegrationType[] = [ApplicationIntegrationType.GuildInstall];
-
 	private readonly contexts: InteractionContextType[] = [InteractionContextType.Guild];
 
+	// Register slash command with optional question and answer fields
 	public override registerApplicationCommands(registry: Command.Registry) {
 		registry.registerChatInputCommand((builder: SlashCommandBuilder) =>
 			builder
@@ -69,7 +67,9 @@ export class ResolveCommand extends Command {
 		);
 	}
 
+	// Handle /resolve command execution
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
+		// Validate guild context
 		if (!interaction.guildId) {
 			return replyWithComponent(interaction, 'This command can only be used inside a server.', true);
 		}
@@ -77,14 +77,14 @@ export class ResolveCommand extends Command {
 		const question = interaction.options.getString('question', false);
 		const answer = interaction.options.getString('answer', false);
 
-		// Check if we're in a thread
+		// Validate thread context
 		if (!interaction.channel || interaction.channel.type !== ChannelType.PublicThread) {
 			return replyWithComponent(interaction, 'This command can only be used in a forum thread.', true);
 		}
 
 		const thread = interaction.channel as ThreadChannel;
 
-		// Check if the thread is from a forum channel
+		// Validate forum channel context
 		if (!thread.parent || thread.parent.type !== ChannelType.GuildForum) {
 			return replyWithComponent(interaction, 'This command can only be used in a support forum thread.', true);
 		}
@@ -97,6 +97,7 @@ export class ResolveCommand extends Command {
 		}
 	}
 
+	// Execute thread resolution workflow
 	private async resolveThread(
 		interaction: Command.ChatInputCommandInteraction,
 		thread: ThreadChannel,
@@ -106,12 +107,14 @@ export class ResolveCommand extends Command {
 		const guildId = interaction.guildId!;
 		const forumChannel = thread.parent as ForumChannel;
 
+		// Get support settings service
 		const supportService = this.container.guildSupportSettingsService;
 		if (!supportService) {
 			this.container.logger.error('Support settings service is not available');
 			return replyWithComponent(interaction, 'Support settings are not available right now. Please try again later.', true);
 		}
 
+		// Load guild support configuration
 		const supportSettings = await supportService.getSettings(guildId);
 
 		if (!supportSettings) {
@@ -137,7 +140,7 @@ export class ResolveCommand extends Command {
 
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-		// Check if the resolved tag exists in the forum
+		// Verify resolved tag still exists
 		const resolvedTag = forumChannel.availableTags.find((tag) => tag.id === supportSettings.resolvedTagId);
 		if (!resolvedTag) {
 			return editReplyWithComponent(
@@ -146,41 +149,41 @@ export class ResolveCommand extends Command {
 			);
 		}
 
-		// Manage thread tags - remove existing if 5+ and add resolved tag
+		// Prepare new tag list (max 5 tags in Discord)
 		let newTags = [...thread.appliedTags];
 
-		// Remove resolved tag if it already exists (to avoid duplicates)
+		// Remove resolved tag if already present to avoid duplicates
 		newTags = newTags.filter((tagId) => tagId !== supportSettings.resolvedTagId);
 
-		// If we have 5 or more tags, remove the oldest ones to make room
+		// Keep only the 4 most recent tags if at limit
 		if (newTags.length >= 5) {
-			newTags = newTags.slice(-4); // Keep last 4 tags
+			newTags = newTags.slice(-4);
 		}
 
 		// Add the resolved tag
 		newTags.push(supportSettings.resolvedTagId);
 
 		try {
-			// Fetch fresh thread data to get current state
+			// Fetch fresh thread data to ensure current state
 			const freshThread = await thread.fetch();
 
-			// Check if thread is archived and unarchive it if needed
+			// Unarchive thread if needed to apply changes
 			if (freshThread.archived) {
 				await freshThread.setArchived(
 					false,
 					`Temporarily reopening thread by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}.`
 				);
-				// Wait a moment for Discord to process the unarchive
+				// Wait for Discord to process unarchive
 				await new Promise((resolve) => setTimeout(resolve, 1000));
 			}
 
-			// Apply the resolved tag
+			// Apply resolved tag
 			await freshThread.setAppliedTags(
 				newTags,
 				`Thread resolved by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}${answer ? ` | Answer: ${answer}` : ''}`
 			);
 
-			// Send resolution message as component
+			// Send resolution summary message
 			const resolutionComponent = this.createResolutionComponent(question, answer, interaction.user.id);
 			await freshThread.send({
 				components: [resolutionComponent],
@@ -188,19 +191,21 @@ export class ResolveCommand extends Command {
 				allowedMentions: { users: [] } // Prevent pinging the resolver
 			});
 
-			// Archive and lock the thread
+			// Lock thread to prevent further replies
 			await freshThread.setLocked(
 				true,
 				`Thread locked by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}${answer ? ` | Answer: ${answer}` : ''}`
 			);
+
+			// Archive thread
 			await freshThread.setArchived(
 				true,
 				`Thread archived by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}${answer ? ` | Answer: ${answer}` : ''}`
 			);
 
+			// Update internal tracking
 			await this.markSupportThreadClosed(freshThread);
 
-			// Simple success response
 			return editReplyWithComponent(interaction, '✅ Thread resolved successfully!');
 		} catch (error) {
 			this.container.logger.error('Failed to apply thread resolution:', error);
@@ -208,6 +213,7 @@ export class ResolveCommand extends Command {
 		}
 	}
 
+	// Mark thread as closed in database and remove reminder
 	private async markSupportThreadClosed(thread: ThreadChannel) {
 		const service = this.container.supportThreadService;
 		if (!service) return;
@@ -225,6 +231,7 @@ export class ResolveCommand extends Command {
 		}
 	}
 
+	// Attempt to delete reminder message if present
 	private async tryDeleteReminderMessage(thread: ThreadChannel, messageId: string) {
 		try {
 			const message = await thread.messages.fetch(messageId);
@@ -237,13 +244,12 @@ export class ResolveCommand extends Command {
 		}
 	}
 
+	// Build resolution summary component with optional Q&A
 	private createResolutionComponent(question: string | null, answer: string | null, resolverUserId: string): ContainerBuilder {
 		const container = new ContainerBuilder();
 
-		// Add title with resolver mention
+		// Add header with resolver mention
 		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`## Thread marked as resolved by <@${resolverUserId}>`));
-
-		// Add separator
 		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 
 		// Add question section if provided

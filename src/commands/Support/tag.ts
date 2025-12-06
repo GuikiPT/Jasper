@@ -1,4 +1,4 @@
-// tag module within commands/Support
+// Tag command - reusable support message system with embeds
 import { ApplyOptions } from '@sapphire/decorators';
 import { BucketScope, CommandOptionsRunTypeEnum } from '@sapphire/framework';
 import { Subcommand } from '@sapphire/plugin-subcommands';
@@ -24,8 +24,6 @@ import {
 	chatInputTagUse,
 	type TagChatInputInteraction
 } from '../../subcommands/support/tag/tag-index';
-
-// Aggregates the entire `/tag` feature set into a single subcommand-driven command.
 
 @ApplyOptions<Subcommand.Options>({
 	name: 'tag',
@@ -226,9 +224,9 @@ import {
 })
 export class SupportTagCommand extends Subcommand {
 	private readonly integrationTypes: ApplicationIntegrationType[] = [ApplicationIntegrationType.GuildInstall];
-
 	private readonly contexts: InteractionContextType[] = [InteractionContextType.Guild];
 
+	// Register all tag subcommands with Discord
 	public override registerApplicationCommands(registry: Subcommand.Registry) {
 		registry.registerChatInputCommand((builder: SlashCommandBuilder) =>
 			builder
@@ -236,7 +234,9 @@ export class SupportTagCommand extends Subcommand {
 				.setDescription(this.description)
 				.setIntegrationTypes(this.integrationTypes)
 				.setContexts(this.contexts)
+				// Create: Opens modal for new tag
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) => sub.setName('create').setDescription('Create a new support tag.'))
+				// Delete: Remove tag by name
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
 					sub
 						.setName('delete')
@@ -245,6 +245,7 @@ export class SupportTagCommand extends Subcommand {
 							option.setName('name').setDescription('Name of the tag to delete.').setRequired(true).setAutocomplete(true)
 						)
 				)
+				// Edit: Update existing tag via modal
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
 					sub
 						.setName('edit')
@@ -253,7 +254,9 @@ export class SupportTagCommand extends Subcommand {
 							option.setName('name').setDescription('Name of the tag to edit.').setRequired(true).setAutocomplete(true)
 						)
 				)
+				// Export: Download all tags as JSON
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) => sub.setName('export').setDescription('Export all tags to a JSON file.'))
+				// Import: Upload tags from JSON
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
 					sub
 						.setName('import')
@@ -268,6 +271,7 @@ export class SupportTagCommand extends Subcommand {
 							option.setName('overwrite').setDescription('Replace existing tags instead of merging.').setRequired(false)
 						)
 				)
+				// Info: Show tag metadata and stats
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
 					sub
 						.setName('info')
@@ -276,7 +280,9 @@ export class SupportTagCommand extends Subcommand {
 							option.setName('name').setDescription('Name of the tag.').setRequired(true)
 						)
 				)
+				// List: Show all available tags
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) => sub.setName('list').setDescription('List available support tags.'))
+				// Raw: Display raw JSON payload
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
 					sub
 						.setName('raw')
@@ -285,6 +291,7 @@ export class SupportTagCommand extends Subcommand {
 							option.setName('name').setDescription('Name of the tag to inspect.').setRequired(true)
 						)
 				)
+				// Show: Preview tag embed
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
 					sub
 						.setName('show')
@@ -296,6 +303,7 @@ export class SupportTagCommand extends Subcommand {
 							option.setName('ephemeral').setDescription('Show the preview only to you.').setRequired(false)
 						)
 				)
+				// Use: Send tag to channel
 				.addSubcommand((sub: SlashCommandSubcommandBuilder) =>
 					sub
 						.setName('use')
@@ -309,6 +317,10 @@ export class SupportTagCommand extends Subcommand {
 				)
 		);
 	}
+
+	// ============================================================
+	// Tag Subcommand Handlers
+	// ============================================================
 
 	public async chatInputTagCreate(interaction: TagChatInputInteraction) {
 		return chatInputTagCreate(this, interaction);
