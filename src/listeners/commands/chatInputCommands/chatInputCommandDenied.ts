@@ -3,6 +3,7 @@ import type { ChatInputCommandDeniedPayload, Events } from '@sapphire/framework'
 import { Listener, UserError } from '@sapphire/framework';
 import { MessageFlags } from 'discord.js';
 import { createErrorTextComponent } from '../../../lib/components';
+import { Logger } from '../../../lib/logger';
 
 export class UserEvent extends Listener<typeof Events.ChatInputCommandDenied> {
 	public override async run({ context, message: content }: UserError, { interaction }: ChatInputCommandDeniedPayload) {
@@ -10,21 +11,51 @@ export class UserEvent extends Listener<typeof Events.ChatInputCommandDenied> {
 		// Use cases for this are for example permissions error when running the `eval` command.
 		if (Reflect.get(Object(context), 'silent')) return;
 
-		// Create component-based response for better UX
 		const component = createErrorTextComponent(content);
 
-		if (interaction.deferred || interaction.replied) {
-			return interaction.editReply({
+		try {
+			if (interaction.deferred || interaction.replied) {
+				return interaction.editReply({
+					components: [component],
+					allowedMentions: { users: [interaction.user.id], roles: [] },
+					flags: MessageFlags.IsComponentsV2
+				});
+			}
+
+			return interaction.reply({
 				components: [component],
 				allowedMentions: { users: [interaction.user.id], roles: [] },
-				flags: MessageFlags.IsComponentsV2
+				flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
 			});
-		}
+		} catch (error) {
+			Logger.error('Failed to send chat input command denial response', error, {
+				commandName: interaction.commandName,
+				userId: interaction.user.id,
+				deferred: interaction.deferred,
+				replied: interaction.replied
+			});
 
-		return interaction.reply({
-			components: [component],
-			allowedMentions: { users: [interaction.user.id], roles: [] },
-			flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
-		});
+			try {
+				const fallbackContent = 'There was an error sending the denial response.';
+				if (interaction.deferred || interaction.replied) {
+					return interaction.editReply({
+						content: fallbackContent,
+						components: [],
+						allowedMentions: { users: [interaction.user.id], roles: [] }
+					});
+				}
+
+				return interaction.reply({
+					content: fallbackContent,
+					ephemeral: true,
+					allowedMentions: { users: [interaction.user.id], roles: [] }
+				});
+			} catch (fallbackError) {
+				Logger.error('Failed to send fallback chat input command denial response', fallbackError, {
+					commandName: interaction.commandName,
+					userId: interaction.user.id
+				});
+			}
+		}
 	}
 }

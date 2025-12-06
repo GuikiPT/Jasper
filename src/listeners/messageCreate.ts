@@ -14,32 +14,39 @@ const LAWREN_BOT_ID = '1306785011256659968';
 @ApplyOptions<Listener.Options>({ event: Events.MessageCreate })
 export class AutomaticSlowmodeListener extends Listener<typeof Events.MessageCreate> {
     public override async run(message: Message) {
-        // Handle legacy bot message cleanup
-        if (message.author.bot) {
-            await this.handleLegacyBotMessages(message);
-            return;
-        }
-
-        // Require guild context for remaining handlers
-        if (!message.guildId || !message.channel) return;
-
-        // Handle automatic slowmode
         try {
-            await this.container.slowmodeManager.handleMessage(message);
-        } catch (error) {
-            this.container.logger.error('Automatic slowmode handler failed', error, {
-                guildId: message.guildId,
-                channelId: message.channel.id
-            });
-        }
+            // Handle legacy bot message cleanup
+            if (message.author.bot) {
+                await this.handleLegacyBotMessages(message);
+                return;
+            }
 
-        // Handle support thread activity monitoring
-        try {
-            await this.container.supportThreadMonitor.handleMessage(message);
+            // Require guild context for remaining handlers
+            if (!message.guildId || !message.channel) return;
+
+            // Handle automatic slowmode
+            try {
+                await this.container.slowmodeManager.handleMessage(message);
+            } catch (error) {
+                this.container.logger.error('Automatic slowmode handler failed', error, {
+                    guildId: message.guildId,
+                    channelId: message.channel.id
+                });
+            }
+
+            // Handle support thread activity monitoring
+            try {
+                await this.container.supportThreadMonitor.handleMessage(message);
+            } catch (error) {
+                this.container.logger.error('Support thread monitor failed', error, {
+                    guildId: message.guildId,
+                    channelId: message.channel.id
+                });
+            }
         } catch (error) {
-            this.container.logger.error('Support thread monitor failed', error, {
+            this.container.logger.error('Unhandled error in messageCreate listener', error, {
                 guildId: message.guildId,
-                channelId: message.channel.id
+                channelId: message.channel?.id
             });
         }
     }

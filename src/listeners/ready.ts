@@ -13,11 +13,15 @@ export class UserEvent extends Listener {
 	private readonly style = dev ? yellow : blue;
 
 	public override run() {
-		this.printBanner();
-		this.printStoreDebugInformation();
-		this.startYouTubeManager();
-		this.startSupportThreadMonitor();
-		this.setBotActivity();
+		try {
+			this.printBanner();
+			this.printStoreDebugInformation();
+			this.startYouTubeManager();
+			this.startSupportThreadMonitor();
+			this.setBotActivity();
+		} catch (error) {
+			this.container.logger.error('Unhandled error during ready listener run', error);
+		}
 	}
 
 	private printBanner() {

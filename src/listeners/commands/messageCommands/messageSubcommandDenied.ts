@@ -2,6 +2,7 @@
 import { Listener, type UserError } from '@sapphire/framework';
 import type { MessageSubcommandDeniedPayload } from '@sapphire/plugin-subcommands';
 import { SubcommandPluginEvents } from '@sapphire/plugin-subcommands';
+import { Logger } from '../../../lib/logger';
 
 export class UserEvent extends Listener<typeof SubcommandPluginEvents.MessageSubcommandDenied> {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -16,6 +17,25 @@ export class UserEvent extends Listener<typeof SubcommandPluginEvents.MessageSub
 		// Use cases for this are for example permissions error when running the `eval` command.
 		if (Reflect.get(Object(context), 'silent')) return;
 
-		return message.reply({ content, allowedMentions: { users: [message.author.id], roles: [] } });
+		try {
+			return message.reply({ content, allowedMentions: { users: [message.author.id], roles: [] } });
+		} catch (error) {
+			Logger.error('Failed to send message subcommand denial response', error, {
+				commandName: message.commandName,
+				userId: message.author.id
+			});
+
+			try {
+				return message.channel?.send({
+					content: 'There was an error sending that response.',
+					allowedMentions: { users: [message.author.id], roles: [] }
+				});
+			} catch (fallbackError) {
+				Logger.error('Failed to send fallback message subcommand denial response', fallbackError, {
+					commandName: message.commandName,
+					userId: message.author.id
+				});
+			}
+		}
 	}
 }

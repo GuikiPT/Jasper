@@ -15,33 +15,40 @@ export class UserEvent extends Listener {
      * - Removes pin notification message
      */
     public override async run(thread: ThreadChannel, newlyCreated: boolean) {
-        this.container.logger.debug('Thread created', {
-            id: thread.id,
-            name: thread.name,
-            guildId: thread.guildId,
-            ownerId: thread.ownerId,
-            newlyCreated
-        });
-
-        // Check if this is a support thread
-        const isSupportThread = await this.isSupportThread(thread);
-
-        this.container.logger.debug('Thread type determined', {
-            threadId: thread.id,
-            isSupportThread
-        });
-
-        // Only proceed with pinning logic for support threads
-        if (!isSupportThread) {
-            this.container.logger.debug('Skipping thread processing - not a support thread', {
-                threadId: thread.id
+        try {
+            this.container.logger.debug('Thread created', {
+                id: thread.id,
+                name: thread.name,
+                guildId: thread.guildId,
+                ownerId: thread.ownerId,
+                newlyCreated
             });
-            return;
-        }
 
-        // Process only newly created threads
-        if (newlyCreated) {
-            await this.handleNewSupportThread(thread);
+            // Check if this is a support thread
+            const isSupportThread = await this.isSupportThread(thread);
+
+            this.container.logger.debug('Thread type determined', {
+                threadId: thread.id,
+                isSupportThread
+            });
+
+            // Only proceed with pinning logic for support threads
+            if (!isSupportThread) {
+                this.container.logger.debug('Skipping thread processing - not a support thread', {
+                    threadId: thread.id
+                });
+                return;
+            }
+
+            // Process only newly created threads
+            if (newlyCreated) {
+                await this.handleNewSupportThread(thread);
+            }
+        } catch (error) {
+            this.container.logger.error('Unhandled error in threadCreate listener', error, {
+                threadId: thread.id,
+                guildId: thread.guildId
+            });
         }
     }
 
