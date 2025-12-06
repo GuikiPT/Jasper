@@ -1,4 +1,4 @@
-// utils module within subcommands/support/tag
+// Tag utilities - shared helpers for tag subcommands
 import type { Subcommand } from '@sapphire/plugin-subcommands';
 import type { APIInteractionGuildMember, GuildMember } from 'discord.js';
 import {
@@ -14,14 +14,21 @@ import {
 import type { GuildSupportTagSettings } from '@prisma/client';
 import { GuildSupportTagTableMissingError, type NormalizedImportEntry as SupportTagNormalizedImportEntry } from '../../../services/supportTagService';
 
+// Type aliases
 export type TagCommand = Subcommand;
 export type TagChatInputInteraction = Subcommand.ChatInputCommandInteraction;
 
+// Field length limits
 export const MAX_TAG_NAME_LENGTH = 64;
 export const MAX_EMBED_TITLE_LENGTH = 512;
 export const MAX_EMBED_DESCRIPTION_LENGTH = 65_535; // TEXT field limit in MySQL
 export const MAX_EMBED_FOOTER_LENGTH = 65_535; // TEXT field limit in MySQL
 
+// ============================================================
+// Reply Helpers
+// ============================================================
+
+// Send ephemeral reply with text content
 export const replyEphemeral = (interaction: TagChatInputInteraction, content: string) => {
 	const components = [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(content))];
 
@@ -31,6 +38,7 @@ export const replyEphemeral = (interaction: TagChatInputInteraction, content: st
 	});
 };
 
+// Send reply with text content (ephemeral or public)
 export const replyWithComponents = (interaction: TagChatInputInteraction, content: string, ephemeral: boolean = false) => {
 	const components = [new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(content))];
 
@@ -41,6 +49,10 @@ export const replyWithComponents = (interaction: TagChatInputInteraction, conten
 		flags
 	});
 };
+
+// ============================================================
+// Type Definitions
+// ============================================================
 
 type ContainerAccessor = { container: TagCommand['container'] };
 
@@ -55,6 +67,11 @@ type SupportRoleAwareInteraction = {
 	member: GuildMember | APIInteractionGuildMember | null;
 };
 
+// ============================================================
+// Tag Embed Builders
+// ============================================================
+
+// Build legacy embed format for tag (deprecated)
 export const buildTagEmbed = (tag: GuildSupportTagSettings) => {
 	const embed = new EmbedBuilder().setTitle(tag.embedTitle).setColor(0x5865f2);
 
@@ -73,6 +90,7 @@ export const buildTagEmbed = (tag: GuildSupportTagSettings) => {
 	return embed;
 };
 
+// Build modern component format for tag display
 export const buildTagComponents = (tag: GuildSupportTagSettings, user?: { id: string }) => {
 	const components = [];
 
@@ -106,7 +124,7 @@ export const buildTagComponents = (tag: GuildSupportTagSettings, user?: { id: st
 		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 	}
 
-	// Add footer if present (should always have separator before footer when footer exists)
+	// Add footer if present
 	if (tag.embedFooter) {
 		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(tag.embedFooter));
 	}
@@ -117,6 +135,10 @@ export const buildTagComponents = (tag: GuildSupportTagSettings, user?: { id: st
 	return components;
 };
 
+// ============================================================
+// Error Handling
+// ============================================================
+
 export const SUPPORT_TAG_TABLE_MISSING_MESSAGE =
 	'Support tag storage has not been initialised yet. Run the pending Prisma migration to create the `GuildSupportTagSettings` table.';
 
@@ -126,6 +148,11 @@ export const isSupportTagTableMissingError = (error: unknown): error is GuildSup
 export const isSupportTagPrismaTableMissingError = (error: unknown): error is GuildSupportTagTableMissingError =>
 	isSupportTagTableMissingError(error);
 
+// ============================================================
+// Tag Operations
+// ============================================================
+
+// Find tag by name in guild
 export const findTag = async (command: TagCommand, guildId: string, name: string) => {
 	const service = command.container.supportTagService;
 	if (!service) {
@@ -135,6 +162,11 @@ export const findTag = async (command: TagCommand, guildId: string, name: string
 	return service.findTagByName(guildId, name);
 };
 
+// ============================================================
+// Channel Access Control
+// ============================================================
+
+// Fetch allowed tag channels for guild
 export const fetchAllowedTagChannels = async (context: ContainerAccessor, guildId: string) => {
 	const service = context.container.guildChannelSettingsService;
 	if (!service) {
@@ -150,6 +182,7 @@ export const fetchAllowedTagChannels = async (context: ContainerAccessor, guildI
 	}
 };
 
+// Collect candidate channel IDs (current channel and parent if thread)
 const collectCandidateChannelIds = (interaction: ChannelAwareInteraction) => {
 	const candidates = new Set<string>();
 
@@ -172,6 +205,7 @@ type TagChannelAccess =
 
 type RestrictedTagChannelAccess = Extract<TagChannelAccess, { allowed: false }>;
 
+// Check if interaction is in an allowed tag channel
 export const ensureTagChannelAccess = async (context: ContainerAccessor, interaction: ChannelAwareInteraction): Promise<TagChannelAccess> => {
 	const guildId = interaction.guildId;
 	if (!guildId) {
@@ -195,6 +229,7 @@ type RestrictionCopy = {
 	multiple: (channels: string) => string;
 };
 
+// Format channel restriction error message
 export const formatTagChannelRestrictionMessage = (access: RestrictedTagChannelAccess, copy: RestrictionCopy) => {
 	if (access.reason === 'unconfigured') {
 		return copy.unconfigured;
@@ -204,6 +239,11 @@ export const formatTagChannelRestrictionMessage = (access: RestrictedTagChannelA
 	return access.allowedChannels.length === 1 ? copy.single(formatted) : copy.multiple(formatted);
 };
 
+// ============================================================
+// Role Access Control
+// ============================================================
+
+// Fetch support roles for guild
 const fetchSupportRoles = async (context: ContainerAccessor, guildId: string) => {
 	const service = context.container.guildRoleSettingsService;
 	if (!service) {
@@ -219,6 +259,7 @@ const fetchSupportRoles = async (context: ContainerAccessor, guildId: string) =>
 	}
 };
 
+// Fetch allowed tag roles for guild
 const fetchAllowedTagRoles = async (context: ContainerAccessor, guildId: string) => {
 	const service = context.container.guildRoleSettingsService;
 	if (!service) {
@@ -234,6 +275,7 @@ const fetchAllowedTagRoles = async (context: ContainerAccessor, guildId: string)
 	}
 };
 
+// Fetch allowed tag admin roles for guild
 const fetchAllowedTagAdminRoles = async (context: ContainerAccessor, guildId: string) => {
 	const service = context.container.guildRoleSettingsService;
 	if (!service) {
@@ -249,6 +291,7 @@ const fetchAllowedTagAdminRoles = async (context: ContainerAccessor, guildId: st
 	}
 };
 
+// Check if member has any of the allowed roles
 const memberHasAllowedRole = (member: GuildMember | APIInteractionGuildMember, allowedRoles: readonly string[]) => {
 	if ('roles' in member) {
 		const roles = member.roles;
@@ -268,6 +311,7 @@ type SupportRoleAccess = { allowed: true } | { allowed: false; reason: 'missing-
 
 export const SUPPORT_ROLE_REQUIRED_MESSAGE = 'You need a support role to use this command.';
 
+// Check if member has support role access
 export const ensureSupportRoleAccess = async (context: ContainerAccessor, interaction: SupportRoleAwareInteraction): Promise<SupportRoleAccess> => {
 	const { guildId, member } = interaction;
 	if (!guildId || !member) {
@@ -290,6 +334,7 @@ type AllowedTagRoleAccess = { allowed: true } | { allowed: false; reason: 'missi
 
 type AllowedTagAdminRoleAccess = { allowed: true } | { allowed: false; reason: 'missing-member' | 'no-config' | 'forbidden' };
 
+// Check if member has tag role or admin role access
 export const ensureAllowedTagRoleAccess = async (
 	context: ContainerAccessor,
 	interaction: SupportRoleAwareInteraction
@@ -319,6 +364,7 @@ export const ensureAllowedTagRoleAccess = async (
 	return { allowed: false, reason: 'forbidden' };
 };
 
+// Check if member has tag admin role access
 export const ensureAllowedTagAdminRoleAccess = async (
 	context: ContainerAccessor,
 	interaction: SupportRoleAwareInteraction
@@ -340,10 +386,17 @@ export const ensureAllowedTagAdminRoleAccess = async (
 	return { allowed: true };
 };
 
+// ============================================================
+// Validation Helpers
+// ============================================================
+
+// Normalize tag name to lowercase trimmed format
 export const normalizeTagName = (name: string) => name.trim().toLowerCase();
 
+// Validate tag name format (alphanumeric, dash, underscore)
 export const validateName = (name: string) => /^[\w-]+$/u.test(name);
 
+// Validate URL format
 export const validateUrl = (value: string) => {
 	try {
 		const parsed = new URL(value);
@@ -353,14 +406,21 @@ export const validateUrl = (value: string) => {
 	}
 };
 
+// Format date as Discord relative timestamp
 export const timestamp = (date: Date) => `<t:${Math.floor(date.getTime() / 1_000)}:R>`;
 
+// Normalize optional string field (null if empty)
 export const normalizeOptional = (value: string | null) => {
 	if (value === null) return null;
 	const trimmed = value.trim();
 	return trimmed.length > 0 ? trimmed : null;
 };
 
+// ============================================================
+// Import Validation
+// ============================================================
+
+// Normalize and validate import entry
 export const normalizeImportEntry = (raw: unknown, tagName?: string): NormalizedImportResult => {
 	if (typeof raw !== 'object' || raw === null) {
 		return { ok: false, reason: 'Entry is not an object.' };
