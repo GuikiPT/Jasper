@@ -1,15 +1,14 @@
 // topic module within commands/Moderation
 import { ApplyOptions } from '@sapphire/decorators';
 import { BucketScope, Command, CommandOptionsRunTypeEnum } from '@sapphire/framework';
-import { ApplicationIntegrationType, InteractionContextType, MessageFlags } from 'discord.js';
-import type { Message } from 'discord.js';
+import { ApplicationIntegrationType, InteractionContextType, MessageFlags, type Message } from 'discord.js';
 
-// Surfaces configured moderation topics either via prefix or slash command.
 interface GuildTopicSettings {
 	id: number;
 	value: string;
 }
 
+// Command for posting random discussion topics from guild configuration
 @ApplyOptions<Command.Options>({
 	name: 'topic',
 	description: "Send a random discussion topic from this server's database.",
@@ -25,6 +24,7 @@ interface GuildTopicSettings {
 	cooldownLimit: 2,
 	cooldownDelay: 5_000,
 	cooldownScope: BucketScope.Channel,
+	// Restrict to admin and staff roles
 	preconditions: [
 		{
 			name: 'AllowedGuildRoleBuckets',
@@ -38,10 +38,11 @@ interface GuildTopicSettings {
 	requiredClientPermissions: ['SendMessages']
 })
 export class TopicCommand extends Command {
+	// Guild-only installation and execution
 	private readonly integrationTypes: ApplicationIntegrationType[] = [ApplicationIntegrationType.GuildInstall];
-
 	private readonly contexts: InteractionContextType[] = [InteractionContextType.Guild];
 
+	// Register simple /topic slash command
 	public override registerApplicationCommands(registry: Command.Registry) {
 		registry.registerChatInputCommand({
 			name: this.name,
@@ -51,7 +52,9 @@ export class TopicCommand extends Command {
 		});
 	}
 
+	// Handle prefix command: delete invoking message and post topic
 	public override async messageRun(message: Message) {
+		// Validate guild context and channel permissions
 		if (!message.guildId) {
 			return message.reply('This command can only be used inside a server.');
 		}
@@ -60,20 +63,24 @@ export class TopicCommand extends Command {
 			return message.reply('I cannot send messages in this channel.');
 		}
 
+		// Fetch random topic from database
 		const topic = await this.fetchRandomTopic(message.guildId);
-
 		if (!topic) {
 			return message.reply('No topics configured yet. Ask an admin to add some with `/settings topics add`.');
 		}
 
+		// Delete command message if possible
 		if (message.deletable) {
 			await message.delete().catch(() => undefined);
 		}
 
+		// Send formatted topic to channel
 		return message.channel.send({ content: this.formatTopic(topic) });
 	}
 
+	// Handle /topic: send topic to channel and confirm ephemerally
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
+		// Validate guild context and channel permissions
 		if (!interaction.guildId) {
 			return interaction.reply({
 				content: 'This command can only be used inside a server.',
@@ -88,8 +95,8 @@ export class TopicCommand extends Command {
 			});
 		}
 
+		// Fetch random topic from database
 		const topic = await this.fetchRandomTopic(interaction.guildId);
-
 		if (!topic) {
 			return interaction.reply({
 				content: 'No topics configured yet. Ask an admin to add some with `/settings topics add`.',
@@ -97,14 +104,17 @@ export class TopicCommand extends Command {
 			});
 		}
 
+		// Send formatted topic to channel
 		await interaction.channel.send({ content: this.formatTopic(topic) });
 
+		// Confirm to user ephemerally
 		return interaction.reply({
 			content: 'Topic sent.',
 			flags: MessageFlags.Ephemeral
 		});
 	}
 
+	// Fetch a random topic from the guild's configured topic list
 	private async fetchRandomTopic(guildId: string): Promise<GuildTopicSettings | null> {
 		const service = this.container.guildTopicSettingsService;
 		if (!service) {
@@ -114,9 +124,7 @@ export class TopicCommand extends Command {
 
 		try {
 			const entry = await service.getRandomTopic(guildId);
-			if (!entry) {
-				return null;
-			}
+			if (!entry) return null;
 
 			return { id: entry.id, value: entry.value };
 		} catch (error) {
@@ -125,7 +133,8 @@ export class TopicCommand extends Command {
 		}
 	}
 
-	private formatTopic(topic: GuildTopicSettings) {
+	// Format topic as markdown heading
+	private formatTopic(topic: GuildTopicSettings): string {
 		return `## ${topic.value}`;
 	}
 }
