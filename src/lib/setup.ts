@@ -1,4 +1,4 @@
-// setup module within lib
+// Setup module - Runtime bootstrap configuration for environment, commands, and utilities
 import { ApplicationCommandRegistries, RegisterBehavior } from '@sapphire/framework';
 import '@sapphire/plugin-api/register';
 import '@sapphire/plugin-editable-commands/register';
@@ -11,27 +11,43 @@ import { inspect } from 'util';
 import { rootDir } from './constants';
 import './database';
 
-// Runtime bootstrap: configures env parsing, command registry behaviour, and shared utilities.
+// ============================================================
+// Application Command Registry Configuration
+// ============================================================
 
-// Set default behavior to bulk overwrite
+// Set default behavior to bulk overwrite for slash command registration
+// This ensures commands are synced with Discord when definitions change
 ApplicationCommandRegistries.setDefaultBehaviorWhenNotIdentical(RegisterBehavior.BulkOverwrite);
 
-// Read env var
+// ============================================================
+// Environment Configuration
+// ============================================================
+
+// Load environment variables from .env file
 setup({ path: join(rootDir, '.env') });
 
-// Unless explicitly defined, set NODE_ENV as development:
+// Set default NODE_ENV to development if not explicitly defined
 process.env.NODE_ENV ??= 'development';
 
-// Set default inspection depth
+// ============================================================
+// Utility Configuration
+// ============================================================
+
+// Set default inspection depth for console logging
 inspect.defaultOptions.depth = 1;
 
-// Enable colorette
+// Enable colorette for terminal color output
 colorette.createColors({ useColor: true });
 
+// ============================================================
+// Type Declarations
+// ============================================================
+
+// Extend Skyra env utilities with required environment variables
 declare module '@skyra/env-utilities' {
-	interface Env {
-		OWNERS: ArrayString;
-		DATABASE_URL: string;
-		DISCORD_TOKEN: string;
-	}
+    interface Env {
+        OWNERS: ArrayString;
+        DATABASE_URL: string;
+        DISCORD_TOKEN: string;
+    }
 }

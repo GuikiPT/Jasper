@@ -4,6 +4,7 @@ import { Events, Listener } from '@sapphire/framework';
 import type { StoreRegistryValue } from '@sapphire/pieces';
 import { blue, gray, green, magenta, magentaBright, white, yellow } from 'colorette';
 import { YouTubeService } from '../services/youtubeService';
+import { ActivityType } from 'discord.js';
 
 const dev = process.env.NODE_ENV !== 'production';
 
@@ -16,6 +17,7 @@ export class UserEvent extends Listener {
 		this.printStoreDebugInformation();
 		this.startYouTubeManager();
 		this.startSupportThreadMonitor();
+		this.setBotActivity();
 	}
 
 	private printBanner() {
@@ -38,6 +40,16 @@ ${line02} ${pad}[${success}] Gateway
 ${line03}${dev ? ` ${pad}${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MODE')}` : ''}
 		`.trim()
 		);
+	}
+
+	private setBotActivity() {
+		try {
+			const { client } = this.container;
+			client.user?.setActivity("👀 Support Threads", { type: ActivityType.Watching });
+			client.user?.setStatus('idle');
+		} catch (error) {
+			this.container.logger.error('Failed to set bot activity and status', error);
+		}
 	}
 
 	private printStoreDebugInformation() {
