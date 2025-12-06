@@ -75,26 +75,31 @@ const client = new SapphireClient({
 	partials: [Partials.Channel],
 	loadMessageCommandListeners: true
 });
+try {
+	container.guildSettingsService = new GuildSettingsService(container.database);
+	container.guildRoleSettingsService = new GuildRoleSettingsService(container.database, container.guildSettingsService);
+	container.guildChannelSettingsService = new GuildChannelSettingsService(container.database, container.guildSettingsService);
+	container.guildSupportSettingsService = new GuildSupportSettingsService(container.database, container.guildSettingsService);
+	container.guildSlowmodeSettingsService = new GuildSlowmodeSettingsService(container.database, container.guildSettingsService);
+	container.guildTopicSettingsService = new GuildTopicSettingsService(container.database);
+	container.supportTagService = new SupportTagService(container.database);
+	container.supportThreadService = new SupportThreadService(container.database);
+	container.supportThreadMonitor = new SupportThreadMonitor(
+		client,
+		container.supportThreadService,
+		container.guildSupportSettingsService,
+		container.database
+	);
 
-container.guildSettingsService = new GuildSettingsService(container.database);
-container.guildRoleSettingsService = new GuildRoleSettingsService(container.database, container.guildSettingsService);
-container.guildChannelSettingsService = new GuildChannelSettingsService(container.database, container.guildSettingsService);
-container.guildSupportSettingsService = new GuildSupportSettingsService(container.database, container.guildSettingsService);
-container.guildSlowmodeSettingsService = new GuildSlowmodeSettingsService(container.database, container.guildSettingsService);
-container.guildTopicSettingsService = new GuildTopicSettingsService(container.database);
-container.supportTagService = new SupportTagService(container.database);
-container.supportThreadService = new SupportThreadService(container.database);
-container.supportThreadMonitor = new SupportThreadMonitor(
-	client,
-	container.supportThreadService,
-	container.guildSupportSettingsService,
-	container.database
-);
-
-container.slowmodeManager = new SlowmodeManager(client, container.database);
-container.snipeManager = new SnipeManager(client, container.database);
-container.automodRuleChecker = new AutomodRuleChecker();
-container.virusTotalService = new VirusTotalService();
+	container.slowmodeManager = new SlowmodeManager(client, container.database);
+	container.snipeManager = new SnipeManager(client, container.database);
+	container.automodRuleChecker = new AutomodRuleChecker();
+	container.virusTotalService = new VirusTotalService();
+} catch (error) {
+	Logger.fatal('Failed to initialize services', error);
+	void client.destroy();
+	process.exit(1);
+}
 
 // Handles the startup pipeline of verifying dependencies and logging into Discord.
 const main = async () => {
