@@ -13,7 +13,8 @@ import {
 	type MessageActionRowComponentBuilder,
 	type ChatInputCommandInteraction,
 	type AutocompleteInteraction,
-	type Message
+	type Message,
+	SlashCommandBooleanOption
 } from 'discord.js';
 import { createErrorTextComponent } from '../../lib/components.js';
 
@@ -90,7 +91,7 @@ interface HelpEntry {
 	cooldownLimit: 2,
 	cooldownDelay: 5_000,
 	cooldownScope: BucketScope.User,
-	requiredClientPermissions: ['SendMessages'],
+	// requiredClientPermissions: ['SendMessages'],
 	preconditions: [
 		{
 			name: 'AllowedGuildRoleBuckets',
@@ -100,7 +101,6 @@ interface HelpEntry {
 					'allowedStaffRoles',
 					'allowedTagAdminRoles',
 					'allowedTagRoles',
-					'ignoredSnipedRoles',
 					'supportRoles'
 				] as const,
 				allowManageGuild: false,
@@ -165,9 +165,9 @@ export class HelpCommand extends Command {
 	};
 
 	private readonly contexts: InteractionContextType[] = [
-		InteractionContextType.BotDM,
+		// InteractionContextType.BotDM,
 		InteractionContextType.Guild,
-		InteractionContextType.PrivateChannel
+		// InteractionContextType.PrivateChannel
 	];
 
 	public override registerApplicationCommands(registry: Command.Registry) {
@@ -179,6 +179,9 @@ export class HelpCommand extends Command {
 				.setContexts(this.contexts)
 				.addStringOption((option: SlashCommandStringOption) =>
 					option.setName('command').setDescription('Command or subcommand to look up.').setAutocomplete(true).setRequired(false)
+				)
+				.addBooleanOption((option: SlashCommandBooleanOption) =>
+					option.setName('ephemeral').setDescription('Whether the response should be visible only to you.').setRequired(false)
 				)
 		);
 	}
@@ -219,6 +222,7 @@ export class HelpCommand extends Command {
 
 	public override async chatInputRun(interaction: ChatInputCommandInteraction) {
 		const requested = interaction.options.getString('command');
+		const isEphemeral = interaction.options.getBoolean('ephemeral');
 		const normalizedQuery = requested?.trim() ?? '';
 		const entries = this.collectEntries();
 		const entry = this.findEntry(entries, normalizedQuery);
@@ -231,7 +235,7 @@ export class HelpCommand extends Command {
 				const component = createErrorTextComponent(overview);
 				return interaction.reply({
 					components: [component],
-					flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
+					flags: (isEphemeral ? MessageFlags.Ephemeral : 0) | MessageFlags.IsComponentsV2
 				});
 			}
 
@@ -249,7 +253,7 @@ export class HelpCommand extends Command {
 		this.attachDocsButton(component, entry);
 		return interaction.reply({
 			components: [component],
-			flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
+			flags: (isEphemeral ? MessageFlags.Ephemeral : 0) | MessageFlags.IsComponentsV2
 		});
 	}
 
