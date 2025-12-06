@@ -84,7 +84,7 @@ export class UserCommand extends Command {
 	// Handles command execution: defers reply, calculates latency, and sends Components v2 UI
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		try {
-			const isEphemeral = interaction.options.getBoolean('ephemeral') ?? false;
+			const isEphemeral = interaction.options.getBoolean('ephemeral') ?? true;
 			// Defer immediately to show "thinking" state and prevent timeout
 			await interaction.deferReply({ flags: isEphemeral ? MessageFlags.Ephemeral : [] });
 		} catch (error) {
