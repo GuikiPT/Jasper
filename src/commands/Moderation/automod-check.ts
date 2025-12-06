@@ -54,7 +54,7 @@ const VIOLATIONS_PER_PAGE = 5;
 			}
 		}
 	],
-	requiredClientPermissions: ['SendMessages']
+	// requiredClientPermissions: ['SendMessages']
 })
 export class AutomodCheckCommand extends Command {
 	// Guild-only installation and execution context
