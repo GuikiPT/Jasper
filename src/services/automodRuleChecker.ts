@@ -39,6 +39,7 @@ interface RuleCheckResult {
 	matches: AutomodMatch[];
 }
 
+// Service for checking content against configurable automod rules
 export class AutomodRuleChecker {
 	private rules: AutomodRules = { rules: {} };
 
@@ -46,6 +47,7 @@ export class AutomodRuleChecker {
 		this.loadRules();
 	}
 
+	// Load automod rules from JSON file at startup
 	private loadRules(): void {
 		try {
 			const rulesPath = join(srcDir, 'data', 'automod-rules.json');
@@ -57,17 +59,16 @@ export class AutomodRuleChecker {
 		}
 	}
 
-	/**
-	 * Check if a word or phrase violates any automod rules
-	 */
+	// Check content against all rules, return detailed result with all matches
 	public checkContent(content: string): AutomodCheckResult {
 		const allMatches: AutomodMatch[] = [];
 		let allowedResult: AutomodCheckResult | null = null;
 
+		// Check content against each rule
 		for (const [ruleId, rule] of Object.entries(this.rules.rules)) {
 			const ruleResult = this.checkAgainstRule(content, rule, ruleId);
 
-			// If content is explicitly allowed by this rule, track it
+			// Track first explicit allowlist match
 			if (ruleResult.isAllowed && !allowedResult) {
 				allowedResult = {
 					isBlocked: false,
@@ -78,11 +79,11 @@ export class AutomodRuleChecker {
 				};
 			}
 
-			// Add all matches from this rule to the global matches array
+			// Accumulate all violation matches
 			allMatches.push(...ruleResult.matches);
 		}
 
-		// If content is explicitly allowed, return that result
+		// Allowlist takes precedence over violations
 		if (allowedResult) {
 			return {
 				...allowedResult,
@@ -91,7 +92,7 @@ export class AutomodRuleChecker {
 			};
 		}
 
-		// If we have matches, return blocked result with all matches info
+		// Return blocked result with all matches
 		if (allMatches.length > 0) {
 			const firstMatch = allMatches[0];
 			return {
@@ -105,6 +106,7 @@ export class AutomodRuleChecker {
 			};
 		}
 
+		// Clean content
 		return {
 			isBlocked: false,
 			allMatches: [],
@@ -112,14 +114,12 @@ export class AutomodRuleChecker {
 		};
 	}
 
-	/**
-	 * Check content against a specific rule
-	 */
+	// Check content against a single rule, collecting all matches
 	private checkAgainstRule(content: string, rule: AutomodRule, ruleId: string): RuleCheckResult {
 		const lowerContent = content.toLowerCase();
 		const matches: AutomodMatch[] = [];
 
-		// First check if content is explicitly allowed
+		// Check allowlist first (short-circuit if allowed)
 		for (const allowedPattern of rule.allowedWords) {
 			if (this.matchesPattern(lowerContent, allowedPattern.toLowerCase())) {
 				return {
@@ -130,7 +130,7 @@ export class AutomodRuleChecker {
 			}
 		}
 
-		// Check blocked words (with wildcard support) - collect ALL matches
+		// Collect all word/phrase matches
 		for (const blockedWord of rule.blockedWords) {
 			if (this.matchesPattern(lowerContent, blockedWord.toLowerCase())) {
 				matches.push({
@@ -142,44 +142,16 @@ export class AutomodRuleChecker {
 			}
 		}
 
-		// Check regex patterns - collect ALL matches
+		// Collect all regex pattern matches
 		for (const regexPattern of rule.regexPatterns) {
-			try {
-				let regex: RegExp;
-
-				// Use Discord-specific patterns from Sapphire utilities
-				switch (regexPattern) {
-					case 'discord-invite':
-						regex = DiscordInviteLinkRegex;
-						break;
-					case 'user-mention':
-						regex = UserOrMemberMentionRegex;
-						break;
-					case 'custom-emoji':
-						regex = EmojiRegex;
-						break;
-					case 'message-link':
-						regex = MessageLinkRegex;
-						break;
-					case 'webhook':
-						regex = WebhookRegex;
-						break;
-					default:
-						// Handle multiline patterns and case insensitive matching
-						const flags = 'im'; // case insensitive and multiline
-						regex = new RegExp(regexPattern, flags);
-				}
-
-				if (regex.test(content)) {
-					matches.push({
-						matchedRule: rule.name,
-						matchedRuleId: ruleId,
-						matchType: 'regex',
-						matchedPattern: regexPattern
-					});
-				}
-			} catch (error) {
-				console.warn(`Invalid regex pattern: ${regexPattern}`, error);
+			const regex = this.buildRegex(regexPattern);
+			if (regex && regex.test(content)) {
+				matches.push({
+					matchedRule: rule.name,
+					matchedRuleId: ruleId,
+					matchType: 'regex',
+					matchedPattern: regexPattern
+				});
 			}
 		}
 
@@ -189,68 +161,107 @@ export class AutomodRuleChecker {
 		};
 	}
 
-	/**
-	 * Check if content matches a pattern (supports wildcards with *)
-	 */
+	// Build regex from pattern string, handling special Discord patterns
+	private buildRegex(regexPattern: string): RegExp | null {
+		try {
+			// Use predefined Sapphire regexes for Discord-specific patterns
+			switch (regexPattern) {
+				case 'discord-invite':
+					return DiscordInviteLinkRegex;
+				case 'user-mention':
+					return UserOrMemberMentionRegex;
+				case 'custom-emoji':
+					return EmojiRegex;
+				case 'message-link':
+					return MessageLinkRegex;
+				case 'webhook':
+					return WebhookRegex;
+				default:
+					// Custom patterns: case-insensitive + multiline
+					return new RegExp(regexPattern, 'im');
+			}
+		} catch (error) {
+			console.warn(`Invalid regex pattern: ${regexPattern}`, error);
+			return null;
+		}
+	}
+
+	// Match content against pattern with wildcard and special character handling
 	private matchesPattern(content: string, pattern: string): boolean {
-		// Handle exact matches first
+		// Exact match
 		if (pattern === content) {
 			return true;
 		}
 
-		// Special handling for Discord mentions and other patterns with special chars
-		if (pattern.includes('<@') || pattern.includes('discord.gg') || pattern.includes('http')) {
-			// For Discord mentions and URLs, use simple contains check
+		// Special patterns (Discord mentions, URLs) use simple substring match
+		if (this.isSpecialPattern(pattern)) {
 			return content.toLowerCase().includes(pattern.toLowerCase());
 		}
 
-		// Handle patterns with wildcards
+		// Wildcard patterns (*) converted to regex
 		if (pattern.includes('*')) {
-			// Convert wildcard pattern to regex
-			const regexPattern = pattern
-				.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // Escape special regex chars
-				.replace(/\\\*/g, '.*'); // Convert * to .*
-
-			try {
-				// Use word boundaries for normal words, but not for special patterns
-				const hasSpecialChars = /[<>@#\.\-\/\\]/.test(pattern);
-				const regex = hasSpecialChars ? new RegExp(regexPattern, 'i') : new RegExp(`\\b${regexPattern}\\b`, 'i');
-				return regex.test(content);
-			} catch (error) {
-				console.warn(`Invalid wildcard pattern: ${pattern}`, error);
-				return false;
-			}
+			return this.matchesWildcard(content, pattern);
 		}
 
-		// Check if content contains the pattern - use word boundaries for normal words only
-		const hasSpecialChars = /[<>@#\.\-\/\\]/.test(pattern);
-		if (hasSpecialChars) {
-			// For patterns with special characters, use simple contains
-			return content.toLowerCase().includes(pattern.toLowerCase());
-		} else {
-			// For normal words, use word boundaries
-			const regex = new RegExp(`\\b${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+		// Normal word matching with boundary detection
+		return this.matchesWord(content, pattern);
+	}
+
+	// Check if pattern contains special characters requiring substring matching
+	private isSpecialPattern(pattern: string): boolean {
+		return pattern.includes('<@') || pattern.includes('discord.gg') || pattern.includes('http');
+	}
+
+	// Match wildcard patterns, respecting word boundaries for normal words
+	private matchesWildcard(content: string, pattern: string): boolean {
+		try {
+			// Escape special regex chars, then convert * to .*
+			const regexPattern = pattern
+				.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+				.replace(/\\\*/g, '.*');
+
+			const hasSpecialChars = /[<>@#.\-\/\\]/.test(pattern);
+			const regex = hasSpecialChars
+				? new RegExp(regexPattern, 'i')
+				: new RegExp(`\\b${regexPattern}\\b`, 'i');
+
 			return regex.test(content);
+		} catch (error) {
+			console.warn(`Invalid wildcard pattern: ${pattern}`, error);
+			return false;
 		}
 	}
 
-	/**
-	 * Get all available rules
-	 */
+	// Match normal word with or without special characters
+	private matchesWord(content: string, pattern: string): boolean {
+		const hasSpecialChars = /[<>@#.\-\/\\]/.test(pattern);
+
+		if (hasSpecialChars) {
+			// Simple substring match for special chars
+			return content.toLowerCase().includes(pattern.toLowerCase());
+		}
+
+		// Word boundary match for normal words
+		try {
+			const regex = new RegExp(`\\b${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+			return regex.test(content);
+		} catch (error) {
+			console.warn(`Invalid pattern: ${pattern}`, error);
+			return false;
+		}
+	}
+
+	// Get all loaded rules
 	public getRules(): Record<string, AutomodRule> {
 		return this.rules.rules;
 	}
 
-	/**
-	 * Get a specific rule by ID
-	 */
+	// Get specific rule by ID
 	public getRule(ruleId: string): AutomodRule | undefined {
 		return this.rules.rules[ruleId];
 	}
 
-	/**
-	 * Get rule names mapped by their IDs
-	 */
+	// Get map of rule IDs to their display names
 	public getRuleNames(): Record<string, string> {
 		const names: Record<string, string> = {};
 		for (const [ruleId, rule] of Object.entries(this.rules.rules)) {
@@ -260,6 +271,7 @@ export class AutomodRuleChecker {
 	}
 }
 
+// Augment Sapphire container with automod checker instance
 declare module '@sapphire/pieces' {
 	interface Container {
 		automodRuleChecker: AutomodRuleChecker;

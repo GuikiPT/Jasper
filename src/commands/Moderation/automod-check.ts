@@ -15,12 +15,11 @@ import {
 import { replyWithComponent, editReplyWithComponent } from '../../lib/components.js';
 import { type AutomodCheckResult } from '../../services/automodRuleChecker.js';
 
-// Constants for automod-check pagination
+// Pagination configuration for violation display
 const AUTOMOD_CHECK_CUSTOM_ID = 'automod-check';
-const AUTOMOD_CHECK_VIOLATIONS_PER_PAGE = 5;
+const VIOLATIONS_PER_PAGE = 5;
 
-// Implements the moderation `automod-check` command for checking words/phrases against automod rules.
-
+// Interactive command for testing content against automod rules
 @ApplyOptions<Command.Options>({
 	name: 'automod-check',
 	description: 'Check if a word or phrase would be blocked by automod rules.',
@@ -44,6 +43,7 @@ const AUTOMOD_CHECK_VIOLATIONS_PER_PAGE = 5;
 	cooldownLimit: 3,
 	cooldownDelay: 5_000,
 	cooldownScope: BucketScope.User,
+	// Restrict to staff and admin roles only
 	preconditions: [
 		{
 			name: 'AllowedGuildRoleBuckets',
@@ -57,9 +57,11 @@ const AUTOMOD_CHECK_VIOLATIONS_PER_PAGE = 5;
 	requiredClientPermissions: ['SendMessages']
 })
 export class AutomodCheckCommand extends Command {
+	// Guild-only installation and execution context
 	private readonly integrationTypes: ApplicationIntegrationType[] = [ApplicationIntegrationType.GuildInstall];
 	private readonly contexts: InteractionContextType[] = [InteractionContextType.Guild];
 
+	// Register slash command with content and ephemeral options
 	public override registerApplicationCommands(registry: Command.Registry) {
 		registry.registerChatInputCommand(
 			new SlashCommandBuilder()
@@ -76,16 +78,16 @@ export class AutomodCheckCommand extends Command {
 		);
 	}
 
-	/** Handles the slash command entry-point for checking automod rules. */
+	// Handle /automod-check: defer, run check, and display paginated results
 	public override async chatInputRun(interaction: ChatInputCommandInteraction) {
 		if (!interaction.guildId) {
 			return replyWithComponent(interaction, 'This command can only be used in a server.', true);
 		}
 
 		const content = interaction.options.getString('content', true);
-		const ephemeral = interaction.options.getBoolean('ephemeral') ?? true;
+		const isEphemeral = interaction.options.getBoolean('ephemeral') ?? true;
 
-		await interaction.deferReply({ flags: ephemeral ? MessageFlags.Ephemeral : undefined });
+		await interaction.deferReply({ flags: isEphemeral ? MessageFlags.Ephemeral : [] });
 
 		try {
 			const result = this.container.automodRuleChecker.checkContent(content);
@@ -106,249 +108,265 @@ export class AutomodCheckCommand extends Command {
 		}
 	}
 
-	/** Creates Components V2 containers with pagination support for violations. */
+	// Build Components v2 containers with color-coded results and pagination
 	public async createResultComponents(content: string, result: AutomodCheckResult, userId: string, currentPage: number = 1) {
 		const { createPaginationButtons } = await import('../../lib/components.js');
 
-		// Container 1: Content Display (neutral color)
-		const contentContainer = new ContainerBuilder();
-		contentContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent('## 🛡️ Automod Rule Check'));
-		contentContainer.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
+		const containers: ContainerBuilder[] = [];
 
-		const truncatedContent = content.length > 500 ? content.substring(0, 497) + '...' : content;
+		// Content display container (neutral)
+		containers.push(this.buildContentContainer(content));
 
-		contentContainer.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`**📝 Checked Content:**\n\`\`\`\n${truncatedContent}\n\`\`\``)
-		);
+		// Result container (color-coded: red for blocked, green for allowed/clean)
+		containers.push(this.buildResultContainer(content, result, currentPage));
 
-		// Container 2: Results Display (colored based on result)
-		const resultContainer = new ContainerBuilder();
-
-		if (result.isBlocked) {
-			resultContainer.setAccentColor(0xff4444);
-
-			const matchCount = result.matchCount || 1;
-			const headerText = matchCount > 1 ? `## 🚫 BLOCKED (${matchCount} matches)` : '## 🚫 BLOCKED';
-			const subText =
-				matchCount > 1
-					? `This content would be flagged by automod (${matchCount} rule violations found)`
-					: 'This content would be flagged by automod';
-
-			resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(headerText));
-			resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(subText));
-
-			// Add spacing
-			resultContainer.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small));
-
-			if (matchCount > 1 && result.allMatches && result.allMatches.length > 1) {
-				// Use pagination for multiple violations
-				const violationsPerPage = AUTOMOD_CHECK_VIOLATIONS_PER_PAGE;
-				const totalPages = Math.ceil(result.allMatches.length / violationsPerPage);
-				const validPage = Math.max(1, Math.min(currentPage, totalPages));
-
-				const startIndex = (validPage - 1) * violationsPerPage;
-				const endIndex = Math.min(startIndex + violationsPerPage, result.allMatches.length);
-				const pageMatches = result.allMatches.slice(startIndex, endIndex);
-
-				if (totalPages > 1) {
-					resultContainer.addTextDisplayComponents(
-						new TextDisplayBuilder().setContent(`## **Rule Violations:** (Page ${validPage}/${totalPages})`)
-					);
-				} else {
-					resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent('## **All Rule Violations:**'));
-				}
-
-				pageMatches.forEach((match, localIndex) => {
-					const globalIndex = startIndex + localIndex + 1;
-					const escapedPattern = match.matchedPattern.replace(/`/g, '\\`').replace(/\\/g, '\\\\');
-					const caughtText = this.findCaughtText(content, match.matchedPattern);
-
-					resultContainer.addTextDisplayComponents(
-						new TextDisplayBuilder().setContent(`### ${globalIndex}. **Rule:** \`${match.matchedRuleId} - ${match.matchedRule}\``)
-					);
-					resultContainer.addTextDisplayComponents(
-						new TextDisplayBuilder().setContent(`- **Type:** \`${match.matchType === 'word' ? 'Word/Phrase Match' : 'Regex Pattern'}\``)
-					);
-					resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(`- **Pattern:** \`${escapedPattern}\``));
-					resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(`- **Caught:** \`${caughtText}\``));
-				});
-
-				if (totalPages > 1) {
-					resultContainer.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small));
-					resultContainer.addTextDisplayComponents(
-						new TextDisplayBuilder().setContent(`*Showing violations ${startIndex + 1}-${endIndex} of ${result.allMatches.length}*`)
-					);
-				}
-			} else {
-				// Show single match details (backwards compatibility)
-				const escapedPattern = result.matchedPattern!.replace(/`/g, '\\`').replace(/\\/g, '\\\\');
-				const caughtText = this.findCaughtText(content, result.matchedPattern!);
-
-				resultContainer.addTextDisplayComponents(
-					new TextDisplayBuilder().setContent(`### - **Rule:** \`${result.matchedRuleId} - ${result.matchedRule}\``)
-				);
-				resultContainer.addTextDisplayComponents(
-					new TextDisplayBuilder().setContent(`- **Type:** \`${result.matchType === 'word' ? 'Word/Phrase Match' : 'Regex Pattern'}\``)
-				);
-				resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(`- **Pattern:** \`${escapedPattern}\``));
-				resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(`- **Caught:** \`${caughtText}\``));
-			}
-		} else if (result.isAllowed) {
-			// Green container for explicitly allowed content
-			resultContainer.setAccentColor(0x00ff00);
-			resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent('## ✅ ALLOWED'));
-			resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent('This content is explicitly allowed'));
-
-			// Add spacing
-			resultContainer.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small));
-
-			// Rule details
-			resultContainer.addTextDisplayComponents(
-				new TextDisplayBuilder().setContent(
-					`**Rule:** \`${result.matchedRuleId} - ${result.matchedRule}\`\n` + `**Exception:** \`${result.allowedPattern}\``
-				)
-			);
-		} else {
-			// Green container for clean content
-			resultContainer.setAccentColor(0x00ff00);
-			resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent('## ✅ CLEAN'));
-			resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent('This content would not be flagged by automod'));
-		}
-
-		// Add footer to result container
-		resultContainer.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
-		const rules = this.container.automodRuleChecker.getRuleNames();
-		const ruleCount = Object.keys(rules).length;
-
-		let footerText = `-# Checked against ${ruleCount} automod rule${ruleCount !== 1 ? 's' : ''}`;
-
-		// Add match count information if there are multiple matches
-		if (result.isBlocked && result.matchCount && result.matchCount > 1) {
-			footerText += ` • Found ${result.matchCount} violations`;
-		}
-
-		footerText += ' • Does not check for bypasses';
-		resultContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(footerText));
-
-		const containers = [contentContainer, resultContainer];
-
-		// Add pagination buttons if needed
-		if (result.isBlocked && result.allMatches && result.allMatches.length > AUTOMOD_CHECK_VIOLATIONS_PER_PAGE) {
-			const violationsPerPage = AUTOMOD_CHECK_VIOLATIONS_PER_PAGE;
-			const totalPages = Math.ceil(result.allMatches.length / violationsPerPage);
+		// Add pagination if needed
+		if (result.isBlocked && result.allMatches && result.allMatches.length > VIOLATIONS_PER_PAGE) {
+			const totalPages = Math.ceil(result.allMatches.length / VIOLATIONS_PER_PAGE);
 			const validPage = Math.max(1, Math.min(currentPage, totalPages));
-
-			const buttons = createPaginationButtons(validPage, totalPages, AUTOMOD_CHECK_CUSTOM_ID, {
-				ownerId: userId
-			});
-
-			return [...containers, ...buttons];
+			const buttons = createPaginationButtons(validPage, totalPages, AUTOMOD_CHECK_CUSTOM_ID, { ownerId: userId });
+			containers.push(...(buttons as any[]));
 		}
 
 		return containers;
 	}
 
-	/** Find the actual text that was caught by a pattern. */
-	private findCaughtText(content: string, pattern: string): string {
-		const lowerContent = content.toLowerCase();
-		const lowerPattern = pattern.toLowerCase();
+	// Build neutral container showing the checked content
+	private buildContentContainer(content: string): ContainerBuilder {
+		const container = new ContainerBuilder();
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('## 🛡️ Automod Rule Check'));
+		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 
-		// Check if this is a regex pattern (contains regex characters but not simple wildcards)
-		const isRegexPattern = /[\\()[\]{}^$+?|]/.test(pattern) && !pattern.includes('*');
+		const truncated = content.length > 500 ? content.substring(0, 497) + '...' : content;
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`**📝 Checked Content:**\n\`\`\`\n${truncated}\n\`\`\``));
 
-		if (isRegexPattern) {
-			// Handle regex patterns by actually testing them against the content
-			try {
-				// Test the regex against content to find actual matches
-				const regex = new RegExp(pattern, 'gi');
-				let match;
-				const matches = [];
-				while ((match = regex.exec(content)) !== null) {
-					matches.push(match[0]);
-					if (!regex.global) break;
-				}
+		return container;
+	}
 
-				if (matches.length > 0) {
-					return matches[0]; // Return the first actual matched text
-				}
+	// Build result container with violations, allowed status, or clean status
+	private buildResultContainer(content: string, result: AutomodCheckResult, currentPage: number): ContainerBuilder {
+		const container = new ContainerBuilder();
 
-				// If no matches but pattern is complex, try without word boundaries
-				const simplifiedPattern = pattern.replace(/\\b/g, '');
-				const simpleRegex = new RegExp(simplifiedPattern, 'gi');
-				const simpleMatch = content.match(simpleRegex);
-				if (simpleMatch) {
-					return simpleMatch[0];
-				}
-			} catch (error) {
-				// Skip invalid regex
-			}
-
-			// Final fallback for regex: try to find any word that might match the pattern intent
-			const words = content.split(/\s+/);
-			for (const word of words) {
-				// Check if word contains typical slur patterns
-				if (/n[i1!e]+[gjbpq]+[a]+[sz]*/i.test(word)) {
-					return word.replace(/[^\w]/g, '');
-				}
-			}
-
-			// Last resort: return a cleaned version of the pattern
-			return 'pattern-match';
-		} else if (pattern.includes('*')) {
-			// Handle wildcard patterns - need to find individual word matches
-			const basePattern = pattern.replace(/\*/g, '');
-
-			if (basePattern.length === 0) {
-				return pattern; // Pattern is just '*'
-			}
-
-			try {
-				const hasSpecialChars = /[<>@#\.\-\/\\]/.test(pattern);
-
-				if (hasSpecialChars) {
-					// For special patterns like discord.gg/*, find the full match
-					const regexPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '[^\\s]*');
-					const regex = new RegExp(regexPattern, 'i');
-					const match = content.match(regex);
-					if (match) {
-						return match[0];
-					}
-				} else {
-					// For normal word patterns like sigma*, find word that starts with base
-					const words = content.split(/\s+/);
-					for (const word of words) {
-						if (word.toLowerCase().startsWith(basePattern.toLowerCase())) {
-							// Remove punctuation from end to get clean word
-							return word.replace(/[^\w]/g, '');
-						}
-					}
-				}
-			} catch (error) {
-				// Skip invalid patterns
-			}
+		if (result.isBlocked) {
+			this.buildBlockedResult(container, content, result, currentPage);
+		} else if (result.isAllowed) {
+			this.buildAllowedResult(container, result);
 		} else {
-			// Handle exact patterns
-			const hasSpecialChars = /[<>@#\.\-\/\\]/.test(pattern);
-			if (hasSpecialChars) {
-				// For patterns with special characters, use simple contains
-				if (lowerContent.includes(lowerPattern)) {
-					// Find the actual case-preserved match
-					const index = lowerContent.indexOf(lowerPattern);
-					if (index !== -1) {
-						return content.substring(index, index + pattern.length);
-					}
-				}
-			} else {
-				// For normal words, use word boundaries
-				const regex = new RegExp(`\\b${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-				const match = content.match(regex);
-				if (match) {
-					return match[0];
-				}
-			}
+			this.buildCleanResult(container);
 		}
 
-		// Fallback to pattern if no match found (shouldn't happen)
+		// Footer with rule count and disclaimer
+		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(this.buildFooter(result)));
+
+		return container;
+	}
+
+	// Build blocked result section with red accent and violation details
+	private buildBlockedResult(container: ContainerBuilder, content: string, result: AutomodCheckResult, currentPage: number): void {
+		container.setAccentColor(0xff4444);
+
+		const matchCount = result.matchCount || 1;
+		const header = matchCount > 1 ? `## 🚫 BLOCKED (${matchCount} matches)` : '## 🚫 BLOCKED';
+		const subtitle = matchCount > 1
+			? `This content would be flagged by automod (${matchCount} rule violations found)`
+			: 'This content would be flagged by automod';
+
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(header));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(subtitle));
+		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small));
+
+		if (matchCount > 1 && result.allMatches && result.allMatches.length > 1) {
+			this.addPaginatedViolations(container, content, result, currentPage);
+		} else {
+			this.addSingleViolation(container, content, result);
+		}
+	}
+
+	// Add paginated violation list when multiple matches exist
+	private addPaginatedViolations(container: ContainerBuilder, content: string, result: AutomodCheckResult, currentPage: number): void {
+		const totalPages = Math.ceil(result.allMatches!.length / VIOLATIONS_PER_PAGE);
+		const validPage = Math.max(1, Math.min(currentPage, totalPages));
+		const startIndex = (validPage - 1) * VIOLATIONS_PER_PAGE;
+		const endIndex = Math.min(startIndex + VIOLATIONS_PER_PAGE, result.allMatches!.length);
+		const pageMatches = result.allMatches!.slice(startIndex, endIndex);
+
+		const pageTitle = totalPages > 1
+			? `## **Rule Violations:** (Page ${validPage}/${totalPages})`
+			: '## **All Rule Violations:**';
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(pageTitle));
+
+		pageMatches.forEach((match, localIndex) => {
+			const globalIndex = startIndex + localIndex + 1;
+			this.addViolationDetails(container, content, match, globalIndex);
+		});
+
+		if (totalPages > 1) {
+			container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small));
+			container.addTextDisplayComponents(
+				new TextDisplayBuilder().setContent(`*Showing violations ${startIndex + 1}-${endIndex} of ${result.allMatches!.length}*`)
+			);
+		}
+	}
+
+	// Add single violation details (backwards compatibility for single match)
+	private addSingleViolation(container: ContainerBuilder, content: string, result: AutomodCheckResult): void {
+		const escapedPattern = this.escapePattern(result.matchedPattern!);
+		const caughtText = this.findCaughtText(content, result.matchedPattern!);
+
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`### - **Rule:** \`${result.matchedRuleId} - ${result.matchedRule}\``));
+		container.addTextDisplayComponents(
+			new TextDisplayBuilder().setContent(`- **Type:** \`${result.matchType === 'word' ? 'Word/Phrase Match' : 'Regex Pattern'}\``)
+		);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`- **Pattern:** \`${escapedPattern}\``));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`- **Caught:** \`${caughtText}\``));
+	}
+
+	// Add details for a specific violation match
+	private addViolationDetails(container: ContainerBuilder, content: string, match: any, index: number): void {
+		const escapedPattern = this.escapePattern(match.matchedPattern);
+		const caughtText = this.findCaughtText(content, match.matchedPattern);
+
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${index}. **Rule:** \`${match.matchedRuleId} - ${match.matchedRule}\``));
+		container.addTextDisplayComponents(
+			new TextDisplayBuilder().setContent(`- **Type:** \`${match.matchType === 'word' ? 'Word/Phrase Match' : 'Regex Pattern'}\``)
+		);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`- **Pattern:** \`${escapedPattern}\``));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`- **Caught:** \`${caughtText}\``));
+	}
+
+	// Build allowed result section with green accent
+	private buildAllowedResult(container: ContainerBuilder, result: AutomodCheckResult): void {
+		container.setAccentColor(0x00ff00);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('## ✅ ALLOWED'));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('This content is explicitly allowed'));
+		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small));
+		container.addTextDisplayComponents(
+			new TextDisplayBuilder().setContent(
+				`**Rule:** \`${result.matchedRuleId} - ${result.matchedRule}\`\n**Exception:** \`${result.allowedPattern}\``
+			)
+		);
+	}
+
+	// Build clean result section with green accent
+	private buildCleanResult(container: ContainerBuilder): void {
+		container.setAccentColor(0x00ff00);
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('## ✅ CLEAN'));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('This content would not be flagged by automod'));
+	}
+
+	// Build footer text with rule count and match information
+	private buildFooter(result: AutomodCheckResult): string {
+		const rules = this.container.automodRuleChecker.getRuleNames();
+		const ruleCount = Object.keys(rules).length;
+		let footer = `-# Checked against ${ruleCount} automod rule${ruleCount !== 1 ? 's' : ''}`;
+
+		if (result.isBlocked && result.matchCount && result.matchCount > 1) {
+			footer += ` • Found ${result.matchCount} violations`;
+		}
+
+		footer += ' • Does not check for bypasses';
+		return footer;
+	}
+
+	// Escape pattern for safe display in markdown code blocks
+	private escapePattern(pattern: string): string {
+		return pattern.replace(/`/g, '\\`').replace(/\\/g, '\\\\');
+	}
+
+	// Find actual text caught by a pattern (handles regex, wildcards, and exact matches)
+	private findCaughtText(content: string, pattern: string): string {
+		// Try regex patterns first
+		if (this.isRegexPattern(pattern)) {
+			const match = this.findRegexMatch(content, pattern);
+			if (match) return match;
+		}
+
+		// Try wildcard patterns
+		if (pattern.includes('*')) {
+			const match = this.findWildcardMatch(content, pattern);
+			if (match) return match;
+		}
+
+		// Try exact match
+		const match = this.findExactMatch(content, pattern);
+		if (match) return match;
+
+		// Fallback: clean pattern
 		return pattern.replace(/\*/g, '').replace(/\\b|\\w|\\d|\\s|\\|\[|\]|\(|\)/g, '');
+	}
+
+	// Check if pattern contains regex syntax
+	private isRegexPattern(pattern: string): boolean {
+		return /[\\()[\]{}^$+?|]/.test(pattern) && !pattern.includes('*');
+	}
+
+	// Find text matching a regex pattern
+	private findRegexMatch(content: string, pattern: string): string | null {
+		try {
+			const regex = new RegExp(pattern, 'gi');
+			const match = regex.exec(content);
+			if (match) return match[0];
+
+			// Try without word boundaries as fallback
+			const simplified = pattern.replace(/\\b/g, '');
+			const simpleMatch = content.match(new RegExp(simplified, 'gi'));
+			if (simpleMatch) return simpleMatch[0];
+		} catch {
+			// Invalid regex, skip
+		}
+
+		return null;
+	}
+
+	// Find text matching a wildcard pattern (e.g., discord.gg/*, sigma*)
+	private findWildcardMatch(content: string, pattern: string): string | null {
+		const basePattern = pattern.replace(/\*/g, '');
+		if (basePattern.length === 0) return pattern;
+
+		try {
+			const hasSpecialChars = /[<>@#.\-\/\\]/.test(pattern);
+
+			if (hasSpecialChars) {
+				// Special patterns like discord.gg/* - match full phrase
+				const regexPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '[^\\s]*');
+				const match = content.match(new RegExp(regexPattern, 'i'));
+				if (match) return match[0];
+			} else {
+				// Word patterns like sigma* - match word starting with base
+				const words = content.split(/\s+/);
+				for (const word of words) {
+					if (word.toLowerCase().startsWith(basePattern.toLowerCase())) {
+						return word.replace(/[^\w]/g, '');
+					}
+				}
+			}
+		} catch {
+			// Invalid pattern, skip
+		}
+
+		return null;
+	}
+
+	// Find exact pattern match with word boundaries
+	private findExactMatch(content: string, pattern: string): string | null {
+		const lowerContent = content.toLowerCase();
+		const lowerPattern = pattern.toLowerCase();
+		const hasSpecialChars = /[<>@#.\-\/\\]/.test(pattern);
+
+		if (hasSpecialChars) {
+			// Special chars: simple substring match
+			if (lowerContent.includes(lowerPattern)) {
+				const index = lowerContent.indexOf(lowerPattern);
+				return content.substring(index, index + pattern.length);
+			}
+		} else {
+			// Normal words: use word boundary matching
+			const regex = new RegExp(`\\b${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+			const match = content.match(regex);
+			if (match) return match[0];
+		}
+
+		return null;
 	}
 }
