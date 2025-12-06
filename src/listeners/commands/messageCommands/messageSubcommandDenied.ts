@@ -21,21 +21,27 @@ export class UserEvent extends Listener<typeof SubcommandPluginEvents.MessageSub
 			return message.reply({ content, allowedMentions: { users: [message.author.id], roles: [] } });
 		} catch (error) {
 			Logger.error('Failed to send message subcommand denial response', error, {
-				commandName: message.commandName,
+				messageId: message.id,
+				channelId: message.channelId,
 				userId: message.author.id
 			});
 
 			try {
-				return message.channel?.send({
-					content: 'There was an error sending that response.',
-					allowedMentions: { users: [message.author.id], roles: [] }
-				});
+				if (message.channel && 'send' in message.channel) {
+					return (message.channel as Extract<typeof message.channel, { send: Function }>).send({
+						content: 'There was an error sending that response.',
+						allowedMentions: { users: [message.author.id], roles: [] }
+					});
+				}
 			} catch (fallbackError) {
 				Logger.error('Failed to send fallback message subcommand denial response', fallbackError, {
-					commandName: message.commandName,
+					messageId: message.id,
+					channelId: message.channelId,
 					userId: message.author.id
 				});
 			}
+
+			return;
 		}
 	}
 }

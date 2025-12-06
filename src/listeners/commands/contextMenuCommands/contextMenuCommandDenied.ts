@@ -56,6 +56,8 @@ export class UserEvent extends Listener<typeof Events.ContextMenuCommandDenied> 
 					userId: interaction.user.id
 				});
 			}
+
+			return;
 		}
 	}
 }

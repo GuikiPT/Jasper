@@ -64,6 +64,8 @@ export class UserEvent extends Listener<typeof SubcommandPluginEvents.ChatInputS
 					userId: interaction.user.id
 				});
 			}
+
+			return;
 		}
 	}
 }
