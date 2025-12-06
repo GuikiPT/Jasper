@@ -57,5 +57,7 @@ export class UserEvent extends Listener<typeof Events.ChatInputCommandDenied> {
 				});
 			}
 		}
+
+		return;
 	}
 }
