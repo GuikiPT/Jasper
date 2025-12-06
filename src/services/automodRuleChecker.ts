@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { srcDir } from '../lib/constants.js';
 import { DiscordInviteLinkRegex, UserOrMemberMentionRegex, EmojiRegex, MessageLinkRegex, WebhookRegex } from '@sapphire/discord-utilities';
+import { container } from '@sapphire/pieces';
 
 interface AutomodRule {
 	name: string;
@@ -54,7 +55,7 @@ export class AutomodRuleChecker {
 			const rulesData = readFileSync(rulesPath, 'utf-8');
 			this.rules = JSON.parse(rulesData);
 		} catch (error) {
-			console.error('Failed to load automod rules:', error);
+			container.logger.error('Failed to load automod rules:', error);
 			this.rules = { rules: {} };
 		}
 	}
@@ -181,7 +182,7 @@ export class AutomodRuleChecker {
 					return new RegExp(regexPattern, 'im');
 			}
 		} catch (error) {
-			console.warn(`Invalid regex pattern: ${regexPattern}`, error);
+			container.logger.warn(`Invalid regex pattern: ${regexPattern}`, error);
 			return null;
 		}
 	}
@@ -227,7 +228,7 @@ export class AutomodRuleChecker {
 
 			return regex.test(content);
 		} catch (error) {
-			console.warn(`Invalid wildcard pattern: ${pattern}`, error);
+			container.logger.warn(`Invalid wildcard pattern: ${pattern}`, error);
 			return false;
 		}
 	}
@@ -246,7 +247,7 @@ export class AutomodRuleChecker {
 			const regex = new RegExp(`\\b${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
 			return regex.test(content);
 		} catch (error) {
-			console.warn(`Invalid pattern: ${pattern}`, error);
+			container.logger.warn(`Invalid pattern: ${pattern}`, error);
 			return false;
 		}
 	}
