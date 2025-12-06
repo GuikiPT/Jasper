@@ -29,9 +29,9 @@ import type {
  */
 export async function chatInputVirusTotalFile(_command: Subcommand, interaction: VirusTotalChatInputInteraction) {
 	const file = interaction.options.getAttachment('attachment', true);
-	const ephemeral = interaction.options.getBoolean('ephemeral') ?? true;
+	const isEphemeral = interaction.options.getBoolean('ephemeral') ?? true;
 
-	await interaction.deferReply(ephemeral ? { flags: MessageFlags.Ephemeral } : undefined);
+	await interaction.deferReply({ flags: isEphemeral ? MessageFlags.Ephemeral : [] });
 
 	let fileBuffer: Buffer | null = null;
 	let fileHashes: { sha256: string; md5: string; sha1: string } | null = null;

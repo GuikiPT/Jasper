@@ -2,29 +2,16 @@ import type { Subcommand } from '@sapphire/plugin-subcommands';
 import { MessageFlags } from 'discord.js';
 
 import { VirusTotalChatInputInteraction } from './types';
-import {
-	validateApiKey,
-	fetchVirusTotalData,
-	getSecurityStatus,
-	getMaliciousEngines,
-	createReportComponents,
-	handleVirusTotalError,
-	formatUnixDate
-} from './utils';
-import { VIRUSTOTAL_CONFIG } from './constants';
+import { getSecurityStatus, getMaliciousEngines, createReportComponents, handleVirusTotalError, formatUnixDate } from './utils';
 
 export async function chatInputVirusTotalIp(_command: Subcommand, interaction: VirusTotalChatInputInteraction) {
 	const address = interaction.options.getString('address', true);
-	const ephemeral = interaction.options.getBoolean('ephemeral') ?? true;
+	const isEphemeral = interaction.options.getBoolean('ephemeral') ?? true;
 
-	await interaction.deferReply(ephemeral ? { flags: MessageFlags.Ephemeral } : undefined);
+	await interaction.deferReply({ flags: isEphemeral ? MessageFlags.Ephemeral : [] });
 
 	try {
-		// Validate API key early
-		validateApiKey();
-
-		// Fetch data from VirusTotal
-		const data = await fetchVirusTotalData<any>(`${VIRUSTOTAL_CONFIG.API.ENDPOINTS.IP_ADDRESSES}/${address}`);
+		const data = await _command.container.virusTotalService.fetchIp(address);
 
 		const stats = data.data.attributes.last_analysis_stats;
 		const attributes = data.data.attributes;
@@ -78,21 +65,20 @@ ${attributes.whois || 'Not available'}
 
 LAST ANALYSIS RESULTS (Detailed):
 ${Object.entries(attributes.last_analysis_results || {})
-	.map(([engine, result]: [string, any]) => `${engine}: ${result.category} (${result.result || 'N/A'})`)
-	.join('\n')}
+				.map(([engine, result]: [string, any]) => `${engine}: ${result.category} (${result.result || 'N/A'})`)
+				.join('\n')}
 
 CERTIFICATE INFORMATION:
-${
-	attributes.last_https_certificate
-		? `
+${attributes.last_https_certificate
+				? `
 ISSUER: ${attributes.last_https_certificate.issuer?.CN || 'Unknown'}
 SUBJECT: ${attributes.last_https_certificate.subject?.CN || 'Unknown'}
 VALID FROM: ${attributes.last_https_certificate.validity?.not_before || 'Unknown'}
 VALID TO: ${attributes.last_https_certificate.validity?.not_after || 'Unknown'}
 THUMBPRINT: ${attributes.last_https_certificate.thumbprint || 'Unknown'}
 `
-		: 'No certificate information available'
-}
+				: 'No certificate information available'
+			}
 
 JARM FINGERPRINT: ${attributes.jarm || 'Not available'}
 

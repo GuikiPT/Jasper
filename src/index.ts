@@ -21,6 +21,7 @@ import { SupportTagService } from './services/supportTagService';
 import { SupportThreadService } from './services/supportThreadService';
 import { SupportThreadMonitor } from './services/supportThreadMonitor';
 import { AutomodRuleChecker } from './services/automodRuleChecker';
+import { VirusTotalService } from './services/virusTotalService';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const logLevel = isProduction ? LogLevel.Info : LogLevel.Debug;
@@ -93,6 +94,7 @@ container.supportThreadMonitor = new SupportThreadMonitor(
 container.slowmodeManager = new SlowmodeManager(client, container.database);
 container.snipeManager = new SnipeManager(client, container.database);
 container.automodRuleChecker = new AutomodRuleChecker();
+container.virusTotalService = new VirusTotalService();
 
 // Handles the startup pipeline of verifying dependencies and logging into Discord.
 const main = async () => {
