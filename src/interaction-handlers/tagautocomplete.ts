@@ -14,92 +14,109 @@ const HANDLED_SUBCOMMANDS = new Set(['delete', 'edit', 'use']);
 export class SupportTagsAutocompleteHandler extends InteractionHandler {
 	// Send autocomplete choices to Discord
 	public override async run(interaction: AutocompleteInteraction, choices: ApplicationCommandOptionChoiceData[]) {
-		return interaction.respond(choices);
+		try {
+			return interaction.respond(choices);
+		} catch (error) {
+			this.container.logger.error('Failed to respond to support tag autocomplete interaction', error, {
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id
+			});
+		}
+		return interaction.respond([]);
 	}
 
 	// Parse interaction and generate tag name suggestions
 	public override async parse(interaction: AutocompleteInteraction) {
-		// Require guild context
-		if (!interaction.guildId) {
-			return this.some([]);
-		}
+		try {
+			// Require guild context
+			if (!interaction.guildId) {
+				return this.some([]);
+			}
 
-		// Check if this is a handled subcommand
-		const subcommand = interaction.options.getSubcommand(false);
-		if (!subcommand || !HANDLED_SUBCOMMANDS.has(subcommand)) {
-			return this.none();
-		}
+			// Check if this is a handled subcommand
+			const subcommand = interaction.options.getSubcommand(false);
+			if (!subcommand || !HANDLED_SUBCOMMANDS.has(subcommand)) {
+				return this.none();
+			}
 
-		// Check if the focused option is the tag name field
-		const focused = interaction.options.getFocused(true);
-		if (focused.name !== 'name') {
-			return this.none();
-		}
+			// Check if the focused option is the tag name field
+			const focused = interaction.options.getFocused(true);
+			if (focused.name !== 'name') {
+				return this.none();
+			}
 
-		// Verify user has support role access
-		const supportAccess = await ensureSupportRoleAccess(this, interaction);
-		if (!supportAccess.allowed) {
-			return this.some([]);
-		}
+			// Verify user has support role access
+			const supportAccess = await ensureSupportRoleAccess(this, interaction);
+			if (!supportAccess.allowed) {
+				return this.some([]);
+			}
 
-		// For "use" subcommand, verify tag role access
-		if (subcommand === 'use') {
-			const allowedTagRoleAccess = await ensureAllowedTagRoleAccess(this, interaction);
-			if (!allowedTagRoleAccess.allowed) {
+			// For "use" subcommand, verify tag role access
+			if (subcommand === 'use') {
+				const allowedTagRoleAccess = await ensureAllowedTagRoleAccess(this, interaction);
+				if (!allowedTagRoleAccess.allowed) {
+					return this.some([]);
+				}
+			}
+
+			// Verify channel access restrictions
+			const channelAccess = await ensureTagChannelAccess(this, interaction);
+			if (!channelAccess.allowed) {
+				return this.some([]);
+			}
+
+			// Extract and normalize search query
+			const rawQuery = typeof focused.value === 'string' ? focused.value : '';
+			const query = rawQuery.trim();
+			const normalizedQuery = query ? normalizeTagName(query) : '';
+
+			// Get support tag service
+			const service = this.container.supportTagService;
+			if (!service) {
+				this.container.logger.error('Support tag service is not initialised');
+				return this.some([]);
+			}
+
+			try {
+				// Fetch all tags for guild
+				const tags = await service.listTags(interaction.guildId);
+
+				// Sort tags by relevance: startsWith > contains
+				const startsWith: string[] = [];
+				const contains: string[] = [];
+
+				for (const { name } of tags) {
+					// If no query, include all tags
+					if (!normalizedQuery) {
+						contains.push(name);
+						continue;
+					}
+
+					// Prioritize exact prefix matches
+					if (name.startsWith(normalizedQuery)) {
+						startsWith.push(name);
+					} else if (name.includes(normalizedQuery)) {
+						contains.push(name);
+					}
+				}
+
+				// Build choices list (max 25 for Discord limit)
+				const choices = [...startsWith, ...contains]
+					.slice(0, 25)
+					.map((name) => ({ name, value: name }) satisfies ApplicationCommandOptionChoiceData);
+
+				return this.some(choices);
+			} catch (error) {
+				this.container.logger.error('Failed to resolve support tag autocomplete suggestions', error);
 				return this.some([]);
 			}
 		}
-
-		// Verify channel access restrictions
-		const channelAccess = await ensureTagChannelAccess(this, interaction);
-		if (!channelAccess.allowed) {
-			return this.some([]);
-		}
-
-		// Extract and normalize search query
-		const rawQuery = typeof focused.value === 'string' ? focused.value : '';
-		const query = rawQuery.trim();
-		const normalizedQuery = query ? normalizeTagName(query) : '';
-
-		// Get support tag service
-		const service = this.container.supportTagService;
-		if (!service) {
-			this.container.logger.error('Support tag service is not initialised');
-			return this.some([]);
-		}
-
-		try {
-			// Fetch all tags for guild
-			const tags = await service.listTags(interaction.guildId);
-
-			// Sort tags by relevance: startsWith > contains
-			const startsWith: string[] = [];
-			const contains: string[] = [];
-
-			for (const { name } of tags) {
-				// If no query, include all tags
-				if (!normalizedQuery) {
-					contains.push(name);
-					continue;
-				}
-
-				// Prioritize exact prefix matches
-				if (name.startsWith(normalizedQuery)) {
-					startsWith.push(name);
-				} else if (name.includes(normalizedQuery)) {
-					contains.push(name);
-				}
-			}
-
-			// Build choices list (max 25 for Discord limit)
-			const choices = [...startsWith, ...contains]
-				.slice(0, 25)
-				.map((name) => ({ name, value: name }) satisfies ApplicationCommandOptionChoiceData);
-
-			return this.some(choices);
-		} catch (error) {
-			this.container.logger.error('Failed to resolve support tag autocomplete suggestions', error);
-			return this.some([]);
+		catch (error) {
+			this.container.logger.error('Failed to parse support tag autocomplete interaction', error, {
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id
+			});
+			return this.none();
 		}
 	}
 }

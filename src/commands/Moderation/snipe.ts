@@ -66,72 +66,91 @@ export class SnipeCommand extends Command {
 
 	// Handle /snipe: retrieve deleted message and post to channel
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		if (!interaction.guildId || !interaction.channel) {
-			return replyWithComponent(interaction, 'This command can only be used in a guild channel.', true);
-		}
+		try {
+			if (!interaction.guildId || !interaction.channel) {
+				return replyWithComponent(interaction, 'This command can only be used in a guild channel.', true);
+			}
 
-		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-		// Retrieve last deleted message for this channel
-		const snipedMessage = this.container.snipeManager.getLastDeletedMessage(interaction.guildId, interaction.channel.id);
-		if (!snipedMessage) {
-			return editReplyWithComponent(interaction, 'No recently deleted messages found in this channel.');
-		}
+			// Retrieve last deleted message for this channel
+			const snipedMessage = this.container.snipeManager.getLastDeletedMessage(interaction.guildId, interaction.channel.id);
+			if (!snipedMessage) {
+				return editReplyWithComponent(interaction, 'No recently deleted messages found in this channel.');
+			}
 
-		// Verify channel is in allowlist
-		const isAllowed = await this.isChannelAllowed(interaction.guildId, interaction.channel.id);
-		if (!isAllowed) {
-			return editReplyWithComponent(interaction, 'Snipe is not enabled for this channel.');
-		}
+			// Verify channel is in allowlist
+			const isAllowed = await this.isChannelAllowed(interaction.guildId, interaction.channel.id);
+			if (!isAllowed) {
+				return editReplyWithComponent(interaction, 'Snipe is not enabled for this channel.');
+			}
 
-		// Build and send snipe component to channel
-		const success = await this.sendSnipeToChannel(interaction.channel as GuildTextBasedChannel, snipedMessage);
-		if (!success) {
+			// Build and send snipe component to channel
+			const success = await this.sendSnipeToChannel(interaction.channel as GuildTextBasedChannel, snipedMessage);
+			if (!success) {
+				return editReplyWithComponent(
+					interaction,
+					'I could not post the sniped message, likely due to missing permissions. Please review my channel permissions.'
+				);
+			}
+
+			// Confirm to user ephemerally
+			return interaction.editReply({
+				content: `✅ <@${interaction.user.id}> got sniped.`
+			});
+		} catch (error) {
+			this.container.logger.error('[Snipe] Failed to process slash command', error, {
+				guildId: interaction.guildId ?? 'dm',
+				channelId: interaction.channel?.id
+			});
 			return editReplyWithComponent(
 				interaction,
-				'I could not post the sniped message, likely due to missing permissions. Please review my channel permissions.'
+				'I hit an unexpected error while trying to snipe the message. Please try again or check my permissions.'
 			);
 		}
-
-		// Confirm to user ephemerally
-		return interaction.editReply({
-			content: `✅ <@${interaction.user.id}> got sniped.`
-		});
 	}
 
 	// Handle prefix command: delete invoking message and post snipe
 	public override async messageRun(message: Message) {
-		if (!message.guildId) {
-			return message.reply('This command can only be used in a server.');
-		}
-
-		// Mark and delete the command message
-		this.container.snipeManager.ignoreMessageDeletion(message.id);
 		try {
-			await message.delete();
+			if (!message.guildId) {
+				return message.reply('This command can only be used in a server.');
+			}
+
+			// Mark and delete the command message
+			this.container.snipeManager.ignoreMessageDeletion(message.id);
+			try {
+				await message.delete();
+			} catch (error) {
+				this.container.logger.debug('[Snipe] Failed to delete invoking message', { error });
+			}
+
+			// Retrieve last deleted message
+			const snipedMessage = this.container.snipeManager.getLastDeletedMessage(message.guildId, message.channelId);
+			if (!snipedMessage) {
+				return (message.channel as any).send('No recently deleted messages found in this channel.');
+			}
+
+			// Verify channel is in allowlist
+			const isAllowed = await this.isChannelAllowed(message.guildId, message.channelId);
+			if (!isAllowed) {
+				return (message.channel as any).send('Snipe is not enabled for this channel.');
+			}
+
+			// Build and send snipe component
+			const success = await this.sendSnipeToChannel(message.channel as GuildTextBasedChannel, snipedMessage);
+			if (!success) {
+				return (message.channel as GuildTextBasedChannel).send({
+					content: 'I could not post the sniped message. Please verify my channel permissions and try again.',
+					allowedMentions: { parse: [] }
+				});
+			}
 		} catch (error) {
-			this.container.logger.debug('[Snipe] Failed to delete invoking message', { error });
-		}
-
-		// Retrieve last deleted message
-		const snipedMessage = this.container.snipeManager.getLastDeletedMessage(message.guildId, message.channelId);
-		if (!snipedMessage) {
-			return (message.channel as any).send('No recently deleted messages found in this channel.');
-		}
-
-		// Verify channel is in allowlist
-		const isAllowed = await this.isChannelAllowed(message.guildId, message.channelId);
-		if (!isAllowed) {
-			return (message.channel as any).send('Snipe is not enabled for this channel.');
-		}
-
-		// Build and send snipe component
-		const success = await this.sendSnipeToChannel(message.channel as GuildTextBasedChannel, snipedMessage);
-		if (!success) {
-			return (message.channel as GuildTextBasedChannel).send({
-				content: 'I could not post the sniped message. Please verify my channel permissions and try again.',
-				allowedMentions: { parse: [] }
+			this.container.logger.error('[Snipe] Failed to process prefix command', error, {
+				guildId: message.guildId ?? 'dm',
+				channelId: message.channelId
 			});
+			return (message.channel as any).send('I hit an unexpected error while trying to snipe that message.');
 		}
 	}
 
@@ -140,8 +159,16 @@ export class SnipeCommand extends Command {
 		const channelService = this.container.guildChannelSettingsService;
 		if (!channelService) return false;
 
-		const allowedChannels = await channelService.listBucket(guildId, 'allowedSnipeChannels');
-		return allowedChannels.includes(channelId);
+		try {
+			const allowedChannels = await channelService.listBucket(guildId, 'allowedSnipeChannels');
+			return allowedChannels.includes(channelId);
+		} catch (error) {
+			this.container.logger.warn('[Snipe] Failed to load allowed channels', error, {
+				guildId,
+				channelId
+			});
+			return false;
+		}
 	}
 
 	// Send the snipe component to the channel, return success status

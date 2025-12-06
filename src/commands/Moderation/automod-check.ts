@@ -87,7 +87,15 @@ export class AutomodCheckCommand extends Command {
 		const content = interaction.options.getString('content', true);
 		const isEphemeral = interaction.options.getBoolean('ephemeral') ?? true;
 
-		await interaction.deferReply({ flags: isEphemeral ? MessageFlags.Ephemeral : [] });
+		try {
+			await interaction.deferReply({ flags: isEphemeral ? MessageFlags.Ephemeral : [] });
+		} catch (error) {
+			this.container.logger.error('[AutomodCheck] Failed to defer interaction', error, {
+				guildId: interaction.guildId,
+				userId: interaction.user.id
+			});
+			return editReplyWithComponent(interaction, 'I could not start the automod check because the reply was rejected. Please try again.');
+		}
 
 		try {
 			const result = this.container.automodRuleChecker.checkContent(content);
@@ -110,25 +118,33 @@ export class AutomodCheckCommand extends Command {
 
 	// Build Components v2 containers with color-coded results and pagination
 	public async createResultComponents(content: string, result: AutomodCheckResult, userId: string, currentPage: number = 1) {
-		const { createPaginationButtons } = await import('../../lib/components.js');
+		try {
+			const { createPaginationButtons } = await import('../../lib/components.js');
 
-		const containers: ContainerBuilder[] = [];
+			const containers: ContainerBuilder[] = [];
 
-		// Content display container (neutral)
-		containers.push(this.buildContentContainer(content));
+			// Content display container (neutral)
+			containers.push(this.buildContentContainer(content));
 
-		// Result container (color-coded: red for blocked, green for allowed/clean)
-		containers.push(this.buildResultContainer(content, result, currentPage));
+			// Result container (color-coded: red for blocked, green for allowed/clean)
+			containers.push(this.buildResultContainer(content, result, currentPage));
 
-		// Add pagination if needed
-		if (result.isBlocked && result.allMatches && result.allMatches.length > VIOLATIONS_PER_PAGE) {
-			const totalPages = Math.ceil(result.allMatches.length / VIOLATIONS_PER_PAGE);
-			const validPage = Math.max(1, Math.min(currentPage, totalPages));
-			const buttons = createPaginationButtons(validPage, totalPages, AUTOMOD_CHECK_CUSTOM_ID, { ownerId: userId });
-			containers.push(...(buttons as any[]));
+			// Add pagination if needed
+			if (result.isBlocked && result.allMatches && result.allMatches.length > VIOLATIONS_PER_PAGE) {
+				const totalPages = Math.ceil(result.allMatches.length / VIOLATIONS_PER_PAGE);
+				const validPage = Math.max(1, Math.min(currentPage, totalPages));
+				const buttons = createPaginationButtons(validPage, totalPages, AUTOMOD_CHECK_CUSTOM_ID, { ownerId: userId });
+				containers.push(...(buttons as any[]));
+			}
+
+			return containers;
+		} catch (error) {
+			this.container.logger.error('[AutomodCheck] Failed to build result components', error, {
+				userId,
+				page: currentPage
+			});
+			throw error;
 		}
-
-		return containers;
 	}
 
 	// Build neutral container showing the checked content

@@ -115,7 +115,19 @@ export class ResolveCommand extends Command {
 		}
 
 		// Load guild support configuration
-		const supportSettings = await supportService.getSettings(guildId);
+		let supportSettings;
+		try {
+			supportSettings = await supportService.getSettings(guildId);
+		} catch (error) {
+			this.container.logger.error('[Resolve] Failed to load support settings', error, {
+				guildId
+			});
+			return replyWithComponent(
+				interaction,
+				'I could not load support settings right now. Please try again later.',
+				true
+			);
+		}
 
 		if (!supportSettings) {
 			return replyWithComponent(
@@ -138,7 +150,15 @@ export class ResolveCommand extends Command {
 			);
 		}
 
-		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+		try {
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+		} catch (error) {
+			this.container.logger.error('[Resolve] Failed to defer reply', error, {
+				guildId,
+				threadId: thread.id
+			});
+			return replyWithComponent(interaction, 'I could not start resolving the thread because the reply was rejected.', true);
+		}
 
 		// Verify resolved tag still exists
 		const resolvedTag = forumChannel.availableTags.find((tag) => tag.id === supportSettings.resolvedTagId);
@@ -208,7 +228,10 @@ export class ResolveCommand extends Command {
 
 			return editReplyWithComponent(interaction, '✅ Thread resolved successfully!');
 		} catch (error) {
-			this.container.logger.error('Failed to apply thread resolution:', error);
+			this.container.logger.error('[Resolve] Failed to apply thread resolution', error, {
+				guildId,
+				threadId: thread.id
+			});
 			return editReplyWithComponent(interaction, 'Failed to apply thread resolution. I might not have the necessary permissions.');
 		}
 	}

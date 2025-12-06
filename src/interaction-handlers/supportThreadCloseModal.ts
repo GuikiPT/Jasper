@@ -24,145 +24,166 @@ interface CloseModalMetadata {
 export class SupportThreadCloseModalHandler extends InteractionHandler {
 	// Parse modal custom ID and extract thread ID
 	public override parse(interaction: ModalSubmitInteraction) {
-		// Expected format: prefix:threadId
-		const segments = interaction.customId.split(':');
-		if (segments.length !== 2) {
+		try {
+			// Expected format: prefix:threadId
+			const segments = interaction.customId.split(':');
+			if (segments.length !== 2) {
+				return this.none();
+			}
+
+			const [prefix, threadId] = segments;
+
+			// Validate modal prefix
+			if (prefix !== SUPPORT_THREAD_CLOSE_MODAL_PREFIX) {
+				return this.none();
+			}
+
+			return this.some<CloseModalMetadata>({ threadId });
+		} catch (error) {
+			this.container.logger.error('Failed to parse support thread close modal interaction', error, {
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id,
+				customId: interaction.customId
+			});
 			return this.none();
 		}
-
-		const [prefix, threadId] = segments;
-
-		// Validate modal prefix
-		if (prefix !== SUPPORT_THREAD_CLOSE_MODAL_PREFIX) {
-			return this.none();
-		}
-
-		return this.some<CloseModalMetadata>({ threadId });
 	}
 
 	// Handle modal submission and close thread
 	public override async run(interaction: ModalSubmitInteraction, data: CloseModalMetadata) {
-		// Validate guild context
-		const guildId = interaction.guildId;
-		if (!guildId) {
-			return interaction.reply({
-				content: 'This modal can only be used inside a server.',
-				flags: MessageFlags.Ephemeral
-			});
-		}
-
-		// Extract closure reason from modal field
-		const reason = interaction.fields.getTextInputValue(SUPPORT_THREAD_CLOSE_REASON_FIELD)?.trim();
-		if (!reason) {
-			return interaction.reply({
-				content: 'You must provide a reason to close the thread.',
-				flags: MessageFlags.Ephemeral
-			});
-		}
-
-		// Fetch thread from ID
-		const thread = await this.fetchThread(data.threadId);
-		if (!thread) {
-			return interaction.reply({
-				content: 'I couldn\'t find the support thread.',
-                flags: MessageFlags.Ephemeral
-			});
-		}
-
-		// Validate support settings exist
-		const settings = await this.container.guildSupportSettingsService.getSettings(guildId);
-		if (!settings || !settings.supportForumChannelId) {
-			return interaction.reply({
-				content: 'Support settings are not configured for this server.',
-				flags: MessageFlags.Ephemeral
-			});
-		}
-
-		// Validate thread is in configured support forum
-		if (!thread.parent || thread.parent.id !== settings.supportForumChannelId) {
-			return interaction.reply({
-				content: 'This modal is not associated with a valid support thread.',
-				flags: MessageFlags.Ephemeral
-			});
-		}
-
-		// Resolve thread owner
-		const ownerId = await this.resolveThreadOwnerId(thread);
-		if (!ownerId) {
-			return interaction.reply({
-				content: 'I couldn\'t determine who created this thread.',
-                flags: MessageFlags.Ephemeral
-			});
-		}
-
-		// Verify user is thread owner
-		if (interaction.user.id !== ownerId) {
-			return interaction.reply({
-				content: 'Only the thread author can close it from here.',
-				flags: MessageFlags.Ephemeral
-			});
-		}
-
-		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-		// Get reminder message ID if exists
-		const record = await this.container.supportThreadService.getThread(thread.id);
-		const reminderMessageId = record?.reminderMessageId ?? null;
-
 		try {
-			// Fetch fresh thread state
-			const freshThread = await thread.fetch();
+			// Validate guild context
+			const guildId = interaction.guildId;
+			if (!guildId) {
+				return interaction.reply({
+					content: 'This modal can only be used inside a server.',
+					flags: MessageFlags.Ephemeral
+				});
+			}
 
-			// Unarchive thread if needed to apply changes
-			const wasArchived = freshThread.archived;
-			if (wasArchived) {
+			// Extract closure reason from modal field
+			const reason = interaction.fields.getTextInputValue(SUPPORT_THREAD_CLOSE_REASON_FIELD)?.trim();
+			if (!reason) {
+				return interaction.reply({
+					content: 'You must provide a reason to close the thread.',
+					flags: MessageFlags.Ephemeral
+				});
+			}
+
+			// Fetch thread from ID
+			const thread = await this.fetchThread(data.threadId);
+			if (!thread) {
+				return interaction.reply({
+					content: 'I couldn\'t find the support thread.',
+					flags: MessageFlags.Ephemeral
+				});
+			}
+
+			// Validate support settings exist
+			const settings = await this.container.guildSupportSettingsService.getSettings(guildId);
+			if (!settings || !settings.supportForumChannelId) {
+				return interaction.reply({
+					content: 'Support settings are not configured for this server.',
+					flags: MessageFlags.Ephemeral
+				});
+			}
+
+			// Validate thread is in configured support forum
+			if (!thread.parent || thread.parent.id !== settings.supportForumChannelId) {
+				return interaction.reply({
+					content: 'This modal is not associated with a valid support thread.',
+					flags: MessageFlags.Ephemeral
+				});
+			}
+
+			// Resolve thread owner
+			const ownerId = await this.resolveThreadOwnerId(thread);
+			if (!ownerId) {
+				return interaction.reply({
+					content: 'I couldn\'t determine who created this thread.',
+					flags: MessageFlags.Ephemeral
+				});
+			}
+
+			// Verify user is thread owner
+			if (interaction.user.id !== ownerId) {
+				return interaction.reply({
+					content: 'Only the thread author can close it from here.',
+					flags: MessageFlags.Ephemeral
+				});
+			}
+
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+			// Get reminder message ID if exists
+			const record = await this.container.supportThreadService.getThread(thread.id);
+			const reminderMessageId = record?.reminderMessageId ?? null;
+
+			try {
+				// Fetch fresh thread state
+				const freshThread = await thread.fetch();
+
+				// Unarchive thread if needed to apply changes
+				const wasArchived = freshThread.archived;
+				if (wasArchived) {
+					await freshThread.setArchived(
+						false,
+						`Temporarily reopening by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}.`
+					);
+					await new Promise((resolve) => setTimeout(resolve, 1000));
+				}
+
+				// Delete reminder message if present
+				if (reminderMessageId) {
+					await this.dismissReminderMessage(freshThread, reminderMessageId);
+				}
+
+				// Apply resolved tag if configured
+				if (settings.resolvedTagId) {
+					await this.applyResolvedTag(freshThread, settings.resolvedTagId);
+				}
+
+				// Send closure message with reason
+				const component = this.buildManualClosureComponent(interaction.user.id, reason);
+				await freshThread.send({
+					components: [component],
+					flags: MessageFlags.IsComponentsV2,
+					allowedMentions: { users: [], roles: [] }
+				});
+
+				// Lock thread to prevent further replies
+				await freshThread.setLocked(true, `Locked by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id} via modal.`);
+
+				// Archive thread
 				await freshThread.setArchived(
-					false,
-					`Temporarily reopening by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}.`
+					true,
+					`Archived by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id} via modal.`
 				);
-				await new Promise((resolve) => setTimeout(resolve, 1000));
+
+				// Mark as closed in database
+				await this.container.supportThreadService.markThreadClosed(thread.id);
+
+				return interaction.editReply({
+					content: 'Thread closed successfully. Thanks for confirming!'
+				});
+			} catch (error) {
+				this.container.logger.error('Failed to close support thread via modal', error, {
+					threadId: thread.id
+				});
+				return interaction.editReply({
+					content: 'I couldn\'t close the thread.Please try again shortly.'
+				});
 			}
-
-			// Delete reminder message if present
-			if (reminderMessageId) {
-				await this.dismissReminderMessage(freshThread, reminderMessageId);
-			}
-
-			// Apply resolved tag if configured
-			if (settings.resolvedTagId) {
-				await this.applyResolvedTag(freshThread, settings.resolvedTagId);
-			}
-
-			// Send closure message with reason
-			const component = this.buildManualClosureComponent(interaction.user.id, reason);
-			await freshThread.send({
-				components: [component],
-				flags: MessageFlags.IsComponentsV2,
-				allowedMentions: { users: [], roles: [] }
-			});
-
-			// Lock thread to prevent further replies
-			await freshThread.setLocked(true, `Locked by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id} via modal.`);
-
-			// Archive thread
-			await freshThread.setArchived(
-				true,
-				`Archived by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id} via modal.`
-			);
-
-			// Mark as closed in database
-			await this.container.supportThreadService.markThreadClosed(thread.id);
-
-			return interaction.editReply({
-				content: 'Thread closed successfully. Thanks for confirming!'
-			});
 		} catch (error) {
-			this.container.logger.error('Failed to close support thread via modal', error, {
-				threadId: thread.id
+			this.container.logger.error('Failed to process support thread close modal interaction', error, {
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id,
+				customId: interaction.customId
 			});
-			return interaction.editReply({
-				content: 'I couldn\'t close the thread.Please try again shortly.'
-            });
+			return interaction.reply({
+				content: 'I couldn\'t process your request. Please try again shortly.',
+				flags: MessageFlags.Ephemeral
+			});
 		}
 	}
 

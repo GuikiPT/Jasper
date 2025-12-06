@@ -4,6 +4,7 @@ import { Subcommand } from '@sapphire/plugin-subcommands';
 import {
 	ApplicationIntegrationType,
 	InteractionContextType,
+	MessageFlags,
 	type SlashCommandBuilder,
 	type SlashCommandStringOption,
 	type SlashCommandSubcommandBuilder,
@@ -143,21 +144,65 @@ export class ModerationVirusTotalCommand extends Subcommand {
 
 	// Handle /virustotal ip subcommand
 	public async chatInputVirusTotalIp(interaction: VirusTotalChatInputInteraction) {
-		return chatInputVirusTotalIp(this, interaction);
+		try {
+			return await chatInputVirusTotalIp(this, interaction);
+		} catch (error) {
+			this.container.logger.error('[VirusTotal] ip subcommand failed', error, {
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id
+			});
+			return interaction.reply({
+				content: 'I could not complete that VirusTotal IP lookup. Please try again shortly.',
+				flags: MessageFlags.Ephemeral
+			});
+		}
 	}
 
 	// Handle /virustotal domain subcommand
 	public async chatInputVirusTotalDomain(interaction: VirusTotalChatInputInteraction) {
-		return chatInputVirusTotalDomain(this, interaction);
+		try {
+			return await chatInputVirusTotalDomain(this, interaction);
+		} catch (error) {
+			this.container.logger.error('[VirusTotal] domain subcommand failed', error, {
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id
+			});
+			return interaction.reply({
+				content: 'I could not complete that VirusTotal domain lookup. Please try again shortly.',
+				flags: MessageFlags.Ephemeral
+			});
+		}
 	}
 
 	// Handle /virustotal file subcommand
 	public async chatInputVirusTotalFile(interaction: VirusTotalChatInputInteraction) {
-		return chatInputVirusTotalFile(this, interaction);
+		try {
+			return await chatInputVirusTotalFile(this, interaction);
+		} catch (error) {
+			this.container.logger.error('[VirusTotal] file subcommand failed', error, {
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id
+			});
+			return interaction.reply({
+				content: 'I could not complete that VirusTotal file scan. Please try again shortly.',
+				flags: MessageFlags.Ephemeral
+			});
+		}
 	}
 
 	// Handle /virustotal url subcommand
 	public async chatInputVirusTotalUrl(interaction: VirusTotalChatInputInteraction) {
-		return chatInputVirusTotalUrl(this, interaction);
+		try {
+			return await chatInputVirusTotalUrl(this, interaction);
+		} catch (error) {
+			this.container.logger.error('[VirusTotal] url subcommand failed', error, {
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id
+			});
+			return interaction.reply({
+				content: 'I could not complete that VirusTotal URL scan. Please try again shortly.',
+				flags: MessageFlags.Ephemeral
+			});
+		}
 	}
 }

@@ -203,80 +203,112 @@ export class HelpCommand extends Command {
 
 	// Handle autocomplete: score entries against the query and return top matches
 	public override async autocompleteRun(interaction: AutocompleteInteraction) {
-		const focused = interaction.options.getFocused(true);
-		const query = String(focused.value ?? '')
-			.trim()
-			.toLowerCase();
-		const entries = this.collectEntries();
+		try {
+			const focused = interaction.options.getFocused(true);
+			const query = String(focused.value ?? '')
+				.trim()
+				.toLowerCase();
+			const entries = this.collectEntries();
 
-		const scored = entries
-			.map((entry) => ({ entry, score: this.scoreEntry(entry, query) }))
-			.filter(({ score }) => score > 0)
-			.sort((a, b) => b.score - a.score)
-			.slice(0, this.maxAutocompleteResults);
+			const scored = entries
+				.map((entry) => ({ entry, score: this.scoreEntry(entry, query) }))
+				.filter(({ score }) => score > 0)
+				.sort((a, b) => b.score - a.score)
+				.slice(0, this.maxAutocompleteResults);
 
-		const emptyFallback = !query
-			? entries
-				.filter((entry) => entry.type === 'command')
-				.sort((a, b) => a.commandName.localeCompare(b.commandName))
-				.slice(0, this.maxAutocompleteResults)
-				.map((entry) => ({ entry, score: 1 }))
-			: [];
+			const emptyFallback = !query
+				? entries
+					.filter((entry) => entry.type === 'command')
+					.sort((a, b) => a.commandName.localeCompare(b.commandName))
+					.slice(0, this.maxAutocompleteResults)
+					.map((entry) => ({ entry, score: 1 }))
+				: [];
 
-		const collection = scored.length > 0 ? scored : emptyFallback;
-		if (collection.length === 0) {
-			return interaction.respond([]);
+			const collection = scored.length > 0 ? scored : emptyFallback;
+			if (collection.length === 0) {
+				return interaction.respond([]);
+			}
+
+			const choices = collection.map(({ entry }) => ({
+				name: this.buildAutocompleteLabel(entry),
+				value: entry.key
+			}));
+
+			return interaction.respond(choices);
+		} catch (error) {
+			this.container.logger.error('[Help] Autocomplete failed', error, {
+				guildId: interaction.guildId ?? 'dm'
+			});
+			try {
+				return interaction.respond([]);
+			} catch (respondError) {
+				this.container.logger.debug('[Help] Failed to send autocomplete fallback', respondError);
+				return;
+			}
 		}
-
-		const choices = collection.map(({ entry }) => ({
-			name: this.buildAutocompleteLabel(entry),
-			value: entry.key
-		}));
-
-		return interaction.respond(choices);
 	}
 
 	// Slash /help handler: resolve entry (if any) and send contextual help
 	public override async chatInputRun(interaction: ChatInputCommandInteraction) {
-		const requested = interaction.options.getString('command');
-		const isEphemeral = interaction.options.getBoolean('ephemeral') ?? true;
-		const normalizedQuery = requested?.trim() ?? '';
-		const entries = this.collectEntries();
-		const entry = this.findEntry(entries, normalizedQuery);
+		try {
+			const requested = interaction.options.getString('command');
+			const isEphemeral = interaction.options.getBoolean('ephemeral') ?? true;
+			const normalizedQuery = requested?.trim() ?? '';
+			const entries = this.collectEntries();
+			const entry = this.findEntry(entries, normalizedQuery);
 
-		const prefix = await this.resolvePrefix(interaction.guildId);
+			const prefix = await this.resolvePrefix(interaction.guildId);
 
-		const response = entry
-			? this.createEntryResponse(entry, prefix, { ephemeral: isEphemeral })
-			: normalizedQuery
-				? this.createNotFoundResponse({ query: normalizedQuery, mode: 'slash', prefix })
-				: this.createOverviewResponse(entries, prefix, { ephemeral: isEphemeral });
+			const response = entry
+				? this.createEntryResponse(entry, prefix, { ephemeral: isEphemeral })
+				: normalizedQuery
+					? this.createNotFoundResponse({ query: normalizedQuery, mode: 'slash', prefix })
+					: this.createOverviewResponse(entries, prefix, { ephemeral: isEphemeral });
 
-		return interaction.reply({
-			components: [response.component],
-			flags: response.flags
-		});
+			return interaction.reply({
+				components: [response.component],
+				flags: response.flags
+			});
+		} catch (error) {
+			this.container.logger.error('[Help] Failed to build help response', error, {
+				guildId: interaction.guildId ?? 'dm',
+				commandOption: interaction.options.getString('command') ?? 'none'
+			});
+			const fallbackComponent = createErrorTextComponent('I hit an error while building help content. Please try again in a moment.');
+			const flags = MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral;
+			if (interaction.deferred || interaction.replied) {
+				return interaction.editReply({ components: [fallbackComponent], flags }).catch(() => undefined);
+			}
+			return interaction.reply({ components: [fallbackComponent], flags }).catch(() => undefined);
+		}
 	}
 
 	// Message-based help handler mirroring slash flow
 	public override async messageRun(message: Message, args: Args) {
-		const rawQuery = args.finished ? null : await args.rest('string');
-		const normalizedQuery = rawQuery?.trim() ?? '';
-		const entries = this.collectEntries();
-		const entry = this.findEntry(entries, normalizedQuery);
+		try {
+			const rawQuery = args.finished ? null : await args.rest('string');
+			const normalizedQuery = rawQuery?.trim() ?? '';
+			const entries = this.collectEntries();
+			const entry = this.findEntry(entries, normalizedQuery);
 
-		const prefix = await this.resolvePrefix(message.guildId);
+			const prefix = await this.resolvePrefix(message.guildId);
 
-		const response = entry
-			? this.createEntryResponse(entry, prefix, { ephemeral: false })
-			: normalizedQuery
-				? this.createNotFoundResponse({ query: normalizedQuery, mode: 'message', prefix })
-				: this.createOverviewResponse(entries, prefix, { ephemeral: false });
+			const response = entry
+				? this.createEntryResponse(entry, prefix, { ephemeral: false })
+				: normalizedQuery
+					? this.createNotFoundResponse({ query: normalizedQuery, mode: 'message', prefix })
+					: this.createOverviewResponse(entries, prefix, { ephemeral: false });
 
-		return message.reply({
-			components: [response.component],
-			flags: response.flags
-		});
+			return message.reply({
+				components: [response.component],
+				flags: response.flags
+			});
+		} catch (error) {
+			this.container.logger.error('[Help] Failed to send message-based help', error, {
+				guildId: message.guildId ?? 'dm'
+			});
+			return message.reply('I ran into a problem while building help info. Please try again.').catch(() => undefined);
+		}
 	}
 
 	// Resolve the best matching help entry, falling back to fuzzy scoring

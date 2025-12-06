@@ -54,64 +54,83 @@ export class TopicCommand extends Command {
 
 	// Handle prefix command: delete invoking message and post topic
 	public override async messageRun(message: Message) {
-		// Validate guild context and channel permissions
-		if (!message.guildId) {
-			return message.reply('This command can only be used inside a server.');
-		}
+		try {
+			// Validate guild context and channel permissions
+			if (!message.guildId) {
+				return message.reply('This command can only be used inside a server.');
+			}
 
-		if (!message.channel.isSendable()) {
-			return message.reply('I cannot send messages in this channel.');
-		}
+			if (!message.channel.isSendable()) {
+				return message.reply('I cannot send messages in this channel.');
+			}
 
-		// Fetch random topic from database
-		const topic = await this.fetchRandomTopic(message.guildId);
-		if (!topic) {
-			return message.reply('No topics configured yet. Ask an admin to add some with `/settings topics add`.');
-		}
+			// Fetch random topic from database
+			const topic = await this.fetchRandomTopic(message.guildId);
+			if (!topic) {
+				return message.reply('No topics configured yet. Ask an admin to add some with `/settings topics add`.');
+			}
 
-		// Delete command message if possible
-		if (message.deletable) {
-			await message.delete().catch(() => undefined);
-		}
+			// Delete command message if possible
+			if (message.deletable) {
+				await message.delete().catch(() => undefined);
+			}
 
-		// Send formatted topic to channel
-		return message.channel.send({ content: this.formatTopic(topic) });
+			// Send formatted topic to channel
+			return message.channel.send({ content: this.formatTopic(topic) });
+		} catch (error) {
+			this.container.logger.error('[Topic] Failed to process prefix command', error, {
+				guildId: message.guildId ?? 'dm'
+			});
+			return message.reply('I could not fetch a topic right now. Please try again later.').catch(() => this.container.logger.error('Failed to send reply after topic command failure', error));
+		}
 	}
 
 	// Handle /topic: send topic to channel and confirm ephemerally
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		// Validate guild context and channel permissions
-		if (!interaction.guildId) {
+		try {
+			// Validate guild context and channel permissions
+			if (!interaction.guildId) {
+				return interaction.reply({
+					content: 'This command can only be used inside a server.',
+					flags: MessageFlags.Ephemeral
+				});
+			}
+
+			if (!interaction.channel || !interaction.channel.isSendable()) {
+				return interaction.reply({
+					content: 'I cannot send messages in this channel.',
+					flags: MessageFlags.Ephemeral
+				});
+			}
+
+			// Fetch random topic from database
+			const topic = await this.fetchRandomTopic(interaction.guildId);
+			if (!topic) {
+				return interaction.reply({
+					content: 'No topics configured yet. Ask an admin to add some with `/settings topics add`.',
+					flags: MessageFlags.Ephemeral
+				});
+			}
+
+			// Send formatted topic to channel
+			await interaction.channel.send({ content: this.formatTopic(topic) });
+
+			// Confirm to user ephemerally
 			return interaction.reply({
-				content: 'This command can only be used inside a server.',
+				content: 'Topic sent.',
 				flags: MessageFlags.Ephemeral
 			});
-		}
-
-		if (!interaction.channel || !interaction.channel.isSendable()) {
-			return interaction.reply({
-				content: 'I cannot send messages in this channel.',
-				flags: MessageFlags.Ephemeral
+		} catch (error) {
+			this.container.logger.error('[Topic] Failed to process slash command', error, {
+				guildId: interaction.guildId ?? 'dm',
+				channelId: interaction.channelId
 			});
+			const fallbackFlags = MessageFlags.Ephemeral;
+			if (interaction.deferred || interaction.replied) {
+				return interaction.editReply({ content: 'I could not fetch a topic right now. Please try again later.' }).catch(() => this.container.logger.error('Failed to edit reply after topic command failure', error));
+			}
+			return interaction.reply({ content: 'I could not fetch a topic right now. Please try again later.', flags: fallbackFlags }).catch(() => this.container.logger.error('Failed to send reply after topic command failure', error));
 		}
-
-		// Fetch random topic from database
-		const topic = await this.fetchRandomTopic(interaction.guildId);
-		if (!topic) {
-			return interaction.reply({
-				content: 'No topics configured yet. Ask an admin to add some with `/settings topics add`.',
-				flags: MessageFlags.Ephemeral
-			});
-		}
-
-		// Send formatted topic to channel
-		await interaction.channel.send({ content: this.formatTopic(topic) });
-
-		// Confirm to user ephemerally
-		return interaction.reply({
-			content: 'Topic sent.',
-			flags: MessageFlags.Ephemeral
-		});
 	}
 
 	// Fetch a random topic from the guild's configured topic list
