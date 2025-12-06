@@ -5,310 +5,300 @@ import type { Message, PartialMessage, GuildMember, APIInteractionGuildMember } 
 import { parseJsonStringArray } from '../lib/utils';
 
 export interface SnipedMessage {
-	id: string;
-	content: string;
-	author: {
-		id: string;
-		username: string;
-		discriminator: string;
-		displayName: string;
-		avatarURL: string | null;
-	};
-	channel: {
-		id: string;
-		name: string;
-	};
-	guild: {
-		id: string;
-		name: string;
-	};
-	attachments: Array<{
-		id: string;
-		name: string;
-		url: string;
-		proxyURL: string;
-		size: number;
-	}>;
-	embeds: Array<{
-		title?: string;
-		description?: string;
-		url?: string;
-	}>;
-	deletedAt: Date;
-	createdAt: Date;
+    id: string;
+    content: string;
+    author: {
+        id: string;
+        username: string;
+        discriminator: string;
+        displayName: string;
+        avatarURL: string | null;
+    };
+    channel: {
+        id: string;
+        name: string;
+    };
+    guild: {
+        id: string;
+        name: string;
+    };
+    attachments: Array<{
+        id: string;
+        name: string;
+        url: string;
+        proxyURL: string;
+        size: number;
+    }>;
+    embeds: Array<{
+        title?: string;
+        description?: string;
+        url?: string;
+    }>;
+    deletedAt: Date;
+    createdAt: Date;
 }
 
 interface GuildSnipeState {
-	messages: Map<string, SnipedMessage>; // channelId -> message
+    messages: Map<string, SnipedMessage>; // channelId -> last deleted message
 }
 
+// Service for tracking and retrieving recently deleted messages
 export class SnipeManager {
-	private readonly guildStates = new Map<string, GuildSnipeState>();
-	private readonly ignoredDeletionIds = new Set<string>();
-	private readonly MESSAGE_RETENTION_MS = 5 * 60 * 1000; // 5 minutes
+    private readonly guildStates = new Map<string, GuildSnipeState>();
+    private readonly ignoredDeletionIds = new Set<string>();
+    private readonly MESSAGE_RETENTION_MS = 5 * 60 * 1000; // 5 minutes
 
-	public constructor(
-		private readonly client: SapphireClient,
-		private readonly database: PrismaClient
-	) {
-		// Clean up old messages every 30 seconds
-		setInterval(() => this.cleanupOldMessages(), 30_000);
-	}
+    public constructor(
+        private readonly client: SapphireClient,
+        private readonly database: PrismaClient
+    ) {
+        // Clean up expired messages every 30 seconds
+        setInterval(() => this.cleanupOldMessages(), 30_000);
+    }
 
-	/**
-	 * Handles message deletion events
-	 */
-	public async handleMessageDelete(message: Message | PartialMessage) {
-		// Skip if message is not in a guild
-		if (!message.guildId || !message.guild) return;
+    // Handle message deletion event, store if conditions are met
+    public async handleMessageDelete(message: Message | PartialMessage) {
+        // Skip non-guild messages
+        if (!message.guildId || !message.guild) return;
 
-		// If this specific message ID is marked to be ignored (e.g. bot deleted the command message), skip and remove marker
-		if (message.id && this.ignoredDeletionIds.has(message.id)) {
-			this.ignoredDeletionIds.delete(message.id);
-			this.client.logger.debug('[Snipe] Ignored deletion for message id', { messageId: message.id });
-			return;
-		}
+        // Skip explicitly ignored deletions (e.g., bot-triggered)
+        if (message.id && this.ignoredDeletionIds.has(message.id)) {
+            this.ignoredDeletionIds.delete(message.id);
+            this.client.logger.debug('[Snipe] Ignored deletion for message id', { messageId: message.id });
+            return;
+        }
 
-		// Skip messages that look like bot commands (common prefix used on this server)
-		const content = message.content ? String(message.content).trim() : '';
-		if (content && content.startsWith('j!')) {
-			this.client.logger.debug('[Snipe] Ignored deletion for command-like message', { guildId: message.guildId, channelId: message.channelId });
-			return;
-		}
+        // Skip command-like messages (common bot prefix)
+        const content = message.content ? String(message.content).trim() : '';
+        if (content && content.startsWith('j!')) {
+            this.client.logger.debug('[Snipe] Ignored deletion for command-like message', { 
+                guildId: message.guildId, 
+                channelId: message.channelId 
+            });
+            return;
+        }
 
-		// Skip bot messages
-		if (message.author?.bot) return;
+        // Skip bot messages and empty messages
+        if (message.author?.bot) return;
+        if (!message.content && !message.attachments?.size && !message.embeds?.length) return;
 
-		// Skip if message content is empty and has no attachments/embeds
-		if (!message.content && !message.attachments?.size && !message.embeds?.length) return;
+        // Verify channel is in allowlist
+        const isChannelAllowed = await this.isChannelAllowed(message.guildId, message.channelId);
+        if (!isChannelAllowed) {
+            this.client.logger.debug('[Snipe] Message deleted in non-allowed channel', {
+                guildId: message.guildId,
+                channelId: message.channelId
+            });
+            return;
+        }
 
-		// Check if channel is in allowed snipe channels
-		const isChannelAllowed = await this.isChannelAllowed(message.guildId, message.channelId);
-		if (!isChannelAllowed) {
-			this.client.logger.debug('[Snipe] Message deleted in non-allowed channel', {
-				guildId: message.guildId,
-				channelId: message.channelId
-			});
-			return;
-		}
+        // Skip if author has ignored snipe roles
+        if (message.member) {
+            const hasIgnoredRole = await this.hasIgnoredSnipeRoles(message.guildId, message.member);
+            if (hasIgnoredRole) {
+                this.client.logger.debug('[Snipe] Message author has ignored snipe role', {
+                    guildId: message.guildId,
+                    authorId: message.author?.id,
+                    channelId: message.channelId
+                });
+                return;
+            }
+        }
 
-		// ...existing code...
+        // Store the deleted message
+        if (message.author && message.channel && message.guild) {
+            const snipedMessage = this.buildSnipedMessage(message);
+            const guildState = this.getOrCreateGuildState(message.guildId);
+            guildState.messages.set(message.channelId, snipedMessage);
 
-		// Check if author has ignored snipe roles
-		if (message.member) {
-			const hasIgnoredRole = await this.hasIgnoredSnipeRoles(message.guildId, message.member);
-			if (hasIgnoredRole) {
-				this.client.logger.debug('[Snipe] Message author has ignored snipe role', {
-					guildId: message.guildId,
-					authorId: message.author?.id,
-					channelId: message.channelId
-				});
-				return;
-			}
-		}
+            this.client.logger.debug('[Snipe] Message stored for sniping', {
+                guildId: message.guildId,
+                channelId: message.channelId,
+                messageId: message.id,
+                authorId: message.author.id
+            });
+        }
+    }
 
-		// Get or create guild state
-		const guildState = this.getGuildState(message.guildId);
+    // Retrieve the last deleted message for a channel if within retention period
+    public getLastDeletedMessage(guildId: string, channelId: string): SnipedMessage | null {
+        const guildState = this.guildStates.get(guildId);
+        if (!guildState) return null;
 
-		// Store the message
-		if (message.author && message.channel && message.guild) {
-			const snipedMessage: SnipedMessage = {
-				id: message.id,
-				content: message.content || '',
-				author: {
-					id: message.author.id,
-					username: message.author.username,
-					discriminator: message.author.discriminator,
-					displayName: message.member?.displayName || message.author.displayName || message.author.username,
-					avatarURL: message.author.displayAvatarURL()
-				},
-				channel: {
-					id: message.channel.id,
-					name: 'name' in message.channel ? message.channel.name || `Channel ${message.channel.id}` : `Channel ${message.channel.id}`
-				},
-				guild: {
-					id: message.guild.id,
-					name: message.guild.name
-				},
-				attachments:
-					message.attachments?.map((att) => ({
-						id: att.id,
-						name: att.name,
-						url: att.url,
-						proxyURL: att.proxyURL,
-						size: att.size
-					})) || [],
-				embeds:
-					message.embeds?.map((embed) => ({
-						title: embed.title || undefined,
-						description: embed.description || undefined,
-						url: embed.url || undefined
-					})) || [],
-				deletedAt: new Date(),
-				createdAt: message.createdAt || new Date()
-			};
+        const message = guildState.messages.get(channelId);
+        if (!message) return null;
 
-			guildState.messages.set(message.channelId, snipedMessage);
+        // Check message hasn't expired
+        const now = new Date();
+        const timeSinceDeleted = now.getTime() - message.deletedAt.getTime();
 
-			this.client.logger.debug('[Snipe] Message stored for sniping', {
-				guildId: message.guildId,
-				channelId: message.channelId,
-				messageId: message.id,
-				authorId: message.author.id
-			});
-		}
-	}
+        if (timeSinceDeleted > this.MESSAGE_RETENTION_MS) {
+            guildState.messages.delete(channelId);
+            return null;
+        }
 
-	/**
-	 * Retrieves the last deleted message for a channel
-	 */
-	public getLastDeletedMessage(guildId: string, channelId: string): SnipedMessage | null {
-		const guildState = this.guildStates.get(guildId);
-		if (!guildState) return null;
+        return message;
+    }
 
-		const message = guildState.messages.get(channelId);
-		if (!message) return null;
+    // Mark a message ID to be ignored when deleted (e.g., command invocation)
+    public ignoreMessageDeletion(messageId: string, ttl = 60_000) {
+        if (!messageId) return;
+        this.ignoredDeletionIds.add(messageId);
+        setTimeout(() => this.ignoredDeletionIds.delete(messageId), ttl);
+    }
 
-		// Check if message is still within retention period
-		const now = new Date();
-		const timeSinceDeleted = now.getTime() - message.deletedAt.getTime();
+    // Check if user has permission to use snipe (staff or admin roles)
+    public async canUseSnipe(guildId: string, member: GuildMember | APIInteractionGuildMember): Promise<boolean> {
+        try {
+            const settings = await this.database.guildRoleSettings.findUnique({
+                where: { guildId }
+            });
 
-		if (timeSinceDeleted > this.MESSAGE_RETENTION_MS) {
-			// Remove expired message
-			guildState.messages.delete(channelId);
-			return null;
-		}
+            if (!settings) return false;
 
-		return message;
-	}
+            const staffRoles = parseJsonStringArray(settings.allowedStaffRoles);
+            const adminRoles = parseJsonStringArray(settings.allowedAdminRoles);
+            const allowedRoles = [...staffRoles, ...adminRoles];
 
-	/**
-	 * Checks if a user can use snipe command (has staff or admin roles)
-	 */
-	public async canUseSnipe(guildId: string, member: GuildMember | APIInteractionGuildMember): Promise<boolean> {
-		try {
-			const settings = await this.database.guildRoleSettings.findUnique({
-				where: { guildId }
-			});
+            if (allowedRoles.length === 0) return false;
 
-			if (!settings) return false;
+            return this.memberHasRole(member, allowedRoles);
+        } catch (error) {
+            this.client.logger.error('[Snipe] Failed to check snipe permissions', error, { guildId });
+            return false;
+        }
+    }
 
-			// Check for staff roles
-			const staffRoles = parseJsonStringArray(settings.allowedStaffRoles);
-			const adminRoles = parseJsonStringArray(settings.allowedAdminRoles);
-			const allowedRoles = [...staffRoles, ...adminRoles];
+    // Check if channel is in the allowed snipe channels list
+    private async isChannelAllowed(guildId: string, channelId: string): Promise<boolean> {
+        try {
+            const settings = await this.database.guildChannelSettings.findUnique({
+                where: { guildId }
+            });
 
-			if (allowedRoles.length === 0) return false;
+            if (!settings) return false;
 
-			return this.memberHasAllowedRole(member, allowedRoles);
-		} catch (error) {
-			this.client.logger.error('[Snipe] Failed to check snipe permissions', error, { guildId });
-			return false;
-		}
-	}
+            const allowedChannels = parseJsonStringArray(settings.allowedSnipeChannels);
+            return allowedChannels.includes(channelId);
+        } catch (error) {
+            this.client.logger.error('[Snipe] Failed to check allowed channels', error, { guildId });
+            return false;
+        }
+    }
 
-	private async isChannelAllowed(guildId: string, channelId: string): Promise<boolean> {
-		try {
-			const settings = await this.database.guildChannelSettings.findUnique({
-				where: { guildId }
-			});
+    // Check if member has any ignored snipe roles
+    private async hasIgnoredSnipeRoles(guildId: string, member: GuildMember): Promise<boolean> {
+        try {
+            const settings = await this.database.guildRoleSettings.findUnique({
+                where: { guildId }
+            });
 
-			if (!settings) return false;
+            if (!settings) return false;
 
-			const allowedChannels = parseJsonStringArray(settings.allowedSnipeChannels);
-			return allowedChannels.includes(channelId);
-		} catch (error) {
-			this.client.logger.error('[Snipe] Failed to check allowed channels', error, { guildId });
-			return false;
-		}
-	}
+            const ignoredRoles = parseJsonStringArray(settings.ignoredSnipedRoles);
+            return this.memberHasRole(member, ignoredRoles);
+        } catch (error) {
+            this.client.logger.error('[Snipe] Failed to check ignored roles', error, { guildId });
+            return false;
+        }
+    }
 
-	private async hasIgnoredSnipeRoles(guildId: string, member: GuildMember): Promise<boolean> {
-		try {
-			const settings = await this.database.guildRoleSettings.findUnique({
-				where: { guildId }
-			});
+    // Build SnipedMessage object from Discord Message
+    private buildSnipedMessage(message: Message | PartialMessage): SnipedMessage {
+        return {
+            id: message.id,
+            content: message.content || '',
+            author: {
+                id: message.author!.id,
+                username: message.author!.username,
+                discriminator: message.author!.discriminator,
+                displayName: (message as Message).member?.displayName || message.author!.displayName || message.author!.username,
+                avatarURL: message.author!.displayAvatarURL()
+            },
+            channel: {
+                id: message.channel!.id,
+                name: 'name' in message.channel! ? message.channel!.name || `Channel ${message.channel!.id}` : `Channel ${message.channel!.id}`
+            },
+            guild: {
+                id: message.guild!.id,
+                name: message.guild!.name
+            },
+            attachments: message.attachments?.map((att) => ({
+                id: att.id,
+                name: att.name,
+                url: att.url,
+                proxyURL: att.proxyURL,
+                size: att.size
+            })) || [],
+            embeds: message.embeds?.map((embed) => ({
+                title: embed.title || undefined,
+                description: embed.description || undefined,
+                url: embed.url || undefined
+            })) || [],
+            deletedAt: new Date(),
+            createdAt: message.createdAt || new Date()
+        };
+    }
 
-			if (!settings) return false;
+    // Get or create guild state container
+    private getOrCreateGuildState(guildId: string): GuildSnipeState {
+        let state = this.guildStates.get(guildId);
+        if (!state) {
+            state = { messages: new Map() };
+            this.guildStates.set(guildId, state);
+        }
+        return state;
+    }
 
-			const ignoredRoles = parseJsonStringArray(settings.ignoredSnipedRoles);
-			return this.memberHasAllowedRole(member, ignoredRoles);
-		} catch (error) {
-			this.client.logger.error('[Snipe] Failed to check ignored roles', error, { guildId });
-			return false;
-		}
-	}
+    // Check if member has any of the specified roles
+    private memberHasRole(member: GuildMember | APIInteractionGuildMember, roleIds: string[]): boolean {
+        // API interaction member (roles array)
+        if ('roles' in member && Array.isArray(member.roles)) {
+            return member.roles.some((roleId) => roleIds.includes(roleId));
+        }
 
-	private getGuildState(guildId: string): GuildSnipeState {
-		let state = this.guildStates.get(guildId);
-		if (!state) {
-			state = {
-				messages: new Map()
-			};
-			this.guildStates.set(guildId, state);
-		}
-		return state;
-	}
+        // Guild member (roles cache)
+        if ((member as GuildMember).roles?.cache) {
+            return roleIds.some((roleId) => (member as GuildMember).roles.cache.has(roleId));
+        }
 
-	private memberHasAllowedRole(member: GuildMember | APIInteractionGuildMember, allowedRoles: string[]): boolean {
-		if ('roles' in member) {
-			const roles = member.roles;
-			if (Array.isArray(roles)) {
-				return roles.some((roleId) => allowedRoles.includes(roleId));
-			}
-		}
+        return false;
+    }
 
-		if ((member as GuildMember).roles?.cache) {
-			return allowedRoles.some((roleId) => (member as GuildMember).roles.cache.has(roleId));
-		}
+    // Remove expired messages from all guild states
+    private cleanupOldMessages(): void {
+        const now = new Date();
+        let cleanupCount = 0;
 
-		return false;
-	}
+        for (const [guildId, guildState] of this.guildStates.entries()) {
+            const toDelete: string[] = [];
 
-	private cleanupOldMessages(): void {
-		const now = new Date();
-		let cleanupCount = 0;
+            for (const [channelId, message] of guildState.messages.entries()) {
+                const timeSinceDeleted = now.getTime() - message.deletedAt.getTime();
+                if (timeSinceDeleted > this.MESSAGE_RETENTION_MS) {
+                    toDelete.push(channelId);
+                    cleanupCount++;
+                }
+            }
 
-		for (const [guildId, guildState] of this.guildStates.entries()) {
-			const toDelete: string[] = [];
+            // Remove expired messages
+            toDelete.forEach((channelId) => guildState.messages.delete(channelId));
 
-			for (const [channelId, message] of guildState.messages.entries()) {
-				const timeSinceDeleted = now.getTime() - message.deletedAt.getTime();
-				if (timeSinceDeleted > this.MESSAGE_RETENTION_MS) {
-					toDelete.push(channelId);
-					cleanupCount++;
-				}
-			}
+            // Remove empty guild states
+            if (guildState.messages.size === 0) {
+                this.guildStates.delete(guildId);
+            }
+        }
 
-			// Remove expired messages
-			for (const channelId of toDelete) {
-				guildState.messages.delete(channelId);
-			}
-
-			// Remove empty guild states
-			if (guildState.messages.size === 0) {
-				this.guildStates.delete(guildId);
-			}
-		}
-
-		if (cleanupCount > 0) {
-			this.client.logger.debug(`[Snipe] Cleaned up ${cleanupCount} expired messages`);
-		}
-	}
-
-	/**
-	 * Mark a message id so that when it's deleted the snipe manager will ignore that deletion.
-	 * The marker expires automatically after a short timeout.
-	 */
-	public ignoreMessageDeletion(messageId: string, ttl = 60_000) {
-		if (!messageId) return;
-		this.ignoredDeletionIds.add(messageId);
-		setTimeout(() => this.ignoredDeletionIds.delete(messageId), ttl);
-	}
+        if (cleanupCount > 0) {
+            this.client.logger.debug(`[Snipe] Cleaned up ${cleanupCount} expired messages`);
+        }
+    }
 }
 
+// Augment Sapphire container with snipe manager instance
 declare module '@sapphire/pieces' {
-	interface Container {
-		snipeManager: SnipeManager;
-	}
+    interface Container {
+        snipeManager: SnipeManager;
+    }
 }
