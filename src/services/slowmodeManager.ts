@@ -1,443 +1,599 @@
-// slowmodeManager module within services
+// Slowmode manager - Automatic rate limiting based on message activity
 import type { PrismaClient } from '@prisma/client';
 import type { SapphireClient } from '@sapphire/framework';
 import type { Channel, Message } from 'discord.js';
 import { createSubsystemLogger } from '../lib/subsystemLogger';
 import { parseJsonStringArray } from '../lib/utils';
 
+// ============================================================
+// Type Definitions
+// ============================================================
+
+/**
+ * Slowmode configuration for a guild
+ */
 interface SlowmodeConfig {
-	enabled: boolean;
-	messageThreshold: number;
-	messageTimeWindow: number;
-	cooldownDuration: number;
-	resetTime: number;
-	maxSlowmode: number;
-	channels: string[];
+    enabled: boolean;
+    messageThreshold: number;
+    messageTimeWindow: number;
+    cooldownDuration: number;
+    resetTime: number;
+    maxSlowmode: number;
+    channels: string[];
 }
 
+/**
+ * Activity tracking state for a channel
+ */
 interface ChannelActivityState {
-	messageTimestamps: number[];
-	lastSlowmodeUpdate: number;
-	activeSlowmode: number;
-	resetTimer: NodeJS.Timeout | null;
+    messageTimestamps: number[];
+    lastSlowmodeUpdate: number;
+    activeSlowmode: number;
+    resetTimer: NodeJS.Timeout | null;
 }
 
+/**
+ * Discord channel that supports slowmode (rate limiting)
+ */
 type SlowmodeCapableChannel = Channel & {
-	rateLimitPerUser: number | null | undefined;
-	setRateLimitPerUser(seconds: number, reason?: string): Promise<unknown>;
+    rateLimitPerUser: number | null | undefined;
+    setRateLimitPerUser(seconds: number, reason?: string): Promise<unknown>;
 };
+
+/**
+ * Guild-level state tracking
+ */
+interface GuildState {
+    configKey: string | null;
+    channels: Map<string, ChannelActivityState>;
+}
+
+// ============================================================
+// Constants
+// ============================================================
 
 const MIN_SLOWMODE_SECONDS = 1;
 
-interface GuildState {
-	configKey: string | null;
-	channels: Map<string, ChannelActivityState>;
-}
-
+/**
+ * Manager for automatic slowmode based on message activity
+ * - Monitors message frequency per channel
+ * - Automatically applies rate limits when thresholds are exceeded
+ * - Gradually increases slowmode with activity
+ * - Resets to minimum after inactivity
+ * - Configurable per-guild settings
+ */
 export class SlowmodeManager {
-	private readonly guildStates = new Map<string, GuildState>();
-	private readonly logger = createSubsystemLogger('Slowmode');
+    private readonly guildStates = new Map<string, GuildState>();
+    private readonly logger = createSubsystemLogger('Slowmode');
 
-	public constructor(
-		private readonly client: SapphireClient,
-		private readonly database: PrismaClient
-	) {}
+    public constructor(
+        private readonly client: SapphireClient,
+        private readonly database: PrismaClient
+    ) {}
 
-	public async handleMessage(message: Message) {
-		if (!message.guildId) return;
-		const channel = message.channel;
-		if (!channel || message.author.bot) return;
+    // ============================================================
+    // Message Handling
+    // ============================================================
 
-		const config = await this.loadConfig(message.guildId);
-		const guildState = this.getGuildState(message.guildId);
-		const configKey = this.createConfigKey(config);
+    /**
+     * Handles incoming messages for automatic slowmode
+     * - Tracks message timestamps within configured window
+     * - Applies or upgrades slowmode when threshold exceeded
+     * - Respects cooldown periods between updates
+     * 
+     * @param message Discord message
+     */
+    public async handleMessage(message: Message) {
+        // Require guild context and ignore bots
+        if (!message.guildId) return;
+        const channel = message.channel;
+        if (!channel || message.author.bot) return;
 
-		if (guildState.configKey !== configKey) {
-			await this.applyConfigChange(message.guildId, guildState, config);
-			guildState.configKey = configKey;
-			this.logger.debug('Configuration refreshed for message', {
-				guildId: message.guildId,
-				channelId: channel.id,
-				configKey
-			});
-		}
+        // Load and cache configuration
+        const config = await this.loadConfig(message.guildId);
+        const guildState = this.getGuildState(message.guildId);
+        const configKey = this.createConfigKey(config);
 
-		if (!config || !config.enabled) {
-			this.logger.debug('Ignoring message, automatic slowmode disabled', {
-				guildId: message.guildId,
-				channelId: channel.id
-			});
-			return;
-		}
-		if (!config.channels.includes(channel.id)) {
-			await this.disableChannelIfTracked(message.guildId, channel.id, {
-				reason: 'Automatic slowmode disabled for channel due to configuration update.'
-			});
-			this.logger.debug('Message in non-managed channel', {
-				guildId: message.guildId,
-				channelId: channel.id
-			});
-			return;
-		}
-		if (!this.isSlowmodeCapable(channel)) return;
+        // Detect configuration changes
+        if (guildState.configKey !== configKey) {
+            await this.applyConfigChange(message.guildId, guildState, config);
+            guildState.configKey = configKey;
+            this.logger.debug('Configuration refreshed for message', {
+                guildId: message.guildId,
+                channelId: channel.id,
+                configKey
+            });
+        }
 
-		const state = this.getChannelState(message.guildId, channel.id);
-		const now = Date.now();
-		const windowMs = Math.max(config.messageTimeWindow, 1) * 1000;
-		const cutoff = now - windowMs;
-		const timestamps = state.messageTimestamps;
+        // Check if slowmode is enabled
+        if (!config || !config.enabled) {
+            this.logger.debug('Ignoring message, automatic slowmode disabled', {
+                guildId: message.guildId,
+                channelId: channel.id
+            });
+            return;
+        }
 
-		while (timestamps.length > 0) {
-			const oldest = timestamps[0];
-			if (oldest === undefined || oldest > cutoff) break;
-			timestamps.shift();
-		}
+        // Check if channel is managed
+        if (!config.channels.includes(channel.id)) {
+            await this.disableChannelIfTracked(message.guildId, channel.id, {
+                reason: 'Automatic slowmode disabled for channel due to configuration update.'
+            });
+            this.logger.debug('Message in non-managed channel', {
+                guildId: message.guildId,
+                channelId: channel.id
+            });
+            return;
+        }
 
-		timestamps.push(now);
-		const messageCount = timestamps.length;
-		const windowStart = timestamps[0];
-		const windowElapsedMs = windowStart === undefined ? 0 : now - windowStart;
-		const threshold = Math.max(config.messageThreshold, 1);
-		this.logger.debug('Message recorded', {
-			guildId: message.guildId,
-			channelId: channel.id,
-			messageCount,
-			threshold: config.messageThreshold,
-			windowElapsedMs
-		});
+        // Verify channel supports slowmode
+        if (!this.isSlowmodeCapable(channel)) return;
 
-		if (messageCount < threshold) {
-			this.logger.debug('Below threshold, no action needed', {
-				guildId: message.guildId,
-				channelId: channel.id,
-				messageCount,
-				threshold
-			});
-			return;
-		}
+        // Track message activity
+        const state = this.getChannelState(message.guildId, channel.id);
+        const now = Date.now();
+        const windowMs = Math.max(config.messageTimeWindow, 1) * 1000;
+        const cutoff = now - windowMs;
+        const timestamps = state.messageTimestamps;
 
-		this.logger.info('Threshold reached, processing slowmode', {
-			guildId: message.guildId,
-			channelId: channel.id,
-			messageCount,
-			threshold
-		});
+        // Remove messages outside time window
+        while (timestamps.length > 0) {
+            const oldest = timestamps[0];
+            if (oldest === undefined || oldest > cutoff) break;
+            timestamps.shift();
+        }
 
-		const slowmodeSeconds = this.calculateSlowmodeSeconds(messageCount, config);
-		const typedChannel = channel as SlowmodeCapableChannel;
-		const currentSlowmode = typedChannel.rateLimitPerUser ?? 0;
-		const activeSlowmode = state.activeSlowmode;
-		const cooldownMs = Math.max(config.cooldownDuration, 1) * 1000;
+        // Record current message
+        timestamps.push(now);
+        const messageCount = timestamps.length;
+        const windowStart = timestamps[0];
+        const windowElapsedMs = windowStart === undefined ? 0 : now - windowStart;
+        const threshold = Math.max(config.messageThreshold, 1);
+        
+        this.logger.debug('Message recorded', {
+            guildId: message.guildId,
+            channelId: channel.id,
+            messageCount,
+            threshold: config.messageThreshold,
+            windowElapsedMs
+        });
 
-		this.logger.debug('Threshold reached - calculating slowmode', {
-			guildId: message.guildId,
-			channelId: channel.id,
-			messageCount,
-			calculatedSlowmode: slowmodeSeconds,
-			currentSlowmode,
-			activeSlowmode,
-			cooldownMs
-		});
+        // Check if threshold reached
+        if (messageCount < threshold) {
+            this.logger.debug('Below threshold, no action needed', {
+                guildId: message.guildId,
+                channelId: channel.id,
+                messageCount,
+                threshold
+            });
+            return;
+        }
 
-		if (
-			state.lastSlowmodeUpdate > 0 &&
-			now - state.lastSlowmodeUpdate < cooldownMs &&
-			slowmodeSeconds <= Math.max(activeSlowmode, currentSlowmode)
-		) {
-			this.logger.debug('Cooldown active, skipping update', {
-				guildId: message.guildId,
-				channelId: channel.id,
-				messageCount,
-				elapsedSinceUpdateMs: now - state.lastSlowmodeUpdate,
-				cooldownMs,
-				activeSlowmode
-			});
-			return;
-		}
+        this.logger.info('Threshold reached, processing slowmode', {
+            guildId: message.guildId,
+            channelId: channel.id,
+            messageCount,
+            threshold
+        });
 
-		if (currentSlowmode >= slowmodeSeconds) {
-			state.activeSlowmode = Math.max(currentSlowmode, MIN_SLOWMODE_SECONDS);
-			this.scheduleReset(message.guildId, channel.id, config.resetTime);
-			this.logger.debug('Existing rate limit sufficient', {
-				guildId: message.guildId,
-				channelId: channel.id,
-				currentSlowmode,
-				requiredSlowmode: slowmodeSeconds
-			});
-			return;
-		}
+        // Calculate required slowmode
+        const slowmodeSeconds = this.calculateSlowmodeSeconds(messageCount, config);
+        const typedChannel = channel as SlowmodeCapableChannel;
+        const currentSlowmode = typedChannel.rateLimitPerUser ?? 0;
+        const activeSlowmode = state.activeSlowmode;
+        const cooldownMs = Math.max(config.cooldownDuration, 1) * 1000;
 
-		try {
-			await typedChannel.setRateLimitPerUser(
-				slowmodeSeconds,
-				`Automatic slowmode triggered after ${messageCount} messages in ${config.messageTimeWindow}s.`
-			);
-			state.activeSlowmode = slowmodeSeconds;
-			state.lastSlowmodeUpdate = now;
-			this.scheduleReset(message.guildId, channel.id, config.resetTime);
-			this.logger.info('Upgraded automatic slowmode', {
-				guildId: message.guildId,
-				channelId: channel.id,
-				previousSlowmode: currentSlowmode,
-				newSlowmode: slowmodeSeconds,
-				messageCount,
-				window: config.messageTimeWindow
-			});
-		} catch (error) {
-			this.logger.warn('Failed to set automatic slowmode', error, {
-				guildId: message.guildId,
-				channelId: channel.id
-			});
-		}
-	}
+        this.logger.debug('Threshold reached - calculating slowmode', {
+            guildId: message.guildId,
+            channelId: channel.id,
+            messageCount,
+            calculatedSlowmode: slowmodeSeconds,
+            currentSlowmode,
+            activeSlowmode,
+            cooldownMs
+        });
 
-	public async handleSettingsUpdated(guildId: string) {
-		const guildState = this.getGuildState(guildId);
-		try {
-			const config = await this.loadConfig(guildId);
-			await this.applyConfigChange(guildId, guildState, config);
-			guildState.configKey = this.createConfigKey(config);
-			this.logger.info('Settings refreshed after manual update', { guildId });
-		} catch (error) {
-			this.logger.warn('Failed to refresh slowmode settings after manual update', error, { guildId });
-			guildState.configKey = null;
-		}
-	}
+        // Respect cooldown period
+        if (
+            state.lastSlowmodeUpdate > 0 &&
+            now - state.lastSlowmodeUpdate < cooldownMs &&
+            slowmodeSeconds <= Math.max(activeSlowmode, currentSlowmode)
+        ) {
+            this.logger.debug('Cooldown active, skipping update', {
+                guildId: message.guildId,
+                channelId: channel.id,
+                messageCount,
+                elapsedSinceUpdateMs: now - state.lastSlowmodeUpdate,
+                cooldownMs,
+                activeSlowmode
+            });
+            return;
+        }
 
-	private scheduleReset(guildId: string, channelId: string, resetTime: number) {
-		const state = this.getChannelState(guildId, channelId);
-		if (state.resetTimer) {
-			clearTimeout(state.resetTimer);
-		}
+        // Check if current slowmode is sufficient
+        if (currentSlowmode >= slowmodeSeconds) {
+            state.activeSlowmode = Math.max(currentSlowmode, MIN_SLOWMODE_SECONDS);
+            this.scheduleReset(message.guildId, channel.id, config.resetTime);
+            this.logger.debug('Existing rate limit sufficient', {
+                guildId: message.guildId,
+                channelId: channel.id,
+                currentSlowmode,
+                requiredSlowmode: slowmodeSeconds
+            });
+            return;
+        }
 
-		const delay = Math.max(resetTime, 1) * 1000;
-		state.resetTimer = setTimeout(() => void this.resetSlowmode(guildId, channelId), delay);
-	}
+        // Apply slowmode
+        try {
+            await typedChannel.setRateLimitPerUser(
+                slowmodeSeconds,
+                `Automatic slowmode triggered after ${messageCount} messages in ${config.messageTimeWindow}s.`
+            );
+            state.activeSlowmode = slowmodeSeconds;
+            state.lastSlowmodeUpdate = now;
+            this.scheduleReset(message.guildId, channel.id, config.resetTime);
+            
+            this.logger.info('Upgraded automatic slowmode', {
+                guildId: message.guildId,
+                channelId: channel.id,
+                previousSlowmode: currentSlowmode,
+                newSlowmode: slowmodeSeconds,
+                messageCount,
+                window: config.messageTimeWindow
+            });
+        } catch (error) {
+            this.logger.warn('Failed to set automatic slowmode', error, {
+                guildId: message.guildId,
+                channelId: channel.id
+            });
+        }
+    }
 
-	private async resetSlowmode(
-		guildId: string,
-		channelId: string,
-		options: { providedState?: ChannelActivityState; reason?: string; prune?: boolean } = {}
-	) {
-		const guildState = this.getGuildState(guildId);
-		const state = options.providedState ?? guildState.channels.get(channelId);
-		if (!state) return;
+    // ============================================================
+    // Settings Updates
+    // ============================================================
 
-		if (state.resetTimer) {
-			clearTimeout(state.resetTimer);
-			state.resetTimer = null;
-		}
+    /**
+     * Handles manual settings updates
+     * - Refreshes configuration from database
+     * - Applies changes to all managed channels
+     * 
+     * @param guildId Guild ID
+     */
+    public async handleSettingsUpdated(guildId: string) {
+        const guildState = this.getGuildState(guildId);
+        try {
+            const config = await this.loadConfig(guildId);
+            await this.applyConfigChange(guildId, guildState, config);
+            guildState.configKey = this.createConfigKey(config);
+            this.logger.info('Settings refreshed after manual update', { guildId });
+        } catch (error) {
+            this.logger.warn('Failed to refresh slowmode settings after manual update', error, { guildId });
+            guildState.configKey = null;
+        }
+    }
 
-		if (!state.activeSlowmode || state.activeSlowmode <= MIN_SLOWMODE_SECONDS) {
-			state.messageTimestamps.length = 0;
-			state.lastSlowmodeUpdate = 0;
-			if (options.prune) {
-				guildState.channels.delete(channelId);
-			}
-			if (options.reason) {
-				this.logger.debug('Channel state cleared without significant rate limit', {
-					guildId,
-					channelId,
-					activeSlowmode: state.activeSlowmode,
-					reason: options.reason
-				});
-			}
-			return;
-		}
+    // ============================================================
+    // Slowmode Reset Logic
+    // ============================================================
 
-		const channel = await this.fetchSlowmodeChannel(channelId);
-		if (!channel) {
-			state.activeSlowmode = MIN_SLOWMODE_SECONDS;
-			state.lastSlowmodeUpdate = 0;
-			state.messageTimestamps.length = 0;
-			if (options.prune) {
-				guildState.channels.delete(channelId);
-			}
-			return;
-		}
+    /**
+     * Schedules a slowmode reset after inactivity
+     * - Cancels previous timer if exists
+     * 
+     * @param guildId Guild ID
+     * @param channelId Channel ID
+     * @param resetTime Reset delay in seconds
+     */
+    private scheduleReset(guildId: string, channelId: string, resetTime: number) {
+        const state = this.getChannelState(guildId, channelId);
+        if (state.resetTimer) {
+            clearTimeout(state.resetTimer);
+        }
 
-		const currentSlowmode = channel.rateLimitPerUser ?? 0;
-		if (currentSlowmode !== state.activeSlowmode) {
-			state.activeSlowmode = Math.max(currentSlowmode, MIN_SLOWMODE_SECONDS);
-			if (options.prune && currentSlowmode <= MIN_SLOWMODE_SECONDS) {
-				guildState.channels.delete(channelId);
-			}
-			return;
-		}
+        const delay = Math.max(resetTime, 1) * 1000;
+        state.resetTimer = setTimeout(() => void this.resetSlowmode(guildId, channelId), delay);
+    }
 
-		try {
-			await channel.setRateLimitPerUser(MIN_SLOWMODE_SECONDS, options.reason ?? 'Automatic slowmode reset to minimum after inactivity.');
-			state.activeSlowmode = MIN_SLOWMODE_SECONDS;
-			state.lastSlowmodeUpdate = 0;
-			state.messageTimestamps.length = 0;
-			if (options.prune) {
-				guildState.channels.delete(channelId);
-			}
-			this.logger.info('Slowmode reset to minimum', {
-				guildId,
-				channelId,
-				slowmode: MIN_SLOWMODE_SECONDS,
-				reason: options.reason ?? 'inactivity'
-			});
-		} catch (error) {
-			this.logger.warn('Failed to reset automatic slowmode', error, {
-				guildId,
-				channelId
-			});
-		}
-	}
+    /**
+     * Resets slowmode to minimum after inactivity
+     * - Clears activity tracking state
+     * - Optionally prunes channel state from memory
+     * 
+     * @param guildId Guild ID
+     * @param channelId Channel ID
+     * @param options Reset options
+     */
+    private async resetSlowmode(
+        guildId: string,
+        channelId: string,
+        options: { providedState?: ChannelActivityState; reason?: string; prune?: boolean } = {}
+    ) {
+        const guildState = this.getGuildState(guildId);
+        const state = options.providedState ?? guildState.channels.get(channelId);
+        if (!state) return;
 
-	private calculateSlowmodeSeconds(messageCount: number, config: SlowmodeConfig) {
-		const threshold = Math.max(config.messageThreshold, 1);
-		const ratio = messageCount / threshold;
-		const overThresholdRatio = Math.max(0, ratio - 1);
-		const scaled = MIN_SLOWMODE_SECONDS + Math.ceil(overThresholdRatio * 2);
-		const slowmode = Math.max(MIN_SLOWMODE_SECONDS, scaled);
-		return Math.min(config.maxSlowmode, slowmode);
-	}
+        // Clear reset timer
+        if (state.resetTimer) {
+            clearTimeout(state.resetTimer);
+            state.resetTimer = null;
+        }
 
-	private getGuildState(guildId: string): GuildState {
-		let state = this.guildStates.get(guildId);
-		if (!state) {
-			state = { configKey: null, channels: new Map() } satisfies GuildState;
-			this.guildStates.set(guildId, state);
-		}
-		return state;
-	}
+        // Skip reset if slowmode is already minimal
+        if (!state.activeSlowmode || state.activeSlowmode <= MIN_SLOWMODE_SECONDS) {
+            state.messageTimestamps.length = 0;
+            state.lastSlowmodeUpdate = 0;
+            if (options.prune) {
+                guildState.channels.delete(channelId);
+            }
+            if (options.reason) {
+                this.logger.debug('Channel state cleared without significant rate limit', {
+                    guildId,
+                    channelId,
+                    activeSlowmode: state.activeSlowmode,
+                    reason: options.reason
+                });
+            }
+            return;
+        }
 
-	private getChannelState(guildId: string, channelId: string): ChannelActivityState {
-		const guildState = this.getGuildState(guildId);
-		let channelState = guildState.channels.get(channelId);
-		if (!channelState) {
-			channelState = {
-				messageTimestamps: [],
-				lastSlowmodeUpdate: 0,
-				activeSlowmode: MIN_SLOWMODE_SECONDS,
-				resetTimer: null
-			};
-			guildState.channels.set(channelId, channelState);
-		}
+        // Fetch channel
+        const channel = await this.fetchSlowmodeChannel(channelId);
+        if (!channel) {
+            state.activeSlowmode = MIN_SLOWMODE_SECONDS;
+            state.lastSlowmodeUpdate = 0;
+            state.messageTimestamps.length = 0;
+            if (options.prune) {
+                guildState.channels.delete(channelId);
+            }
+            return;
+        }
 
-		return channelState;
-	}
+        // Check if slowmode was manually changed
+        const currentSlowmode = channel.rateLimitPerUser ?? 0;
+        if (currentSlowmode !== state.activeSlowmode) {
+            state.activeSlowmode = Math.max(currentSlowmode, MIN_SLOWMODE_SECONDS);
+            if (options.prune && currentSlowmode <= MIN_SLOWMODE_SECONDS) {
+                guildState.channels.delete(channelId);
+            }
+            return;
+        }
 
-	private async loadConfig(guildId: string): Promise<SlowmodeConfig | null> {
-		try {
-			const [settings, channels] = await Promise.all([
-				this.database.guildSlowmodeSettings.findUnique({ where: { guildId } }),
-				this.database.guildChannelSettings.findUnique({ where: { guildId } })
-			]);
+        // Reset slowmode to minimum
+        try {
+            await channel.setRateLimitPerUser(MIN_SLOWMODE_SECONDS, options.reason ?? 'Automatic slowmode reset to minimum after inactivity.');
+            state.activeSlowmode = MIN_SLOWMODE_SECONDS;
+            state.lastSlowmodeUpdate = 0;
+            state.messageTimestamps.length = 0;
+            if (options.prune) {
+                guildState.channels.delete(channelId);
+            }
+            
+            this.logger.info('Slowmode reset to minimum', {
+                guildId,
+                channelId,
+                slowmode: MIN_SLOWMODE_SECONDS,
+                reason: options.reason ?? 'inactivity'
+            });
+        } catch (error) {
+            this.logger.warn('Failed to reset automatic slowmode', error, {
+                guildId,
+                channelId
+            });
+        }
+    }
 
-			if (!settings) return null;
+    // ============================================================
+    // Calculation and State Management
+    // ============================================================
 
-			const enabledChannels = new Set<string>();
-			if (channels) {
-				parseJsonStringArray(channels.automaticSlowmodeChannels).forEach((id) => enabledChannels.add(id));
-			}
+    /**
+     * Calculates slowmode duration based on message count
+     * - Scales with messages over threshold
+     * - Capped at maximum configured slowmode
+     * 
+     * @param messageCount Number of messages in window
+     * @param config Slowmode configuration
+     * @returns Slowmode duration in seconds
+     */
+    private calculateSlowmodeSeconds(messageCount: number, config: SlowmodeConfig) {
+        const threshold = Math.max(config.messageThreshold, 1);
+        const ratio = messageCount / threshold;
+        const overThresholdRatio = Math.max(0, ratio - 1);
+        const scaled = MIN_SLOWMODE_SECONDS + Math.ceil(overThresholdRatio * 2);
+        const slowmode = Math.max(MIN_SLOWMODE_SECONDS, scaled);
+        return Math.min(config.maxSlowmode, slowmode);
+    }
 
-			return {
-				enabled: settings.enabled,
-				messageThreshold: settings.messageThreshold,
-				messageTimeWindow: settings.messageTimeWindow,
-				cooldownDuration: settings.cooldownDuration,
-				resetTime: settings.resetTime,
-				maxSlowmode: settings.maxSlowmode,
-				channels: Array.from(enabledChannels)
-			};
-		} catch (error) {
-			this.logger.error('Failed to load slowmode configuration', error, { guildId });
-			return null;
-		}
-	}
+    /**
+     * Gets or creates guild state
+     */
+    private getGuildState(guildId: string): GuildState {
+        let state = this.guildStates.get(guildId);
+        if (!state) {
+            state = { configKey: null, channels: new Map() } satisfies GuildState;
+            this.guildStates.set(guildId, state);
+        }
+        return state;
+    }
 
-	private async applyConfigChange(guildId: string, guildState: GuildState, config: SlowmodeConfig | null) {
-		if (!config || !config.enabled) {
-			await Promise.all(
-				[...guildState.channels.entries()].map(async ([channelId, state]) => {
-					await this.resetSlowmode(guildId, channelId, {
-						providedState: state,
-						reason: 'Automatic slowmode disabled for guild settings update.',
-						prune: true
-					});
-				})
-			);
-			guildState.channels.clear();
-			this.logger.info('Automatic slowmode disabled for guild', { guildId });
-			return;
-		}
+    /**
+     * Gets or creates channel activity state
+     */
+    private getChannelState(guildId: string, channelId: string): ChannelActivityState {
+        const guildState = this.getGuildState(guildId);
+        let channelState = guildState.channels.get(channelId);
+        if (!channelState) {
+            channelState = {
+                messageTimestamps: [],
+                lastSlowmodeUpdate: 0,
+                activeSlowmode: MIN_SLOWMODE_SECONDS,
+                resetTimer: null
+            };
+            guildState.channels.set(channelId, channelState);
+        }
 
-		const allowedChannels = new Set(config.channels);
+        return channelState;
+    }
 
-		await Promise.all(
-			[...guildState.channels.entries()].map(async ([channelId, state]) => {
-				if (!allowedChannels.has(channelId)) {
-					await this.resetSlowmode(guildId, channelId, {
-						providedState: state,
-						reason: 'Automatic slowmode channel removed from configuration.',
-						prune: true
-					});
-					this.logger.info('Channel removed from automatic management', {
-						guildId,
-						channelId
-					});
-					return;
-				}
+    // ============================================================
+    // Configuration Management
+    // ============================================================
 
-				if (state.resetTimer) {
-					clearTimeout(state.resetTimer);
-					state.resetTimer = null;
-				}
+    /**
+     * Loads slowmode configuration from database
+     * 
+     * @param guildId Guild ID
+     * @returns Configuration or null if not found
+     */
+    private async loadConfig(guildId: string): Promise<SlowmodeConfig | null> {
+        try {
+            const [settings, channels] = await Promise.all([
+                this.database.guildSlowmodeSettings.findUnique({ where: { guildId } }),
+                this.database.guildChannelSettings.findUnique({ where: { guildId } })
+            ]);
 
-				state.messageTimestamps.length = 0;
-				state.lastSlowmodeUpdate = 0;
-				state.activeSlowmode = MIN_SLOWMODE_SECONDS;
-			})
-		);
-	}
+            if (!settings) return null;
 
-	private async disableChannelIfTracked(guildId: string, channelId: string, options: { reason: string }) {
-		const guildState = this.guildStates.get(guildId);
-		if (!guildState) return;
-		const state = guildState.channels.get(channelId);
-		if (!state) return;
-		await this.resetSlowmode(guildId, channelId, {
-			providedState: state,
-			reason: options.reason,
-			prune: true
-		});
-		this.logger.debug('Stopped tracking channel', {
-			guildId,
-			channelId,
-			reason: options.reason
-		});
-	}
+            const enabledChannels = new Set<string>();
+            if (channels) {
+                parseJsonStringArray(channels.automaticSlowmodeChannels).forEach((id) => enabledChannels.add(id));
+            }
 
-	private createConfigKey(config: SlowmodeConfig | null): string {
-		if (!config) return 'disabled';
-		return [
-			config.enabled ? '1' : '0',
-			config.messageThreshold,
-			config.messageTimeWindow,
-			config.cooldownDuration,
-			config.resetTime,
-			config.maxSlowmode,
-			...[...config.channels].sort()
-		].join('|');
-	}
+            return {
+                enabled: settings.enabled,
+                messageThreshold: settings.messageThreshold,
+                messageTimeWindow: settings.messageTimeWindow,
+                cooldownDuration: settings.cooldownDuration,
+                resetTime: settings.resetTime,
+                maxSlowmode: settings.maxSlowmode,
+                channels: Array.from(enabledChannels)
+            };
+        } catch (error) {
+            this.logger.error('Failed to load slowmode configuration', error, { guildId });
+            return null;
+        }
+    }
 
-	private isSlowmodeCapable(channel: Channel): channel is SlowmodeCapableChannel {
-		return typeof (channel as Partial<SlowmodeCapableChannel>).setRateLimitPerUser === 'function';
-	}
+    /**
+     * Applies configuration changes to guild state
+     * - Disables slowmode when disabled in config
+     * - Removes channels no longer managed
+     * - Resets state for managed channels
+     */
+    private async applyConfigChange(guildId: string, guildState: GuildState, config: SlowmodeConfig | null) {
+        // Disable all channels if slowmode is disabled
+        if (!config || !config.enabled) {
+            await Promise.all(
+                [...guildState.channels.entries()].map(async ([channelId, state]) => {
+                    await this.resetSlowmode(guildId, channelId, {
+                        providedState: state,
+                        reason: 'Automatic slowmode disabled for guild settings update.',
+                        prune: true
+                    });
+                })
+            );
+            guildState.channels.clear();
+            this.logger.info('Automatic slowmode disabled for guild', { guildId });
+            return;
+        }
 
-	private async fetchSlowmodeChannel(channelId: string): Promise<SlowmodeCapableChannel | null> {
-		const existing = this.client.channels.cache.get(channelId) ?? (await this.client.channels.fetch(channelId).catch(() => null));
-		if (!existing) return null;
-		return this.isSlowmodeCapable(existing) ? (existing as SlowmodeCapableChannel) : null;
-	}
+        const allowedChannels = new Set(config.channels);
+
+        // Remove channels no longer in configuration
+        await Promise.all(
+            [...guildState.channels.entries()].map(async ([channelId, state]) => {
+                if (!allowedChannels.has(channelId)) {
+                    await this.resetSlowmode(guildId, channelId, {
+                        providedState: state,
+                        reason: 'Automatic slowmode channel removed from configuration.',
+                        prune: true
+                    });
+                    this.logger.info('Channel removed from automatic management', {
+                        guildId,
+                        channelId
+                    });
+                    return;
+                }
+
+                // Reset state for managed channels
+                if (state.resetTimer) {
+                    clearTimeout(state.resetTimer);
+                    state.resetTimer = null;
+                }
+
+                state.messageTimestamps.length = 0;
+                state.lastSlowmodeUpdate = 0;
+                state.activeSlowmode = MIN_SLOWMODE_SECONDS;
+            })
+        );
+    }
+
+    /**
+     * Disables automatic slowmode for a channel if it's being tracked
+     */
+    private async disableChannelIfTracked(guildId: string, channelId: string, options: { reason: string }) {
+        const guildState = this.guildStates.get(guildId);
+        if (!guildState) return;
+        const state = guildState.channels.get(channelId);
+        if (!state) return;
+        
+        await this.resetSlowmode(guildId, channelId, {
+            providedState: state,
+            reason: options.reason,
+            prune: true
+        });
+        
+        this.logger.debug('Stopped tracking channel', {
+            guildId,
+            channelId,
+            reason: options.reason
+        });
+    }
+
+    /**
+     * Creates a unique key for configuration change detection
+     */
+    private createConfigKey(config: SlowmodeConfig | null): string {
+        if (!config) return 'disabled';
+        return [
+            config.enabled ? '1' : '0',
+            config.messageThreshold,
+            config.messageTimeWindow,
+            config.cooldownDuration,
+            config.resetTime,
+            config.maxSlowmode,
+            ...[...config.channels].sort()
+        ].join('|');
+    }
+
+    // ============================================================
+    // Channel Utilities
+    // ============================================================
+
+    /**
+     * Type guard for slowmode-capable channels
+     */
+    private isSlowmodeCapable(channel: Channel): channel is SlowmodeCapableChannel {
+        return typeof (channel as Partial<SlowmodeCapableChannel>).setRateLimitPerUser === 'function';
+    }
+
+    /**
+     * Fetches a slowmode-capable channel from Discord
+     */
+    private async fetchSlowmodeChannel(channelId: string): Promise<SlowmodeCapableChannel | null> {
+        const existing = this.client.channels.cache.get(channelId) ?? (await this.client.channels.fetch(channelId).catch(() => null));
+        if (!existing) return null;
+        return this.isSlowmodeCapable(existing) ? (existing as SlowmodeCapableChannel) : null;
+    }
 }
+
+// ============================================================
+// Type Declarations
+// ============================================================
 
 declare module '@sapphire/pieces' {
-	interface Container {
-		slowmodeManager: SlowmodeManager;
-	}
+    interface Container {
+        slowmodeManager: SlowmodeManager;
+    }
 }

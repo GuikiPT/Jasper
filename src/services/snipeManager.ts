@@ -1,9 +1,16 @@
-// snipeManager module within services
+// Snipe manager - Tracks recently deleted messages for retrieval
 import type { PrismaClient } from '@prisma/client';
 import type { SapphireClient } from '@sapphire/framework';
 import type { Message, PartialMessage, GuildMember, APIInteractionGuildMember } from 'discord.js';
 import { parseJsonStringArray } from '../lib/utils';
 
+// ============================================================
+// Type Definitions
+// ============================================================
+
+/**
+ * Deleted message data stored for sniping
+ */
 export interface SnipedMessage {
     id: string;
     content: string;
@@ -38,27 +45,58 @@ export interface SnipedMessage {
     createdAt: Date;
 }
 
+/**
+ * Guild-level snipe state tracking
+ */
 interface GuildSnipeState {
     messages: Map<string, SnipedMessage>; // channelId -> last deleted message
 }
 
-// Service for tracking and retrieving recently deleted messages
+// ============================================================
+// Constants
+// ============================================================
+
+const MESSAGE_RETENTION_MS = 5 * 60 * 1000; // 5 minutes
+const CLEANUP_INTERVAL_MS = 30_000; // 30 seconds
+const IGNORE_TTL_MS = 60_000; // 1 minute
+const COMMAND_PREFIX = 'j!'; // Common bot prefix to ignore
+
+/**
+ * Manager for tracking and retrieving recently deleted messages
+ * - Stores last deleted message per channel
+ * - Respects channel and role permissions
+ * - Automatically expires old messages
+ * - Prevents snipe of bot messages and commands
+ * - Time-limited retention (5 minutes)
+ */
 export class SnipeManager {
     private readonly guildStates = new Map<string, GuildSnipeState>();
     private readonly ignoredDeletionIds = new Set<string>();
-    private readonly MESSAGE_RETENTION_MS = 5 * 60 * 1000; // 5 minutes
+    private readonly MESSAGE_RETENTION_MS = MESSAGE_RETENTION_MS;
 
     public constructor(
         private readonly client: SapphireClient,
         private readonly database: PrismaClient
     ) {
-        // Clean up expired messages every 30 seconds
-        setInterval(() => this.cleanupOldMessages(), 30_000);
+        // Clean up expired messages periodically
+        setInterval(() => this.cleanupOldMessages(), CLEANUP_INTERVAL_MS);
     }
 
-    // Handle message deletion event, store if conditions are met
+    // ============================================================
+    // Message Deletion Handling
+    // ============================================================
+
+    /**
+     * Handles message deletion events
+     * - Checks channel allowlist
+     * - Verifies author doesn't have ignored roles
+     * - Filters out bot messages and commands
+     * - Stores message for snipe command
+     * 
+     * @param message Deleted message (may be partial)
+     */
     public async handleMessageDelete(message: Message | PartialMessage) {
-        // Skip non-guild messages
+        // Require guild context
         if (!message.guildId || !message.guild) return;
 
         // Skip explicitly ignored deletions (e.g., bot-triggered)
@@ -68,9 +106,9 @@ export class SnipeManager {
             return;
         }
 
-        // Skip command-like messages (common bot prefix)
+        // Skip command-like messages
         const content = message.content ? String(message.content).trim() : '';
-        if (content && content.startsWith('j!')) {
+        if (content && content.startsWith(COMMAND_PREFIX)) {
             this.client.logger.debug('[Snipe] Ignored deletion for command-like message', { 
                 guildId: message.guildId, 
                 channelId: message.channelId 
@@ -120,7 +158,19 @@ export class SnipeManager {
         }
     }
 
-    // Retrieve the last deleted message for a channel if within retention period
+    // ============================================================
+    // Message Retrieval
+    // ============================================================
+
+    /**
+     * Retrieves the last deleted message for a channel
+     * - Returns null if no message or expired
+     * - Automatically removes expired messages
+     * 
+     * @param guildId Guild ID
+     * @param channelId Channel ID
+     * @returns Sniped message or null
+     */
     public getLastDeletedMessage(guildId: string, channelId: string): SnipedMessage | null {
         const guildState = this.guildStates.get(guildId);
         if (!guildState) return null;
@@ -140,14 +190,36 @@ export class SnipeManager {
         return message;
     }
 
-    // Mark a message ID to be ignored when deleted (e.g., command invocation)
-    public ignoreMessageDeletion(messageId: string, ttl = 60_000) {
+    // ============================================================
+    // Deletion Ignore List
+    // ============================================================
+
+    /**
+     * Marks a message ID to be ignored when deleted
+     * - Used to prevent snipe of command invocations
+     * - Automatically expires after TTL
+     * 
+     * @param messageId Message ID to ignore
+     * @param ttl Time to live in milliseconds (default: 60s)
+     */
+    public ignoreMessageDeletion(messageId: string, ttl = IGNORE_TTL_MS) {
         if (!messageId) return;
         this.ignoredDeletionIds.add(messageId);
         setTimeout(() => this.ignoredDeletionIds.delete(messageId), ttl);
     }
 
-    // Check if user has permission to use snipe (staff or admin roles)
+    // ============================================================
+    // Permission Checks
+    // ============================================================
+
+    /**
+     * Checks if user has permission to use snipe command
+     * - Requires staff or admin roles
+     * 
+     * @param guildId Guild ID
+     * @param member Member to check
+     * @returns True if member can use snipe
+     */
     public async canUseSnipe(guildId: string, member: GuildMember | APIInteractionGuildMember): Promise<boolean> {
         try {
             const settings = await this.database.guildRoleSettings.findUnique({
@@ -169,7 +241,13 @@ export class SnipeManager {
         }
     }
 
-    // Check if channel is in the allowed snipe channels list
+    /**
+     * Checks if channel is in the allowed snipe channels list
+     * 
+     * @param guildId Guild ID
+     * @param channelId Channel ID
+     * @returns True if channel allows snipe
+     */
     private async isChannelAllowed(guildId: string, channelId: string): Promise<boolean> {
         try {
             const settings = await this.database.guildChannelSettings.findUnique({
@@ -186,7 +264,14 @@ export class SnipeManager {
         }
     }
 
-    // Check if member has any ignored snipe roles
+    /**
+     * Checks if member has any ignored snipe roles
+     * - Members with these roles won't have their messages sniped
+     * 
+     * @param guildId Guild ID
+     * @param member Member to check
+     * @returns True if member has ignored role
+     */
     private async hasIgnoredSnipeRoles(guildId: string, member: GuildMember): Promise<boolean> {
         try {
             const settings = await this.database.guildRoleSettings.findUnique({
@@ -203,7 +288,18 @@ export class SnipeManager {
         }
     }
 
-    // Build SnipedMessage object from Discord Message
+    // ============================================================
+    // Message Building
+    // ============================================================
+
+    /**
+     * Builds a SnipedMessage object from Discord Message
+     * - Extracts author, channel, and guild information
+     * - Preserves attachments and embeds
+     * 
+     * @param message Discord message
+     * @returns Sniped message object
+     */
     private buildSnipedMessage(message: Message | PartialMessage): SnipedMessage {
         return {
             id: message.id,
@@ -240,7 +336,13 @@ export class SnipeManager {
         };
     }
 
-    // Get or create guild state container
+    // ============================================================
+    // State Management
+    // ============================================================
+
+    /**
+     * Gets or creates guild state container
+     */
     private getOrCreateGuildState(guildId: string): GuildSnipeState {
         let state = this.guildStates.get(guildId);
         if (!state) {
@@ -250,7 +352,10 @@ export class SnipeManager {
         return state;
     }
 
-    // Check if member has any of the specified roles
+    /**
+     * Checks if member has any of the specified roles
+     * - Handles both API and GuildMember types
+     */
     private memberHasRole(member: GuildMember | APIInteractionGuildMember, roleIds: string[]): boolean {
         // API interaction member (roles array)
         if ('roles' in member && Array.isArray(member.roles)) {
@@ -265,7 +370,15 @@ export class SnipeManager {
         return false;
     }
 
-    // Remove expired messages from all guild states
+    // ============================================================
+    // Cleanup
+    // ============================================================
+
+    /**
+     * Removes expired messages from all guild states
+     * - Runs periodically (every 30 seconds)
+     * - Removes empty guild states
+     */
     private cleanupOldMessages(): void {
         const now = new Date();
         let cleanupCount = 0;
@@ -273,6 +386,7 @@ export class SnipeManager {
         for (const [guildId, guildState] of this.guildStates.entries()) {
             const toDelete: string[] = [];
 
+            // Find expired messages
             for (const [channelId, message] of guildState.messages.entries()) {
                 const timeSinceDeleted = now.getTime() - message.deletedAt.getTime();
                 if (timeSinceDeleted > this.MESSAGE_RETENTION_MS) {
@@ -296,7 +410,10 @@ export class SnipeManager {
     }
 }
 
-// Augment Sapphire container with snipe manager instance
+// ============================================================
+// Type Declarations
+// ============================================================
+
 declare module '@sapphire/pieces' {
     interface Container {
         snipeManager: SnipeManager;

@@ -1,109 +1,208 @@
-// supportThreadService module within services
+// Support thread service - Database operations for support thread inactivity tracking
 import type { PrismaClient, SupportThread } from '@prisma/client';
 
+// ============================================================
+// Type Definitions
+// ============================================================
+
+/**
+ * Payload for recording thread owner activity
+ */
 export interface SupportThreadActivityPayload {
-	threadId: string;
-	guildId: string;
-	authorId: string;
-	timestamp: Date;
-	messageId?: string;
+    threadId: string;
+    guildId: string;
+    authorId: string;
+    timestamp: Date;
+    messageId?: string;
 }
 
+/**
+ * Payload for recording reminder sent
+ */
 export interface SupportThreadReminderPayload {
-	threadId: string;
-	timestamp: Date;
-	messageId: string | null;
+    threadId: string;
+    timestamp: Date;
+    messageId: string | null;
 }
 
+/**
+ * Service for managing support thread activity records
+ * - Tracks last activity from thread owners
+ * - Records reminder messages sent
+ * - Queries threads needing reminders or auto-closure
+ * - Manages thread lifecycle (active/closed)
+ */
 export class SupportThreadService {
-	public constructor(private readonly database: PrismaClient) {}
+    public constructor(private readonly database: PrismaClient) {}
 
-	public getThread(threadId: string): Promise<SupportThread | null> {
-		return this.database.supportThread.findUnique({ where: { threadId } });
-	}
+    // ============================================================
+    // Thread Retrieval
+    // ============================================================
 
-	public async recordAuthorActivity(payload: SupportThreadActivityPayload): Promise<SupportThread> {
-		return this.database.supportThread.upsert({
-			where: { threadId: payload.threadId },
-			create: {
-				threadId: payload.threadId,
-				guildId: payload.guildId,
-				authorId: payload.authorId,
-				lastAuthorMessageAt: payload.timestamp,
-				lastAuthorMessageId: payload.messageId ?? null
-			},
-			update: {
-				authorId: payload.authorId,
-				lastAuthorMessageAt: payload.timestamp,
-				lastAuthorMessageId: payload.messageId ?? null,
-				closedAt: null,
-				lastReminderAt: null,
-				reminderMessageId: null,
-				reminderCount: 0
-			}
-		});
-	}
+    /**
+     * Gets a support thread record by ID
+     * 
+     * @param threadId Thread ID
+     * @returns Thread record or null if not found
+     */
+    public getThread(threadId: string): Promise<SupportThread | null> {
+        return this.database.supportThread.findUnique({ where: { threadId } });
+    }
 
-	public async markReminderSent(payload: SupportThreadReminderPayload): Promise<SupportThread> {
-		return this.database.supportThread.update({
-			where: { threadId: payload.threadId },
-			data: {
-				lastReminderAt: payload.timestamp,
-				reminderMessageId: payload.messageId,
-				reminderCount: { increment: 1 }
-			}
-		});
-	}
+    // ============================================================
+    // Activity Recording
+    // ============================================================
 
-	public async markThreadClosed(threadId: string): Promise<void> {
-		await this.database.supportThread.updateMany({
-			where: { threadId },
-			data: {
-				closedAt: new Date(),
-				reminderMessageId: null
-			}
-		});
-	}
+    /**
+     * Records activity from thread owner
+     * - Creates record if thread not yet tracked
+     * - Updates last activity timestamp
+     * - Resets reminder state (clears sent reminders)
+     * - Reopens thread if previously closed
+     * 
+     * @param payload Activity data
+     * @returns Updated thread record
+     */
+    public async recordAuthorActivity(payload: SupportThreadActivityPayload): Promise<SupportThread> {
+        return this.database.supportThread.upsert({
+            where: { threadId: payload.threadId },
+            create: {
+                threadId: payload.threadId,
+                guildId: payload.guildId,
+                authorId: payload.authorId,
+                lastAuthorMessageAt: payload.timestamp,
+                lastAuthorMessageId: payload.messageId ?? null
+            },
+            update: {
+                authorId: payload.authorId,
+                lastAuthorMessageAt: payload.timestamp,
+                lastAuthorMessageId: payload.messageId ?? null,
+                closedAt: null, // Reopen if closed
+                lastReminderAt: null, // Reset reminder state
+                reminderMessageId: null,
+                reminderCount: 0
+            }
+        });
+    }
 
-	public async clearReminder(threadId: string): Promise<void> {
-		await this.database.supportThread.updateMany({
-			where: { threadId },
-			data: {
-				lastReminderAt: null,
-				reminderMessageId: null
-			}
-		});
-	}
+    /**
+     * Records that a reminder was sent
+     * - Updates last reminder timestamp
+     * - Stores reminder message ID for later dismissal
+     * - Increments reminder counter
+     * 
+     * @param payload Reminder data
+     * @returns Updated thread record
+     */
+    public async markReminderSent(payload: SupportThreadReminderPayload): Promise<SupportThread> {
+        return this.database.supportThread.update({
+            where: { threadId: payload.threadId },
+            data: {
+                lastReminderAt: payload.timestamp,
+                reminderMessageId: payload.messageId,
+                reminderCount: { increment: 1 }
+            }
+        });
+    }
 
-	public async findThreadsNeedingReminder(cutoff: Date, options: { guildId?: string } = {}): Promise<SupportThread[]> {
-		const { guildId } = options;
-		return this.database.supportThread.findMany({
-			where: {
-				closedAt: null,
-				lastAuthorMessageId: { not: null }, // Only send reminders if we have a valid author message
-				lastAuthorMessageAt: { lt: cutoff },
-				OR: [{ lastReminderAt: null }, { lastReminderAt: { lt: cutoff } }],
-				...(guildId ? { guildId } : {})
-			}
-		});
-	}
+    // ============================================================
+    // Thread Lifecycle
+    // ============================================================
 
-	public async findThreadsNeedingAutoClose(reminderCutoff: Date, options: { guildId?: string } = {}): Promise<SupportThread[]> {
-		const { guildId } = options;
-		return this.database.supportThread.findMany({
-			where: {
-				closedAt: null,
-				lastAuthorMessageId: { not: null }, // Only auto-close if we have a valid author message
-				lastReminderAt: { not: null, lt: reminderCutoff },
-				lastAuthorMessageAt: { lt: reminderCutoff },
-				...(guildId ? { guildId } : {})
-			}
-		});
-	}
+    /**
+     * Marks a thread as closed
+     * - Sets closure timestamp
+     * - Clears reminder message ID
+     * - Stops further monitoring
+     * 
+     * @param threadId Thread ID
+     */
+    public async markThreadClosed(threadId: string): Promise<void> {
+        await this.database.supportThread.updateMany({
+            where: { threadId },
+            data: {
+                closedAt: new Date(),
+                reminderMessageId: null
+            }
+        });
+    }
+
+    /**
+     * Clears reminder state for a thread
+     * - Used when owner manually dismisses reminder
+     * - Resets reminder timestamp and message ID
+     * 
+     * @param threadId Thread ID
+     */
+    public async clearReminder(threadId: string): Promise<void> {
+        await this.database.supportThread.updateMany({
+            where: { threadId },
+            data: {
+                lastReminderAt: null,
+                reminderMessageId: null
+            }
+        });
+    }
+
+    // ============================================================
+    // Query Methods
+    // ============================================================
+
+    /**
+     * Finds threads needing inactivity reminders
+     * - Thread must be open (not closed)
+     * - Must have valid author message ID
+     * - Last activity before cutoff
+     * - No reminder sent, or last reminder before cutoff
+     * 
+     * @param cutoff Inactivity threshold timestamp
+     * @param options Query options (optional guild filter)
+     * @returns Array of thread records needing reminders
+     */
+    public async findThreadsNeedingReminder(cutoff: Date, options: { guildId?: string } = {}): Promise<SupportThread[]> {
+        const { guildId } = options;
+        return this.database.supportThread.findMany({
+            where: {
+                closedAt: null,
+                lastAuthorMessageId: { not: null }, // Only send reminders if we have a valid author message
+                lastAuthorMessageAt: { lt: cutoff },
+                OR: [{ lastReminderAt: null }, { lastReminderAt: { lt: cutoff } }],
+                ...(guildId ? { guildId } : {})
+            }
+        });
+    }
+
+    /**
+     * Finds threads needing auto-closure
+     * - Thread must be open (not closed)
+     * - Must have valid author message ID
+     * - Reminder must have been sent
+     * - Last activity and reminder both before cutoff
+     * 
+     * @param reminderCutoff Auto-close threshold timestamp
+     * @param options Query options (optional guild filter)
+     * @returns Array of thread records needing closure
+     */
+    public async findThreadsNeedingAutoClose(reminderCutoff: Date, options: { guildId?: string } = {}): Promise<SupportThread[]> {
+        const { guildId } = options;
+        return this.database.supportThread.findMany({
+            where: {
+                closedAt: null,
+                lastAuthorMessageId: { not: null }, // Only auto-close if we have a valid author message
+                lastReminderAt: { not: null, lt: reminderCutoff },
+                lastAuthorMessageAt: { lt: reminderCutoff },
+                ...(guildId ? { guildId } : {})
+            }
+        });
+    }
 }
+
+// ============================================================
+// Type Declarations
+// ============================================================
 
 declare module '@sapphire/pieces' {
-	interface Container {
-		supportThreadService: SupportThreadService;
-	}
+    interface Container {
+        supportThreadService: SupportThreadService;
+    }
 }

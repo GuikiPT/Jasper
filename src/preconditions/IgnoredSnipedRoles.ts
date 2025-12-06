@@ -1,90 +1,159 @@
-// IgnoredSnipedRoles module within preconditions
+// IgnoredSnipedRoles precondition - Restricts commands to users with ignored sniped roles
 import { AllFlowsPrecondition } from '@sapphire/framework';
 import type { ChatInputCommandInteraction, ContextMenuCommandInteraction, GuildMember, Message } from 'discord.js';
 import type { APIInteractionGuildMember } from 'discord.js';
 
-// Precondition enforcing IgnoredSnipedRoles access rules.
+/**
+ * Precondition that enforces ignored sniped roles access control
+ * - Allows users with configured ignored sniped roles
+ * - Used to restrict access to snipe-related commands
+ * - No permission-based bypass (role-only access)
+ * - Can be silent on message commands
+ */
 export class IgnoredSnipedRolesPrecondition extends AllFlowsPrecondition {
-	public override messageRun(message: Message) {
-		return this.checkMemberAccess(message.guildId, message.member, true);
-	}
+    // ============================================================
+    // Command Type Handlers
+    // ============================================================
 
-	public override chatInputRun(interaction: ChatInputCommandInteraction) {
-		return this.checkMemberAccess(interaction.guildId, interaction.member ?? null, false);
-	}
+    /**
+     * Checks access for message commands (legacy)
+     * - Silent mode enabled (no error messages)
+     */
+    public override messageRun(message: Message) {
+        return this.checkMemberAccess(message.guildId, message.member, true);
+    }
 
-	public override contextMenuRun(interaction: ContextMenuCommandInteraction) {
-		return this.checkMemberAccess(interaction.guildId, interaction.member ?? null, false);
-	}
+    /**
+     * Checks access for slash commands
+     */
+    public override chatInputRun(interaction: ChatInputCommandInteraction) {
+        return this.checkMemberAccess(interaction.guildId, interaction.member ?? null, false);
+    }
 
-	private async checkMemberAccess(guildId: string | null, member: GuildMember | APIInteractionGuildMember | null, silentOnFail: boolean) {
-		if (!guildId || !member) {
-			return this.error({
-				message: this.createErrorMessage([]),
-				context: silentOnFail ? { silent: true } : {}
-			});
-		}
+    /**
+     * Checks access for context menu commands
+     */
+    public override contextMenuRun(interaction: ContextMenuCommandInteraction) {
+        return this.checkMemberAccess(interaction.guildId, interaction.member ?? null, false);
+    }
 
-		const allowedRoles = await this.fetchRoles(guildId);
+    // ============================================================
+    // Access Control Logic
+    // ============================================================
 
-		if (allowedRoles.length === 0) {
-			return this.error({
-				message: this.createErrorMessage([]),
-				context: silentOnFail ? { silent: true } : {}
-			});
-		}
+    /**
+     * Core access check logic
+     * - Validates guild context
+     * - Verifies ignored sniped role membership
+     * 
+     * @param guildId Guild ID or null for DMs
+     * @param member Member object or null
+     * @param silentOnFail Whether to suppress error messages
+     */
+    private async checkMemberAccess(guildId: string | null, member: GuildMember | APIInteractionGuildMember | null, silentOnFail: boolean) {
+        // Require guild context and valid member
+        if (!guildId || !member) {
+            return this.error({
+                message: this.createErrorMessage([]),
+                context: silentOnFail ? { silent: true } : {}
+            });
+        }
 
-		if (this.memberHasAllowedRole(member, allowedRoles)) {
-			return this.ok();
-		}
+        // Fetch configured ignored sniped roles
+        const allowedRoles = await this.fetchRoles(guildId);
 
-		return this.error({
-			message: this.createErrorMessage(allowedRoles),
-			context: silentOnFail ? { silent: true } : {}
-		});
-	}
+        // Deny if no roles configured
+        if (allowedRoles.length === 0) {
+            return this.error({
+                message: this.createErrorMessage([]),
+                context: silentOnFail ? { silent: true } : {}
+            });
+        }
 
-	private createErrorMessage(allowedRoles: string[]): string {
-		if (allowedRoles.length === 0) {
-			return 'This command may only be used by users with "Ignored Sniped Roles". No roles are currently configured.';
-		}
+        // Check if member has any allowed role
+        if (this.memberHasAllowedRole(member, allowedRoles)) {
+            return this.ok();
+        }
 
-		return 'This command may only be used by users with "Ignored Sniped Roles".';
-	}
+        // Deny access
+        return this.error({
+            message: this.createErrorMessage(allowedRoles),
+            context: silentOnFail ? { silent: true } : {}
+        });
+    }
 
-	private async fetchRoles(guildId: string) {
-		const service = this.container.guildRoleSettingsService;
-		if (!service) {
-			this.container.logger.error('[IgnoredSnipedRoles] Role settings service is unavailable');
-			return [];
-		}
+    // ============================================================
+    // Helper Methods
+    // ============================================================
 
-		try {
-			return await service.listBucket(guildId, 'ignoredSnipedRoles');
-		} catch (error) {
-			this.container.logger.error('[IgnoredSnipedRoles] Failed to load guild role settings', error);
-			return [];
-		}
-	}
+    /**
+     * Creates user-friendly error message explaining access requirements
+     * 
+     * @param allowedRoles List of configured ignored sniped roles
+     * @returns Error message string
+     */
+    private createErrorMessage(allowedRoles: string[]): string {
+        if (allowedRoles.length === 0) {
+            return 'This command may only be used by users with "Ignored Sniped Roles". No roles are currently configured.';
+        }
 
-	private memberHasAllowedRole(member: GuildMember | APIInteractionGuildMember, allowedRoles: readonly string[]) {
-		if ('roles' in member) {
-			const roles = member.roles;
-			if (Array.isArray(roles)) {
-				return roles.some((roleId) => allowedRoles.includes(roleId));
-			}
-		}
+        return 'This command may only be used by users with "Ignored Sniped Roles".';
+    }
 
-		if ((member as GuildMember).roles?.cache) {
-			return allowedRoles.some((roleId) => (member as GuildMember).roles.cache.has(roleId));
-		}
+    /**
+     * Fetches configured ignored sniped roles from database
+     * 
+     * @param guildId Guild ID
+     * @returns Array of role IDs or empty array on error
+     */
+    private async fetchRoles(guildId: string) {
+        const service = this.container.guildRoleSettingsService;
+        if (!service) {
+            this.container.logger.error('[IgnoredSnipedRoles] Role settings service is unavailable');
+            return [];
+        }
 
-		return false;
-	}
+        try {
+            return await service.listBucket(guildId, 'ignoredSnipedRoles');
+        } catch (error) {
+            this.container.logger.error('[IgnoredSnipedRoles] Failed to load guild role settings', error);
+            return [];
+        }
+    }
+
+    /**
+     * Checks if member has any of the allowed roles
+     * - Handles both API and GuildMember types
+     * - Supports array and cache-based role storage
+     * 
+     * @param member Member to check
+     * @param allowedRoles List of allowed role IDs
+     * @returns True if member has at least one allowed role
+     */
+    private memberHasAllowedRole(member: GuildMember | APIInteractionGuildMember, allowedRoles: readonly string[]) {
+        // Handle API interaction member (roles as array)
+        if ('roles' in member) {
+            const roles = member.roles;
+            if (Array.isArray(roles)) {
+                return roles.some((roleId) => allowedRoles.includes(roleId));
+            }
+        }
+
+        // Handle GuildMember (roles as cache)
+        if ((member as GuildMember).roles?.cache) {
+            return allowedRoles.some((roleId) => (member as GuildMember).roles.cache.has(roleId));
+        }
+
+        return false;
+    }
 }
 
+// ============================================================
+// Type Declarations
+// ============================================================
+
 declare module '@sapphire/framework' {
-	interface Preconditions {
-		IgnoredSnipedRoles: never;
-	}
+    interface Preconditions {
+        IgnoredSnipedRoles: never;
+    }
 }
