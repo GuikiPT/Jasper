@@ -17,46 +17,67 @@ const OWNERS = envParseArray('OWNERS');
  * - Works across all command types
  */
 export class UserPrecondition extends AllFlowsPrecondition {
-    #message = 'Owner commands may only be used by the bot owner.';
+	#message = 'Owner commands may only be used by the bot owner.';
 
-    // ============================================================
-    // Command Type Handlers
-    // ============================================================
+	// ============================================================
+	// Command Type Handlers
+	// ============================================================
 
-    /**
-     * Checks access for slash commands
-     */
-    public override chatInputRun(interaction: CommandInteraction) {
-        return this.doOwnerCheck(interaction.user.id);
-    }
+	/**
+	 * Checks access for slash commands
+	 */
+	public override chatInputRun(interaction: CommandInteraction) {
+		try {
+			return this.doOwnerCheck(interaction.user.id);
+		} catch (error) {
+			this.container.logger.error('[OwnerOnly] Unhandled error during owner check', error, {
+				userId: interaction.user.id
+			});
+			return this.error({ message: this.#message });
+		}
+	}
 
-    /**
-     * Checks access for context menu commands
-     */
-    public override contextMenuRun(interaction: ContextMenuCommandInteraction) {
-        return this.doOwnerCheck(interaction.user.id);
-    }
+	/**
+	 * Checks access for context menu commands
+	 */
+	public override contextMenuRun(interaction: ContextMenuCommandInteraction) {
+		try {
+			return this.doOwnerCheck(interaction.user.id);
+		} catch (error) {
+			this.container.logger.error('[OwnerOnly] Unhandled error during owner check', error, {
+				userId: interaction.user.id
+			});
+			return this.error({ message: this.#message });
+		}
+	}
 
-    /**
-     * Checks access for message commands (legacy)
-     */
-    public override messageRun(message: Message) {
-        return this.doOwnerCheck(message.author.id);
-    }
+	/**
+	 * Checks access for message commands (legacy)
+	 */
+	public override messageRun(message: Message) {
+		try {
+			return this.doOwnerCheck(message.author.id);
+		} catch (error) {
+			this.container.logger.error('[OwnerOnly] Unhandled error during owner check', error, {
+				userId: message.author.id
+			});
+			return this.error({ message: this.#message });
+		}
+	}
 
-    // ============================================================
-    // Access Control Logic
-    // ============================================================
+	// ============================================================
+	// Access Control Logic
+	// ============================================================
 
-    /**
-     * Checks if user ID is in the owners list
-     * 
-     * @param userId User ID to check
-     * @returns Success if user is owner, error otherwise
-     */
-    private doOwnerCheck(userId: Snowflake) {
-        return OWNERS.includes(userId) ? this.ok() : this.error({ message: this.#message });
-    }
+	/**
+	 * Checks if user ID is in the owners list
+	 * 
+	 * @param userId User ID to check
+	 * @returns Success if user is owner, error otherwise
+	 */
+	private doOwnerCheck(userId: Snowflake) {
+		return OWNERS.includes(userId) ? this.ok() : this.error({ message: this.#message });
+	}
 }
 
 // ============================================================
@@ -64,7 +85,7 @@ export class UserPrecondition extends AllFlowsPrecondition {
 // ============================================================
 
 declare module '@sapphire/framework' {
-    interface Preconditions {
-        OwnerOnly: never;
-    }
+	interface Preconditions {
+		OwnerOnly: never;
+	}
 }

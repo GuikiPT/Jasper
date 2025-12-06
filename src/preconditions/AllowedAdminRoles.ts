@@ -11,177 +11,190 @@ import type { APIInteractionGuildMember } from 'discord.js';
  * - Can be silent on message commands (no error message shown)
  */
 export class AllowedAdminRolesPrecondition extends AllFlowsPrecondition {
-    // ============================================================
-    // Command Type Handlers
-    // ============================================================
+	// ============================================================
+	// Command Type Handlers
+	// ============================================================
 
-    /**
-     * Checks access for message commands (legacy)
-     * - Silent mode enabled (no error messages)
-     */
-    public override messageRun(message: Message) {
-        return this.checkMemberAccess(
-            message.guildId,
-            message.member,
-            message.member?.permissions.has(PermissionFlagsBits.Administrator) ?? false,
-            true // Silent on fail for message commands
-        );
-    }
+	/**
+	 * Checks access for message commands (legacy)
+	 * - Silent mode enabled (no error messages)
+	 */
+	public override messageRun(message: Message) {
+		return this.checkMemberAccess(
+			message.guildId,
+			message.member,
+			message.member?.permissions.has(PermissionFlagsBits.Administrator) ?? false,
+			true // Silent on fail for message commands
+		);
+	}
 
-    /**
-     * Checks access for slash commands
-     */
-    public override chatInputRun(interaction: ChatInputCommandInteraction) {
-        return this.checkMemberAccess(
-            interaction.guildId,
-            interaction.member ?? null,
-            interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ?? false,
-            false
-        );
-    }
+	/**
+	 * Checks access for slash commands
+	 */
+	public override chatInputRun(interaction: ChatInputCommandInteraction) {
+		return this.checkMemberAccess(
+			interaction.guildId,
+			interaction.member ?? null,
+			interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ?? false,
+			false
+		);
+	}
 
-    /**
-     * Checks access for context menu commands
-     */
-    public override contextMenuRun(interaction: ContextMenuCommandInteraction) {
-        return this.checkMemberAccess(
-            interaction.guildId,
-            interaction.member ?? null,
-            interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ?? false,
-            false
-        );
-    }
+	/**
+	 * Checks access for context menu commands
+	 */
+	public override contextMenuRun(interaction: ContextMenuCommandInteraction) {
+		return this.checkMemberAccess(
+			interaction.guildId,
+			interaction.member ?? null,
+			interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ?? false,
+			false
+		);
+	}
 
-    // ============================================================
-    // Access Control Logic
-    // ============================================================
+	// ============================================================
+	// Access Control Logic
+	// ============================================================
 
-    /**
-     * Core access check logic
-     * - Validates guild context
-     * - Checks Administrator permission
-     * - Verifies admin role membership
-     * 
-     * @param guildId Guild ID or null for DMs
-     * @param member Member object or null
-     * @param hasAdministrator Whether member has Administrator permission
-     * @param silentOnFail Whether to suppress error messages
-     */
-    private async checkMemberAccess(
-        guildId: string | null,
-        member: GuildMember | APIInteractionGuildMember | null,
-        hasAdministrator: boolean,
-        silentOnFail: boolean
-    ) {
-        // Require guild context and valid member
-        if (!guildId || !member) {
-            return this.error({
-                message: this.createErrorMessage([]),
-                context: silentOnFail ? { silent: true } : {}
-            });
-        }
+	/**
+	 * Core access check logic
+	 * - Validates guild context
+	 * - Checks Administrator permission
+	 * - Verifies admin role membership
+	 * 
+	 * @param guildId Guild ID or null for DMs
+	 * @param member Member object or null
+	 * @param hasAdministrator Whether member has Administrator permission
+	 * @param silentOnFail Whether to suppress error messages
+	 */
+	private async checkMemberAccess(
+		guildId: string | null,
+		member: GuildMember | APIInteractionGuildMember | null,
+		hasAdministrator: boolean,
+		silentOnFail: boolean
+	) {
+		try {
+			// Require guild context and valid member
+			if (!guildId || !member) {
+				return this.error({
+					message: this.createErrorMessage([]),
+					context: silentOnFail ? { silent: true } : {}
+				});
+			}
 
-        // Allow if member has Administrator permission
-        if (hasAdministrator) {
-            return this.ok();
-        }
+			// Allow if member has Administrator permission
+			if (hasAdministrator) {
+				return this.ok();
+			}
 
-        // Fetch configured admin roles
-        const allowedRoles = await this.fetchAllowedAdminRoles(guildId);
+			// Fetch configured admin roles
+			const allowedRoles = await this.fetchAllowedAdminRoles(guildId);
 
-        // Deny if no admin roles configured
-        if (allowedRoles.length === 0) {
-            return this.error({
-                message: this.createErrorMessage([]),
-                context: silentOnFail ? { silent: true } : {}
-            });
-        }
+			// Deny if no admin roles configured
+			if (allowedRoles.length === 0) {
+				return this.error({
+					message: this.createErrorMessage([]),
+					context: silentOnFail ? { silent: true } : {}
+				});
+			}
 
-        // Check if member has any allowed role
-        if (this.memberHasAllowedRole(member, allowedRoles)) {
-            return this.ok();
-        }
+			// Check if member has any allowed role
+			if (this.memberHasAllowedRole(member, allowedRoles)) {
+				return this.ok();
+			}
 
-        // Deny access
-        return this.error({
-            message: this.createErrorMessage(allowedRoles),
-            context: silentOnFail ? { silent: true } : {}
-        });
-    }
+			// Deny access
+			return this.error({
+				message: this.createErrorMessage(allowedRoles),
+				context: silentOnFail ? { silent: true } : {}
+			});
+		} catch (error) {
+			this.container.logger.error('[AllowedAdminRoles] Unhandled error during access check', error, {
+				guildId,
+				hasAdministrator,
+				silentOnFail
+			});
 
-    // ============================================================
-    // Helper Methods
-    // ============================================================
+			return this.error({
+				message: this.createErrorMessage([]),
+				context: silentOnFail ? { silent: true } : {}
+			});
+		}
+	}
 
-    /**
-     * Creates user-friendly error message explaining access requirements
-     * 
-     * @param allowedRoles List of configured admin roles
-     * @returns Error message string
-     */
-    private createErrorMessage(allowedRoles: string[]): string {
-        const permissions: string[] = [];
+	// ============================================================
+	// Helper Methods
+	// ============================================================
 
-        // Always mention Administrator permission as valid option
-        permissions.push('users with "Administrator" permission');
+	/**
+	 * Creates user-friendly error message explaining access requirements
+	 * 
+	 * @param allowedRoles List of configured admin roles
+	 * @returns Error message string
+	 */
+	private createErrorMessage(allowedRoles: string[]): string {
+		const permissions: string[] = [];
 
-        if (allowedRoles.length > 0) {
-            permissions.push('users with "Allowed Admin Roles"');
-        }
+		// Always mention Administrator permission as valid option
+		permissions.push('users with "Administrator" permission');
 
-        if (permissions.length === 1 && allowedRoles.length === 0) {
-            return 'Admin commands may only be used by users with "Administrator" permission. No admin roles are currently configured.';
-        }
+		if (allowedRoles.length > 0) {
+			permissions.push('users with "Allowed Admin Roles"');
+		}
 
-        return `Admin commands may only be used by ${permissions.join(' or ')}.`;
-    }
+		if (permissions.length === 1 && allowedRoles.length === 0) {
+			return 'Admin commands may only be used by users with "Administrator" permission. No admin roles are currently configured.';
+		}
 
-    /**
-     * Fetches configured admin roles from database
-     * 
-     * @param guildId Guild ID
-     * @returns Array of role IDs or empty array on error
-     */
-    private async fetchAllowedAdminRoles(guildId: string) {
-        const service = this.container.guildRoleSettingsService;
-        if (!service) {
-            this.container.logger.error('[AllowedAdminRoles] Role settings service is unavailable');
-            return [];
-        }
+		return `Admin commands may only be used by ${permissions.join(' or ')}.`;
+	}
 
-        try {
-            return await service.listBucket(guildId, 'allowedAdminRoles');
-        } catch (error) {
-            this.container.logger.error('[AllowedAdminRoles] Failed to load guild role settings', error);
-            return [];
-        }
-    }
+	/**
+	 * Fetches configured admin roles from database
+	 * 
+	 * @param guildId Guild ID
+	 * @returns Array of role IDs or empty array on error
+	 */
+	private async fetchAllowedAdminRoles(guildId: string) {
+		const service = this.container.guildRoleSettingsService;
+		if (!service) {
+			this.container.logger.error('[AllowedAdminRoles] Role settings service is unavailable');
+			return [];
+		}
 
-    /**
-     * Checks if member has any of the allowed roles
-     * - Handles both API and GuildMember types
-     * - Supports array and cache-based role storage
-     * 
-     * @param member Member to check
-     * @param allowedRoles List of allowed role IDs
-     * @returns True if member has at least one allowed role
-     */
-    private memberHasAllowedRole(member: GuildMember | APIInteractionGuildMember, allowedRoles: readonly string[]) {
-        // Handle API interaction member (roles as array)
-        if ('roles' in member) {
-            const roles = (member as APIInteractionGuildMember).roles;
-            if (Array.isArray(roles)) {
-                return roles.some((roleId) => allowedRoles.includes(roleId));
-            }
-        }
+		try {
+			return await service.listBucket(guildId, 'allowedAdminRoles');
+		} catch (error) {
+			this.container.logger.error('[AllowedAdminRoles] Failed to load guild role settings', error);
+			return [];
+		}
+	}
 
-        // Handle GuildMember (roles as cache)
-        if ((member as GuildMember).roles?.cache) {
-            return allowedRoles.some((roleId) => (member as GuildMember).roles.cache.has(roleId));
-        }
+	/**
+	 * Checks if member has any of the allowed roles
+	 * - Handles both API and GuildMember types
+	 * - Supports array and cache-based role storage
+	 * 
+	 * @param member Member to check
+	 * @param allowedRoles List of allowed role IDs
+	 * @returns True if member has at least one allowed role
+	 */
+	private memberHasAllowedRole(member: GuildMember | APIInteractionGuildMember, allowedRoles: readonly string[]) {
+		// Handle API interaction member (roles as array)
+		if ('roles' in member) {
+			const roles = (member as APIInteractionGuildMember).roles;
+			if (Array.isArray(roles)) {
+				return roles.some((roleId) => allowedRoles.includes(roleId));
+			}
+		}
 
-        return false;
-    }
+		// Handle GuildMember (roles as cache)
+		if ((member as GuildMember).roles?.cache) {
+			return allowedRoles.some((roleId) => (member as GuildMember).roles.cache.has(roleId));
+		}
+
+		return false;
+	}
 }
 
 // ============================================================
@@ -189,7 +202,7 @@ export class AllowedAdminRolesPrecondition extends AllFlowsPrecondition {
 // ============================================================
 
 declare module '@sapphire/framework' {
-    interface Preconditions {
-        AllowedAdminRoles: never;
-    }
+	interface Preconditions {
+		AllowedAdminRoles: never;
+	}
 }
