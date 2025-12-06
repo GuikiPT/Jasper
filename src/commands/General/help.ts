@@ -23,23 +23,23 @@ import { createErrorTextComponent } from '../../lib/components.js';
 type DetailedDescriptionMetadata =
 	| string
 	| {
-			summary?: string;
+		summary?: string;
+		chatInputUsage?: string;
+		messageUsage?: string;
+		examples?: string[];
+		notes?: string[];
+		subcommands?: Array<{
+			group?: string;
+			name: string;
+			description?: string;
 			chatInputUsage?: string;
 			messageUsage?: string;
 			examples?: string[];
 			notes?: string[];
-			subcommands?: Array<{
-				group?: string;
-				name: string;
-				description?: string;
-				chatInputUsage?: string;
-				messageUsage?: string;
-				examples?: string[];
-				notes?: string[];
-				aliases?: string[];
-				keywords?: string[];
-			}>;
-	  };
+			aliases?: string[];
+			keywords?: string[];
+		}>;
+	};
 
 interface NormalisedSubcommandMetadata {
 	group?: string;
@@ -73,6 +73,11 @@ interface HelpEntry {
 	keywords: string[];
 	metadata: NormalisedMetadata;
 	subcommand?: NormalisedSubcommandMetadata;
+}
+
+interface HelpReplyPayload {
+	component: ReturnType<typeof createErrorTextComponent>;
+	flags: number;
 }
 
 @ApplyOptions<Command.Options>({
@@ -109,14 +114,20 @@ interface HelpEntry {
 		}
 	]
 })
+/**
+ * Central entry point for the interactive `/help` command. Handles lookup, autocomplete, and
+ * presentation for every registered command/subcommand.
+ */
 export class HelpCommand extends Command {
 	private readonly integrationTypes: ApplicationIntegrationType[] = [
 		ApplicationIntegrationType.GuildInstall,
 		ApplicationIntegrationType.UserInstall
 	];
 
+	// Root documentation page that anchors the optional "Docs" button in help responses.
 	private readonly docsBaseUrl = 'https://docs.guiki.pt/docs/jasper-revamp/commands';
 
+	// Explicit lookup table for documentation anchors when the automatic slug builder is insufficient.
 	private readonly docsAnchorMap: Record<string, string> = {
 		help: 'help',
 		ping: 'ping',
@@ -170,6 +181,9 @@ export class HelpCommand extends Command {
 		// InteractionContextType.PrivateChannel
 	];
 
+	private readonly maxAutocompleteResults = 25;
+
+	/** Registers the chat input variant of the help command along with autocomplete options. */
 	public override registerApplicationCommands(registry: Command.Registry) {
 		registry.registerChatInputCommand((builder: SlashCommandBuilder) =>
 			builder
@@ -186,6 +200,7 @@ export class HelpCommand extends Command {
 		);
 	}
 
+	/** Handles autocomplete requests by ranking commands and subcommands against the user's query. */
 	public override async autocompleteRun(interaction: AutocompleteInteraction) {
 		const focused = interaction.options.getFocused(true);
 		const query = String(focused.value ?? '')
@@ -197,14 +212,14 @@ export class HelpCommand extends Command {
 			.map((entry) => ({ entry, score: this.scoreEntry(entry, query) }))
 			.filter(({ score }) => score > 0)
 			.sort((a, b) => b.score - a.score)
-			.slice(0, 25);
+			.slice(0, this.maxAutocompleteResults);
 
 		const emptyFallback = !query
 			? entries
-					.filter((entry) => entry.type === 'command')
-					.sort((a, b) => a.commandName.localeCompare(b.commandName))
-					.slice(0, 25)
-					.map((entry) => ({ entry, score: 1 }))
+				.filter((entry) => entry.type === 'command')
+				.sort((a, b) => a.commandName.localeCompare(b.commandName))
+				.slice(0, this.maxAutocompleteResults)
+				.map((entry) => ({ entry, score: 1 }))
 			: [];
 
 		const collection = scored.length > 0 ? scored : emptyFallback;
@@ -220,43 +235,29 @@ export class HelpCommand extends Command {
 		return interaction.respond(choices);
 	}
 
+	/** Resolves the requested command (if any) for slash command usage and returns contextual help. */
 	public override async chatInputRun(interaction: ChatInputCommandInteraction) {
 		const requested = interaction.options.getString('command');
-		const isEphemeral = interaction.options.getBoolean('ephemeral');
+		const isEphemeral = interaction.options.getBoolean('ephemeral') ?? false;
 		const normalizedQuery = requested?.trim() ?? '';
 		const entries = this.collectEntries();
 		const entry = this.findEntry(entries, normalizedQuery);
 
 		const prefix = await this.resolvePrefix(interaction.guildId);
 
-		if (!entry) {
-			if (!normalizedQuery) {
-				const overview = this.buildOverviewMessage(entries, prefix);
-				const component = createErrorTextComponent(overview);
-				return interaction.reply({
-					components: [component],
-					flags: (isEphemeral ? MessageFlags.Ephemeral : 0) | MessageFlags.IsComponentsV2
-				});
-			}
+		const response = entry
+			? this.createEntryResponse(entry, prefix, { ephemeral: isEphemeral })
+			: normalizedQuery
+				? this.createNotFoundResponse({ query: normalizedQuery, mode: 'slash', prefix })
+				: this.createOverviewResponse(entries, prefix, { ephemeral: isEphemeral });
 
-			const component = createErrorTextComponent(
-				`I couldn't find a command or subcommand matching \`${normalizedQuery}\`. Try running \`/help\` to see everything available.`
-			);
-			return interaction.reply({
-				components: [component],
-				flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
-			});
-		}
-
-		const content = this.buildHelpMessage(entry, prefix);
-		const component = createErrorTextComponent(content);
-		this.attachDocsButton(component, entry);
 		return interaction.reply({
-			components: [component],
-			flags: (isEphemeral ? MessageFlags.Ephemeral : 0) | MessageFlags.IsComponentsV2
+			components: [response.component],
+			flags: response.flags
 		});
 	}
 
+	/** Same lookup flow as the slash command, but tailored for legacy message-based commands. */
 	public override async messageRun(message: Message, args: Args) {
 		const rawQuery = args.finished ? null : await args.rest('string');
 		const normalizedQuery = rawQuery?.trim() ?? '';
@@ -265,34 +266,22 @@ export class HelpCommand extends Command {
 
 		const prefix = await this.resolvePrefix(message.guildId);
 
-		if (!entry) {
-			if (!normalizedQuery) {
-				const overview = this.buildOverviewMessage(entries, prefix);
-				const component = createErrorTextComponent(overview);
-				return message.reply({
-					components: [component],
-					flags: MessageFlags.IsComponentsV2
-				});
-			}
+		const response = entry
+			? this.createEntryResponse(entry, prefix, { ephemeral: false })
+			: normalizedQuery
+				? this.createNotFoundResponse({ query: normalizedQuery, mode: 'message', prefix })
+				: this.createOverviewResponse(entries, prefix, { ephemeral: false });
 
-			const component = createErrorTextComponent(
-				`I couldn't find a command or subcommand matching \`${normalizedQuery}\`. Try \`${prefix}help\` for an overview.`
-			);
-			return message.reply({
-				components: [component],
-				flags: MessageFlags.IsComponentsV2
-			});
-		}
-
-		const content = this.buildHelpMessage(entry, prefix);
-		const component = createErrorTextComponent(content);
-		this.attachDocsButton(component, entry);
 		return message.reply({
-			components: [component],
-			flags: MessageFlags.IsComponentsV2
+			components: [response.component],
+			flags: response.flags
 		});
 	}
 
+	/**
+	 * Attempts to locate a command/subcommand entry based on the provided query. Falls back to
+	 * fuzzy scoring when an exact match is not available.
+	 */
 	private findEntry(entries: HelpEntry[], rawQuery: string | null): HelpEntry | null {
 		if (!rawQuery) return null;
 
@@ -323,6 +312,7 @@ export class HelpCommand extends Command {
 		return bestScore > 0 ? bestMatch : null;
 	}
 
+	/** Builds a flattened list of command and subcommand entries sourced from Sapphire's store. */
 	private collectEntries(): HelpEntry[] {
 		const entries: HelpEntry[] = [];
 		const store = this.container.stores.get('commands');
@@ -377,6 +367,7 @@ export class HelpCommand extends Command {
 		return entries;
 	}
 
+	/** Normalises Sapphire detailed descriptions into an internal format we can safely consume. */
 	private normaliseMetadata(details: DetailedDescriptionMetadata): NormalisedMetadata {
 		if (!details) {
 			return { examples: [], notes: [], subcommands: [] };
@@ -394,38 +385,42 @@ export class HelpCommand extends Command {
 
 		const subcommands: NormalisedSubcommandMetadata[] = Array.isArray(details.subcommands)
 			? details.subcommands.flatMap((entry) => {
-					if (!entry || typeof entry !== 'object') return [];
-					if (typeof entry.name !== 'string') return [];
-					const group = typeof entry.group === 'string' ? entry.group : undefined;
-					const description = typeof entry.description === 'string' ? entry.description : undefined;
-					const chatUsage = typeof entry.chatInputUsage === 'string' ? entry.chatInputUsage : undefined;
-					const messageUsageLocal = typeof entry.messageUsage === 'string' ? entry.messageUsage : undefined;
-					const examplesLocal = Array.isArray(entry.examples)
-						? entry.examples.filter((item): item is string => typeof item === 'string')
-						: [];
-					const notesLocal = Array.isArray(entry.notes) ? entry.notes.filter((item): item is string => typeof item === 'string') : [];
-					const aliases = Array.isArray(entry.aliases) ? entry.aliases.filter((item): item is string => typeof item === 'string') : [];
-					const keywords = Array.isArray(entry.keywords) ? entry.keywords.filter((item): item is string => typeof item === 'string') : [];
+				if (!entry || typeof entry !== 'object') return [];
+				if (typeof entry.name !== 'string') return [];
+				const group = typeof entry.group === 'string' ? entry.group : undefined;
+				const description = typeof entry.description === 'string' ? entry.description : undefined;
+				const chatUsage = typeof entry.chatInputUsage === 'string' ? entry.chatInputUsage : undefined;
+				const messageUsageLocal = typeof entry.messageUsage === 'string' ? entry.messageUsage : undefined;
+				const examplesLocal = Array.isArray(entry.examples)
+					? entry.examples.filter((item): item is string => typeof item === 'string')
+					: [];
+				const notesLocal = Array.isArray(entry.notes) ? entry.notes.filter((item): item is string => typeof item === 'string') : [];
+				const aliases = Array.isArray(entry.aliases) ? entry.aliases.filter((item): item is string => typeof item === 'string') : [];
+				const keywords = Array.isArray(entry.keywords) ? entry.keywords.filter((item): item is string => typeof item === 'string') : [];
 
-					const normalised: NormalisedSubcommandMetadata = {
-						group,
-						name: entry.name,
-						description,
-						chatInputUsage: chatUsage,
-						messageUsage: messageUsageLocal,
-						examples: examplesLocal,
-						notes: notesLocal,
-						aliases,
-						keywords
-					};
+				const normalised: NormalisedSubcommandMetadata = {
+					group,
+					name: entry.name,
+					description,
+					chatInputUsage: chatUsage,
+					messageUsage: messageUsageLocal,
+					examples: examplesLocal,
+					notes: notesLocal,
+					aliases,
+					keywords
+				};
 
-					return [normalised];
-				})
+				return [normalised];
+			})
 			: [];
 
 		return { summary, chatInputUsage, messageUsage, examples, notes, subcommands };
 	}
 
+	/**
+	 * Assigns a score to a potential help entry. Higher scores indicate a closer match to the query
+	 * and determine ordering in the autocomplete dropdown.
+	 */
 	private scoreEntry(entry: HelpEntry, query: string): number {
 		if (!query) {
 			return entry.type === 'command' ? 3 : 2;
@@ -457,6 +452,7 @@ export class HelpCommand extends Command {
 		return score;
 	}
 
+	/** Formats autocomplete entries to show the slash path and a concise summary. */
 	private buildAutocompleteLabel(entry: HelpEntry): string {
 		const displayPath = `/${entry.fullPath.join(' ')}`;
 		const summary =
@@ -471,6 +467,7 @@ export class HelpCommand extends Command {
 		return combined.length > 100 ? `${combined.slice(0, 97)}…` : combined;
 	}
 
+	/** Assembles the rich markdown help message for an individual command or subcommand. */
 	private buildHelpMessage(entry: HelpEntry, prefix: string): string {
 		const lines: string[] = [];
 		const slashPath = `/${entry.fullPath.join(' ')}`;
@@ -527,6 +524,7 @@ export class HelpCommand extends Command {
 		return lines.join('\n').trim();
 	}
 
+	/** Produces the high-level overview used when no command-specific query is provided. */
 	private buildOverviewMessage(entries: HelpEntry[], prefix: string): string {
 		const lines: string[] = [];
 		lines.push('### Jasper Help Overview');
@@ -558,6 +556,7 @@ export class HelpCommand extends Command {
 		return lines.join('\n').replace(/\{\{prefix\}\}/g, prefix);
 	}
 
+	/** Determines the best slash usage string to display for a given entry. */
 	private resolveChatUsage(entry: HelpEntry): string | null {
 		if (entry.type === 'subcommand') {
 			const usage = entry.subcommand?.chatInputUsage ?? entry.metadata.chatInputUsage;
@@ -572,6 +571,7 @@ export class HelpCommand extends Command {
 		return entry.command.supportsChatInputCommands() ? `/${entry.commandName}` : null;
 	}
 
+	/** Determines the best prefix command usage string to display for a given entry. */
 	private resolveMessageUsage(entry: HelpEntry, prefix: string): string | null {
 		const raw = entry.type === 'subcommand' ? (entry.subcommand?.messageUsage ?? entry.metadata.messageUsage) : entry.metadata.messageUsage;
 		if (raw) {
@@ -586,17 +586,20 @@ export class HelpCommand extends Command {
 		return this.applyPrefix(template, prefix);
 	}
 
+	/** Normalises example strings and applies the resolved prefix for message command output. */
 	private resolveExamples(entry: HelpEntry, prefix: string): string[] {
 		const examples = entry.type === 'subcommand' ? (entry.subcommand?.examples ?? entry.metadata.examples) : entry.metadata.examples;
 		if (!examples) return [];
 		return examples.map((example) => this.applyPrefix(example, prefix)).filter(Boolean) as string[];
 	}
 
+	/** Retrieves the notes array for the specific command/subcommand. */
 	private resolveNotes(entry: HelpEntry): string[] {
 		const notes = entry.type === 'subcommand' ? (entry.subcommand?.notes ?? entry.metadata.notes) : entry.metadata.notes;
 		return notes ?? [];
 	}
 
+	/** Combines command and subcommand names into a single slash-style path. */
 	private composeSubcommandPath(commandName: string, sub: NormalisedSubcommandMetadata): string {
 		const parts = [commandName];
 		if (sub.group) parts.push(sub.group);
@@ -604,6 +607,7 @@ export class HelpCommand extends Command {
 		return parts.join(' ');
 	}
 
+	/** Safely inserts the resolved message prefix and collapses whitespace for display strings. */
 	private applyPrefix(value: string, prefix: string): string {
 		return value
 			.replace(/\{\{prefix\}\}/g, prefix)
@@ -611,6 +615,10 @@ export class HelpCommand extends Command {
 			.trim();
 	}
 
+	/**
+	 * Attempts to fetch the guild-specific prefix, falling back to the default prefix when
+	 * unavailable or on error.
+	 */
 	private async resolvePrefix(guildId: string | null): Promise<string> {
 		const defaultPrefix = this.extractDefaultPrefix();
 
@@ -629,6 +637,7 @@ export class HelpCommand extends Command {
 		}
 	}
 
+	/** Extracts the first configured default prefix from the Sapphire client. */
 	private extractDefaultPrefix(): string {
 		const option = this.container.client.options.defaultPrefix;
 		if (typeof option === 'string') return option;
@@ -636,6 +645,7 @@ export class HelpCommand extends Command {
 		return 'j!';
 	}
 
+	/** Adds a contextual documentation link when we can infer a stable anchor for the command. */
 	private attachDocsButton(container: ReturnType<typeof createErrorTextComponent>, entry: HelpEntry) {
 		const anchor = this.buildDocsAnchor(entry);
 		if (!anchor) return;
@@ -647,6 +657,7 @@ export class HelpCommand extends Command {
 		);
 	}
 
+	/** Derives the documentation anchor for the provided entry, using explicit overrides first. */
 	private buildDocsAnchor(entry: HelpEntry): string | null {
 		const pathKey = entry.fullPath.join(' ');
 		const direct = this.docsAnchorMap[pathKey];
@@ -667,5 +678,41 @@ export class HelpCommand extends Command {
 			.join('-');
 
 		return slug || null;
+	}
+
+	/** Creates the reply payload for a successful command lookup. */
+	private createEntryResponse(entry: HelpEntry, prefix: string, options: { ephemeral: boolean }): HelpReplyPayload {
+		const content = this.buildHelpMessage(entry, prefix);
+		const component = createErrorTextComponent(content);
+		this.attachDocsButton(component, entry);
+		return this.toPayload(component, options.ephemeral);
+	}
+
+	/** Creates the reply payload used when no command is provided (overview). */
+	private createOverviewResponse(entries: HelpEntry[], prefix: string, options: { ephemeral: boolean }): HelpReplyPayload {
+		const overview = this.buildOverviewMessage(entries, prefix);
+		const component = createErrorTextComponent(overview);
+		return this.toPayload(component, options.ephemeral);
+	}
+
+	/** Creates the reply payload used when a command lookup fails. */
+	private createNotFoundResponse(args: { query: string; mode: 'slash' | 'message'; prefix: string }): HelpReplyPayload {
+		const { query, mode, prefix } = args;
+		const message =
+			mode === 'slash'
+				? `I couldn't find a command or subcommand matching \`${query}\`. Try running \`/help\` to see everything available.`
+				: `I couldn't find a command or subcommand matching \`${query}\`. Try \`${prefix}help\` for an overview.`;
+		const component = createErrorTextComponent(message);
+		const isEphemeral = mode === 'slash';
+		return this.toPayload(component, isEphemeral);
+	}
+
+	/** Normalises a component into a payload object with correctly calculated flags. */
+	private toPayload(component: ReturnType<typeof createErrorTextComponent>, ephemeral: boolean): HelpReplyPayload {
+		let flags = MessageFlags.IsComponentsV2;
+		if (ephemeral) {
+			flags |= MessageFlags.Ephemeral;
+		}
+		return { component, flags };
 	}
 }
