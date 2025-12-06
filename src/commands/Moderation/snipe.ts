@@ -47,7 +47,7 @@ import type { SnipedMessage } from '../../services/snipeManager';
 			}
 		}
 	],
-	requiredClientPermissions: ['SendMessages']
+	// requiredClientPermissions: ['SendMessages']
 })
 export class SnipeCommand extends Command {
 	// Guild-only installation and execution
