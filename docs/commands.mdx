@@ -31,7 +31,7 @@ Notes
 
 **Purpose**
 
-Provide an interactive command catalogue with autocomplete for commands and subcommands. Returns either a category overview or a detailed entry.
+Provide an interactive command catalogue with autocomplete for commands and subcommands. Returns either a category overview or a detailed entry and links to the relevant documentation when available.
 
 **Where it works**
 
@@ -48,10 +48,11 @@ Provide an interactive command catalogue with autocomplete for commands and subc
 **Options**
 
 - `command` (string, optional, autocomplete): Command or subcommand path such as `settings roles add`.
+- `ephemeral` (boolean, optional): Show the response only to you. Defaults to `false` (public reply).
 
 **Syntax**
 
-`/help [command]` | `j!help [command]`
+`/help [command] [ephemeral:true|false]` | `j!help [command]`
 
 </details>
 
@@ -76,7 +77,7 @@ Measure Discord gateway latency (websocket heartbeat) and round-trip latency for
 
 **Options**
 
-- None
+- `ephemeral` (boolean, optional): Show the latency response only to you. Defaults to `false` (public reply).
 
 **Aliases**
 
@@ -84,7 +85,7 @@ Measure Discord gateway latency (websocket heartbeat) and round-trip latency for
 
 **Syntax**
 
-`/ping` | `j!ping` | `j!latency`
+`/ping [ephemeral:true|false]` | `j!ping` | `j!latency`
 
 </details>
 
