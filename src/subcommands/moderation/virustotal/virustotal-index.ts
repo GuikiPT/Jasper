@@ -26,6 +26,3 @@ export { chatInputVirusTotalIp } from './virustotal-ip';
 export { chatInputVirusTotalDomain } from './virustotal-domain';
 export { chatInputVirusTotalFile } from './virustotal-file';
 export { chatInputVirusTotalUrl } from './virustotal-url';
-
-// Improved version (can replace the original when ready)
-export { chatInputVirusTotalFile as chatInputVirusTotalFileImproved } from './virustotal-file-improved';

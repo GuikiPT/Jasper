@@ -4,32 +4,74 @@ import { MessageFlags } from 'discord.js';
 import { VirusTotalChatInputInteraction } from './types';
 import { getSecurityStatus, getMaliciousEngines, createReportComponents, handleVirusTotalError, formatUnixDate } from './utils';
 
+// Handle /virustotal ip subcommand: analyze IP address reputation
 export async function chatInputVirusTotalIp(_command: Subcommand, interaction: VirusTotalChatInputInteraction) {
-	const address = interaction.options.getString('address', true);
-	const isEphemeral = interaction.options.getBoolean('ephemeral') ?? true;
+    const address = interaction.options.getString('address', true);
+    const isEphemeral = interaction.options.getBoolean('ephemeral') ?? true;
 
-	await interaction.deferReply({ flags: isEphemeral ? MessageFlags.Ephemeral : [] });
+    await interaction.deferReply({ flags: isEphemeral ? MessageFlags.Ephemeral : [] });
 
-	try {
-		const data = await _command.container.virusTotalService.fetchIp(address);
+    try {
+        // Fetch IP data from VirusTotal
+        const data = await _command.container.virusTotalService.fetchIp(address);
 
-		const stats = data.data.attributes.last_analysis_stats;
-		const attributes = data.data.attributes;
-		const status = getSecurityStatus(stats);
+        const stats = data.data.attributes.last_analysis_stats;
+        const attributes = data.data.attributes;
+        const status = getSecurityStatus(stats);
 
-		// Extract relevant information
-		const country = attributes.country || 'Unknown';
-		const asOwner = attributes.as_owner || 'Unknown';
-		const reputation = attributes.reputation || 'Unknown';
-		const totalVotes = attributes.total_votes || {};
-		const harmlessVotes = totalVotes.harmless || 0;
-		const maliciousVotes = totalVotes.malicious || 0;
-		const tags = attributes.tags || [];
-		const lastAnalysisDate = formatUnixDate(attributes.last_analysis_date);
-		const maliciousEngines = getMaliciousEngines(attributes.last_analysis_results || {});
+        // Extract IP metadata
+        const metadata = extractIpMetadata(attributes);
 
-		// Build detailed report
-		const detailedReport = `
+        // Build detailed text report for download
+        const detailedReport = buildDetailedReport(address, attributes, stats, metadata);
+
+        // Build Discord component sections
+        const sections = buildReportSections(address, stats, metadata);
+
+        const components = createReportComponents(
+            'VirusTotal IP Report',
+            status,
+            sections,
+            `https://www.virustotal.com/gui/ip-address/${address}`,
+            `virustotal-ip-${address}.txt`
+        );
+
+        await interaction.editReply({
+            files: [
+                {
+                    attachment: Buffer.from(detailedReport),
+                    name: `virustotal-ip-${address}.txt`
+                }
+            ],
+            components,
+            flags: MessageFlags.IsComponentsV2
+        });
+    } catch (error) {
+        const errorMessage = handleVirusTotalError(error, { address });
+        await interaction.editReply({ content: errorMessage });
+    }
+}
+
+// Extract IP metadata from VirusTotal attributes
+function extractIpMetadata(attributes: any) {
+    const totalVotes = attributes.total_votes || {};
+    const maliciousEngines = getMaliciousEngines(attributes.last_analysis_results || {});
+
+    return {
+        country: attributes.country || 'Unknown',
+        asOwner: attributes.as_owner || 'Unknown',
+        reputation: attributes.reputation || 0,
+        harmlessVotes: totalVotes.harmless || 0,
+        maliciousVotes: totalVotes.malicious || 0,
+        tags: attributes.tags || [],
+        lastAnalysisDate: formatUnixDate(attributes.last_analysis_date),
+        maliciousEngines
+    };
+}
+
+// Build comprehensive text report for download
+function buildDetailedReport(address: string, attributes: any, stats: any, metadata: any): string {
+    return `
 VIRUSTOTAL IP ANALYSIS REPORT
 =============================
 
@@ -43,7 +85,7 @@ REGIONAL INTERNET REGISTRY: ${attributes.regional_internet_registry || 'Unknown'
 
 REPUTATION SCORE: ${attributes.reputation || 0}/100
 
-LAST ANALYSIS DATE: ${lastAnalysisDate}
+LAST ANALYSIS DATE: ${metadata.lastAnalysisDate}
 
 DETECTION SUMMARY:
 - MALICIOUS: ${stats.malicious || 0} engines
@@ -52,33 +94,33 @@ DETECTION SUMMARY:
 - UNDETECTED: ${stats.undetected || 0} engines
 
 COMMUNITY VOTES:
-- HARMLESS: ${harmlessVotes}
-- MALICIOUS: ${maliciousVotes}
+- HARMLESS: ${metadata.harmlessVotes}
+- MALICIOUS: ${metadata.maliciousVotes}
 
-TAGS: ${tags.length > 0 ? tags.join(', ') : 'None'}
+TAGS: ${metadata.tags.length > 0 ? metadata.tags.join(', ') : 'None'}
 
 MALICIOUS DETECTIONS:
-${maliciousEngines.length > 0 ? maliciousEngines.map((engine) => `- ${engine}`).join('\n') : 'None detected'}
+${metadata.maliciousEngines.length > 0 ? metadata.maliciousEngines.map((engine: string) => `- ${engine}`).join('\n') : 'None detected'}
 
 WHOIS INFORMATION:
 ${attributes.whois || 'Not available'}
 
 LAST ANALYSIS RESULTS (Detailed):
 ${Object.entries(attributes.last_analysis_results || {})
-				.map(([engine, result]: [string, any]) => `${engine}: ${result.category} (${result.result || 'N/A'})`)
-				.join('\n')}
+            .map(([engine, result]: [string, any]) => `${engine}: ${result.category} (${result.result || 'N/A'})`)
+            .join('\n')}
 
 CERTIFICATE INFORMATION:
 ${attributes.last_https_certificate
-				? `
+            ? `
 ISSUER: ${attributes.last_https_certificate.issuer?.CN || 'Unknown'}
 SUBJECT: ${attributes.last_https_certificate.subject?.CN || 'Unknown'}
 VALID FROM: ${attributes.last_https_certificate.validity?.not_before || 'Unknown'}
 VALID TO: ${attributes.last_https_certificate.validity?.not_after || 'Unknown'}
 THUMBPRINT: ${attributes.last_https_certificate.thumbprint || 'Unknown'}
 `
-				: 'No certificate information available'
-			}
+            : 'No certificate information available'
+        }
 
 JARM FINGERPRINT: ${attributes.jarm || 'Not available'}
 
@@ -86,58 +128,37 @@ TOTAL VOTES: ${JSON.stringify(attributes.total_votes || {}, null, 2)}
 
 Generated by Jasper Bot - ${new Date().toISOString()}
 Powered by VirusTotal API
-		`.trim();
+    `.trim();
+}
 
-		// Build report sections
-		const sections = [
-			{
-				title: '📍 **General Information**',
-				content:
-					`• **IP Address:** \`${address}\`\n` +
-					`• **Country:** \`${country}\`\n` +
-					`• **Owner:** \`${asOwner}\`\n` +
-					`• **Reputation:** \`${reputation}/100\``
-			},
-			{
-				title: '📈 **Detection Summary:**',
-				content:
-					`• **Malicious:** \`${stats.malicious || 0}\` engines\n` +
-					`• **Suspicious:** \`${stats.suspicious || 0}\` engines\n` +
-					`• **Clean:** \`${stats.harmless || 0}\` engines\n` +
-					`• **Undetected:** \`${stats.undetected || 0}\` engines`
-			},
-			{
-				title: '🗳️ **Community & Analysis**',
-				content:
-					`**Community Votes:**\n` +
-					`\`${harmlessVotes}\` ✅ | \`${maliciousVotes}\` ❌\n\n` +
-					`**Last Analyzed:**\n` +
-					`\`${lastAnalysisDate}\`` +
-					(tags.length > 0 ? `\n**Tags:** \`${tags.join(', ')}\`` : '') +
-					(maliciousEngines.length > 0 ? `\n⚠️ **Detected by:** \`${maliciousEngines.join(', ')}\`` : '')
-			}
-		];
-
-		const components = createReportComponents(
-			'VirusTotal IP Report',
-			status,
-			sections,
-			`https://www.virustotal.com/gui/ip-address/${address}`,
-			`virustotal-ip-${address}.txt`
-		);
-
-		await interaction.editReply({
-			files: [
-				{
-					attachment: Buffer.from(detailedReport),
-					name: `virustotal-ip-${address}.txt`
-				}
-			],
-			components,
-			flags: MessageFlags.IsComponentsV2
-		});
-	} catch (error) {
-		const errorMessage = handleVirusTotalError(error, { address });
-		await interaction.editReply({ content: errorMessage });
-	}
+// Build Discord component sections for display
+function buildReportSections(address: string, stats: any, metadata: any): Array<{ title: string; content: string }> {
+    return [
+        {
+            title: '📍 **General Information**',
+            content:
+                `• **IP Address:** \`${address}\`\n` +
+                `• **Country:** \`${metadata.country}\`\n` +
+                `• **Owner:** \`${metadata.asOwner}\`\n` +
+                `• **Reputation:** \`${metadata.reputation}/100\``
+        },
+        {
+            title: '📈 **Detection Summary:**',
+            content:
+                `• **Malicious:** \`${stats.malicious || 0}\` engines\n` +
+                `• **Suspicious:** \`${stats.suspicious || 0}\` engines\n` +
+                `• **Clean:** \`${stats.harmless || 0}\` engines\n` +
+                `• **Undetected:** \`${stats.undetected || 0}\` engines`
+        },
+        {
+            title: '🗳️ **Community & Analysis**',
+            content:
+                `**Community Votes:**\n` +
+                `\`${metadata.harmlessVotes}\` ✅ | \`${metadata.maliciousVotes}\` ❌\n\n` +
+                `**Last Analyzed:**\n` +
+                `\`${metadata.lastAnalysisDate}\`` +
+                (metadata.tags.length > 0 ? `\n**Tags:** \`${metadata.tags.join(', ')}\`` : '') +
+                (metadata.maliciousEngines.length > 0 ? `\n⚠️ **Detected by:** \`${metadata.maliciousEngines.join(', ')}\`` : '')
+        }
+    ];
 }

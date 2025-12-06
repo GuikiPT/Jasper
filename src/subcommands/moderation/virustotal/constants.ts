@@ -1,94 +1,101 @@
-// VirusTotal constants and configuration
+// VirusTotal API configuration and constants
 export const VIRUSTOTAL_CONFIG = {
-	API: {
-		BASE_URL: 'https://www.virustotal.com/api/v3',
-		ENDPOINTS: {
-			FILES: '/files',
-			UPLOAD_URL: '/files/upload_url',
-			ANALYSES: '/analyses',
-			URLS: '/urls',
-			IP_ADDRESSES: '/ip_addresses',
-			DOMAINS: '/domains'
-		},
-		RATE_LIMITS: {
-			PUBLIC: {
-				REQUESTS_PER_MINUTE: 4,
-				REQUESTS_PER_DAY: 500,
-				REQUESTS_PER_MONTH: 15500
-			},
-			PREMIUM: {
-				REQUESTS_PER_MINUTE: 1000,
-				REQUESTS_PER_DAY: 300000,
-				REQUESTS_PER_MONTH: 9000000
-			}
-		}
-	},
+    API: {
+        BASE_URL: 'https://www.virustotal.com/api/v3',
+        ENDPOINTS: {
+            FILES: '/files',
+            UPLOAD_URL: '/files/upload_url',
+            ANALYSES: '/analyses',
+            URLS: '/urls',
+            IP_ADDRESSES: '/ip_addresses',
+            DOMAINS: '/domains'
+        },
+        // Rate limits for public and premium API tiers
+        RATE_LIMITS: {
+            PUBLIC: {
+                REQUESTS_PER_MINUTE: 4,
+                REQUESTS_PER_DAY: 500,
+                REQUESTS_PER_MONTH: 15500
+            },
+            PREMIUM: {
+                REQUESTS_PER_MINUTE: 1000,
+                REQUESTS_PER_DAY: 300000,
+                REQUESTS_PER_MONTH: 9000000
+            }
+        }
+    },
 
-	SECURITY: {
-		DOWNLOAD_TIMEOUT_MS: 60000,
-		API_TIMEOUT_MS: 15000,
-		MAX_MEMORY_MB: 1024,
-		MAX_CONCURRENT_SCANS: 3,
-		MAX_RETRIES: 3,
-		RETRY_DELAY_MS: 2000,
-		MAX_FILE_SIZE_MB: 650,
-		LARGE_FILE_THRESHOLD_MB: 32,
-		HASH_VERIFICATION: true
-	},
+    // Security constraints for file handling and API operations
+    SECURITY: {
+        DOWNLOAD_TIMEOUT_MS: 60000,          // 60 seconds for file downloads
+        API_TIMEOUT_MS: 15000,               // 15 seconds for API requests
+        MAX_MEMORY_MB: 1024,                 // 1GB memory limit
+        MAX_CONCURRENT_SCANS: 3,             // Limit parallel scans
+        MAX_RETRIES: 3,                      // Retry failed requests
+        RETRY_DELAY_MS: 2000,                // 2 seconds between retries
+        MAX_FILE_SIZE_MB: 650,               // VirusTotal file size limit
+        LARGE_FILE_THRESHOLD_MB: 32,         // Threshold for special upload URL
+        HASH_VERIFICATION: true              // Verify file integrity
+    },
 
-	UI: {
-		PROGRESS_GIF_URL: 'https://i.imgur.com/OuNrmUW.gif',
-		WEB_REPORT_BASE_URL: 'https://www.virustotal.com/gui',
-		USER_AGENT: 'Jasper-Bot-VirusTotal-Scanner/1.0'
-	},
+    // UI resources and display configuration
+    UI: {
+        PROGRESS_GIF_URL: 'https://i.imgur.com/OuNrmUW.gif',
+        WEB_REPORT_BASE_URL: 'https://www.virustotal.com/gui',
+        USER_AGENT: 'Jasper-Bot-VirusTotal-Scanner/1.0'
+    },
 
-	TIMING: {
-		ANALYSIS_WAIT_NEW_MS: 90000, // 90 seconds for new uploads
-		ANALYSIS_WAIT_EXISTING_MS: 5000, // 5 seconds for existing files
-		PROGRESS_UPDATE_INTERVAL_MS: 10000 // 10 seconds
-	}
+    // Timing configuration for analysis polling and updates
+    TIMING: {
+        ANALYSIS_WAIT_NEW_MS: 90000,         // 90 seconds for new uploads
+        ANALYSIS_WAIT_EXISTING_MS: 5000,     // 5 seconds for existing files
+        PROGRESS_UPDATE_INTERVAL_MS: 10000   // 10 seconds for progress updates
+    }
 } as const;
 
+// User-facing error messages
 export const ERROR_MESSAGES = {
-	API_KEY_MISSING: '❌ VirusTotal API key is not configured. Please contact an administrator.',
-	FILE_TOO_LARGE: (sizeMB: number, maxMB: number) => `❌ File is too large. Size: ${sizeMB.toFixed(2)}MB exceeds ${maxMB}MB limit.`,
-	INSUFFICIENT_MEMORY: '❌ Insufficient memory available to process this file safely. Please try again later.',
-	DOWNLOAD_FAILED: (reason: string) => `❌ Failed to securely download file: ${reason}`,
-	HASH_MISMATCH: '⚠️ File integrity verification failed. The file may have been corrupted during transfer.',
-	ANALYSIS_IN_PROGRESS: '⏳ Analysis is still in progress. Please try again in a few minutes.',
-	GENERIC_ERROR: '❌ An error occurred while analyzing the resource. Please try again later.',
-	RATE_LIMIT_EXCEEDED: '⏸️ Rate limit exceeded. Please wait before making another request.',
-	INVALID_URL: '❌ Invalid URL format provided.',
-	INVALID_IP: '❌ Invalid IP address format provided.',
-	INVALID_DOMAIN: '❌ Invalid domain format provided.'
+    API_KEY_MISSING: '❌ VirusTotal API key is not configured. Please contact an administrator.',
+    FILE_TOO_LARGE: (sizeMB: number, maxMB: number) => `❌ File is too large. Size: ${sizeMB.toFixed(2)}MB exceeds ${maxMB}MB limit.`,
+    INSUFFICIENT_MEMORY: '❌ Insufficient memory available to process this file safely. Please try again later.',
+    DOWNLOAD_FAILED: (reason: string) => `❌ Failed to securely download file: ${reason}`,
+    HASH_MISMATCH: '⚠️ File integrity verification failed. The file may have been corrupted during transfer.',
+    ANALYSIS_IN_PROGRESS: '⏳ Analysis is still in progress. Please try again in a few minutes.',
+    GENERIC_ERROR: '❌ An error occurred while analyzing the resource. Please try again later.',
+    RATE_LIMIT_EXCEEDED: '⏸️ Rate limit exceeded. Please wait before making another request.',
+    INVALID_URL: '❌ Invalid URL format provided.',
+    INVALID_IP: '❌ Invalid IP address format provided.',
+    INVALID_DOMAIN: '❌ Invalid domain format provided.'
 } as const;
 
+// Status level configuration for scan results
 export const STATUS_CONFIG = {
-	SAFE: {
-		level: 'safe' as const,
-		emoji: '🟢',
-		text: '**SAFE**',
-		color: 0x00ff00
-	},
-	SUSPICIOUS: {
-		level: 'suspicious' as const,
-		emoji: '🟡',
-		text: '**SUSPICIOUS**',
-		color: 0xffff00
-	},
-	MALICIOUS: {
-		level: 'malicious' as const,
-		emoji: '🔴',
-		text: '**MALICIOUS**',
-		color: 0xff0000
-	}
+    SAFE: {
+        level: 'safe' as const,
+        emoji: '🟢',
+        text: '**SAFE**',
+        color: 0x00ff00
+    },
+    SUSPICIOUS: {
+        level: 'suspicious' as const,
+        emoji: '🟡',
+        text: '**SUSPICIOUS**',
+        color: 0xffff00
+    },
+    MALICIOUS: {
+        level: 'malicious' as const,
+        emoji: '🔴',
+        text: '**MALICIOUS**',
+        color: 0xff0000
+    }
 } as const;
 
+// Report formatting templates
 export const REPORT_TEMPLATES = {
-	FILE_HEADER: 'VIRUSTOTAL FILE ANALYSIS REPORT',
-	URL_HEADER: 'VIRUSTOTAL URL ANALYSIS REPORT',
-	IP_HEADER: 'VIRUSTOTAL IP ANALYSIS REPORT',
-	DOMAIN_HEADER: 'VIRUSTOTAL DOMAIN ANALYSIS REPORT',
-	SEPARATOR: '==============================',
-	FOOTER: (timestamp: string) => `Generated by Jasper Bot - ${timestamp}\nPowered by VirusTotal API`
+    FILE_HEADER: 'VIRUSTOTAL FILE ANALYSIS REPORT',
+    URL_HEADER: 'VIRUSTOTAL URL ANALYSIS REPORT',
+    IP_HEADER: 'VIRUSTOTAL IP ANALYSIS REPORT',
+    DOMAIN_HEADER: 'VIRUSTOTAL DOMAIN ANALYSIS REPORT',
+    SEPARATOR: '==============================',
+    FOOTER: (timestamp: string) => `Generated by Jasper Bot - ${timestamp}\nPowered by VirusTotal API`
 } as const;

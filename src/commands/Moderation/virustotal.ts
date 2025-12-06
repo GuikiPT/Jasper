@@ -17,8 +17,7 @@ import {
 	type VirusTotalChatInputInteraction
 } from '../../subcommands/moderation/virustotal/virustotal-index';
 
-// Aggregates the entire `/virustotal` feature set into a single subcommand-driven command.
-
+// Subcommand group for VirusTotal security analysis (files, URLs, domains, IPs)
 @ApplyOptions<Subcommand.Options>({
 	name: 'virustotal',
 	description: 'Analyze files, URLs, domains, and IP addresses using VirusTotal.',
@@ -61,6 +60,7 @@ import {
 	cooldownLimit: 3,
 	cooldownDelay: 10_000,
 	cooldownScope: BucketScope.User,
+	// Restrict to staff, admin, and support roles
 	preconditions: [
 		{
 			name: 'AllowedGuildRoleBuckets',
@@ -73,30 +73,20 @@ import {
 	],
 	requiredClientPermissions: ['SendMessages', 'EmbedLinks'],
 	runIn: [CommandOptionsRunTypeEnum.GuildAny],
+	// Map subcommands to their handler methods
 	subcommands: [
-		{
-			name: 'ip',
-			chatInputRun: 'chatInputVirusTotalIp'
-		},
-		{
-			name: 'domain',
-			chatInputRun: 'chatInputVirusTotalDomain'
-		},
-		{
-			name: 'file',
-			chatInputRun: 'chatInputVirusTotalFile'
-		},
-		{
-			name: 'url',
-			chatInputRun: 'chatInputVirusTotalUrl'
-		}
+		{ name: 'ip', chatInputRun: 'chatInputVirusTotalIp' },
+		{ name: 'domain', chatInputRun: 'chatInputVirusTotalDomain' },
+		{ name: 'file', chatInputRun: 'chatInputVirusTotalFile' },
+		{ name: 'url', chatInputRun: 'chatInputVirusTotalUrl' }
 	]
 })
 export class ModerationVirusTotalCommand extends Subcommand {
+	// Guild-only installation and execution
 	private readonly integrationTypes: ApplicationIntegrationType[] = [ApplicationIntegrationType.GuildInstall];
-
 	private readonly contexts: InteractionContextType[] = [InteractionContextType.Guild];
 
+	// Register /virustotal with four subcommands (ip, domain, file, url)
 	public override registerApplicationCommands(registry: Subcommand.Registry) {
 		registry.registerChatInputCommand((builder: SlashCommandBuilder) =>
 			builder
@@ -151,18 +141,22 @@ export class ModerationVirusTotalCommand extends Subcommand {
 		);
 	}
 
+	// Handle /virustotal ip subcommand
 	public async chatInputVirusTotalIp(interaction: VirusTotalChatInputInteraction) {
 		return chatInputVirusTotalIp(this, interaction);
 	}
 
+	// Handle /virustotal domain subcommand
 	public async chatInputVirusTotalDomain(interaction: VirusTotalChatInputInteraction) {
 		return chatInputVirusTotalDomain(this, interaction);
 	}
 
+	// Handle /virustotal file subcommand
 	public async chatInputVirusTotalFile(interaction: VirusTotalChatInputInteraction) {
 		return chatInputVirusTotalFile(this, interaction);
 	}
 
+	// Handle /virustotal url subcommand
 	public async chatInputVirusTotalUrl(interaction: VirusTotalChatInputInteraction) {
 		return chatInputVirusTotalUrl(this, interaction);
 	}
