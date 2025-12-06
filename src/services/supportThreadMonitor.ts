@@ -92,84 +92,92 @@ export class SupportThreadMonitor {
      * @param message Discord message
      */
     public async handleMessage(message: Message) {
-        // Require guild context and ignore bots
-        if (!message.guildId) return;
-        if (message.author.bot) return;
-        if (!message.channel || message.channel.type !== ChannelType.PublicThread) return;
+        try {
+            // Require guild context and ignore bots
+            if (!message.guildId) return;
+            if (message.author.bot) return;
+            if (!message.channel || message.channel.type !== ChannelType.PublicThread) return;
 
-        const thread = message.channel as ThreadChannel;
-        
-        // Verify thread is in configured support forum
-        const settings = await this.supportSettingsService.getSettings(message.guildId);
-        if (!settings || !settings.supportForumChannelId) return;
-        if (!thread.parent || thread.parent.type !== ChannelType.GuildForum) return;
-        if (thread.parent.id !== settings.supportForumChannelId) return;
-
-        const ownerId = await this.resolveThreadOwnerId(thread);
-        if (!ownerId) return;
-
-        const existingRecord = await this.supportThreadService.getThread(thread.id);
-
-        // Handle owner activity
-        if (message.author.id === ownerId) {
-            const reminderMessageId = existingRecord?.reminderMessageId ?? null;
-            await this.supportThreadService.recordAuthorActivity({
-                threadId: thread.id,
-                guildId: message.guildId,
-                authorId: ownerId,
-                timestamp: message.createdAt,
-                messageId: message.id
-            });
+            const thread = message.channel as ThreadChannel;
             
-            this.logger.debug('Recorded author activity', {
-                threadId: thread.id,
-                guildId: message.guildId,
-                authorId: ownerId,
-                messageId: message.id,
-                reminderMessageId
-            });
+            // Verify thread is in configured support forum
+            const settings = await this.supportSettingsService.getSettings(message.guildId);
+            if (!settings || !settings.supportForumChannelId) return;
+            if (!thread.parent || thread.parent.type !== ChannelType.GuildForum) return;
+            if (thread.parent.id !== settings.supportForumChannelId) return;
 
-            // Dismiss reminder if it exists
-            if (reminderMessageId) {
-                await this.dismissReminderMessage(thread, reminderMessageId);
-            }
-            return;
-        }
+            const ownerId = await this.resolveThreadOwnerId(thread);
+            if (!ownerId) return;
 
-        // Register new thread if not yet tracked
-        if (!existingRecord) {
-            const createdAt = thread.createdAt ?? new Date();
-            
-            // Find the first message from the thread owner
-            let initialMessageId: string | undefined;
-            try {
-                const messages = await thread.messages.fetch({ limit: MESSAGE_FETCH_LIMIT });
-                const firstOwnerMessage = messages
-                    .filter((m) => m.author.id === ownerId)
-                    .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
-                    .first();
-                initialMessageId = firstOwnerMessage?.id;
-            } catch (error) {
-                this.logger.debug('Failed to fetch initial owner message', {
+            const existingRecord = await this.supportThreadService.getThread(thread.id);
+
+            // Handle owner activity
+            if (message.author.id === ownerId) {
+                const reminderMessageId = existingRecord?.reminderMessageId ?? null;
+                await this.supportThreadService.recordAuthorActivity({
                     threadId: thread.id,
-                    error
+                    guildId: message.guildId,
+                    authorId: ownerId,
+                    timestamp: message.createdAt,
+                    messageId: message.id
+                });
+                
+                this.logger.debug('Recorded author activity', {
+                    threadId: thread.id,
+                    guildId: message.guildId,
+                    authorId: ownerId,
+                    messageId: message.id,
+                    reminderMessageId
+                });
+
+                // Dismiss reminder if it exists
+                if (reminderMessageId) {
+                    await this.dismissReminderMessage(thread, reminderMessageId);
+                }
+                return;
+            }
+
+            // Register new thread if not yet tracked
+            if (!existingRecord) {
+                const createdAt = thread.createdAt ?? new Date();
+                
+                // Find the first message from the thread owner
+                let initialMessageId: string | undefined;
+                try {
+                    const messages = await thread.messages.fetch({ limit: MESSAGE_FETCH_LIMIT });
+                    const firstOwnerMessage = messages
+                        .filter((m) => m.author.id === ownerId)
+                        .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
+                        .first();
+                    initialMessageId = firstOwnerMessage?.id;
+                } catch (error) {
+                    this.logger.debug('Failed to fetch initial owner message', {
+                        threadId: thread.id,
+                        error
+                    });
+                }
+
+                await this.supportThreadService.recordAuthorActivity({
+                    threadId: thread.id,
+                    guildId: message.guildId,
+                    authorId: ownerId,
+                    timestamp: createdAt,
+                    messageId: initialMessageId ?? message.id
+                });
+                
+                this.logger.info('Registered support thread for inactivity tracking', {
+                    threadId: thread.id,
+                    guildId: message.guildId,
+                    authorId: ownerId,
+                    registeredAt: createdAt.toISOString(),
+                    initialMessageId
                 });
             }
-
-            await this.supportThreadService.recordAuthorActivity({
-                threadId: thread.id,
+        } catch (error) {
+            this.logger.error('Unhandled error in support thread message handler', error, {
                 guildId: message.guildId,
-                authorId: ownerId,
-                timestamp: createdAt,
-                messageId: initialMessageId ?? message.id
-            });
-            
-            this.logger.info('Registered support thread for inactivity tracking', {
-                threadId: thread.id,
-                guildId: message.guildId,
-                authorId: ownerId,
-                registeredAt: createdAt.toISOString(),
-                initialMessageId
+                channelId: message.channel?.id,
+                messageId: message.id
             });
         }
     }

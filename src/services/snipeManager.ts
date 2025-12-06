@@ -96,64 +96,72 @@ export class SnipeManager {
      * @param message Deleted message (may be partial)
      */
     public async handleMessageDelete(message: Message | PartialMessage) {
-        // Require guild context
-        if (!message.guildId || !message.guild) return;
+        try {
+            // Require guild context
+            if (!message.guildId || !message.guild) return;
 
-        // Skip explicitly ignored deletions (e.g., bot-triggered)
-        if (message.id && this.ignoredDeletionIds.has(message.id)) {
-            this.ignoredDeletionIds.delete(message.id);
-            this.client.logger.debug('[Snipe] Ignored deletion for message id', { messageId: message.id });
-            return;
-        }
+            // Skip explicitly ignored deletions (e.g., bot-triggered)
+            if (message.id && this.ignoredDeletionIds.has(message.id)) {
+                this.ignoredDeletionIds.delete(message.id);
+                this.client.logger.debug('[Snipe] Ignored deletion for message id', { messageId: message.id });
+                return;
+            }
 
-        // Skip command-like messages
-        const content = message.content ? String(message.content).trim() : '';
-        if (content && content.startsWith(COMMAND_PREFIX)) {
-            this.client.logger.debug('[Snipe] Ignored deletion for command-like message', { 
-                guildId: message.guildId, 
-                channelId: message.channelId 
-            });
-            return;
-        }
+            // Skip command-like messages
+            const content = message.content ? String(message.content).trim() : '';
+            if (content && content.startsWith(COMMAND_PREFIX)) {
+                this.client.logger.debug('[Snipe] Ignored deletion for command-like message', { 
+                    guildId: message.guildId, 
+                    channelId: message.channelId 
+                });
+                return;
+            }
 
-        // Skip bot messages and empty messages
-        if (message.author?.bot) return;
-        if (!message.content && !message.attachments?.size && !message.embeds?.length) return;
+            // Skip bot messages and empty messages
+            if (message.author?.bot) return;
+            if (!message.content && !message.attachments?.size && !message.embeds?.length) return;
 
-        // Verify channel is in allowlist
-        const isChannelAllowed = await this.isChannelAllowed(message.guildId, message.channelId);
-        if (!isChannelAllowed) {
-            this.client.logger.debug('[Snipe] Message deleted in non-allowed channel', {
-                guildId: message.guildId,
-                channelId: message.channelId
-            });
-            return;
-        }
-
-        // Skip if author has ignored snipe roles
-        if (message.member) {
-            const hasIgnoredRole = await this.hasIgnoredSnipeRoles(message.guildId, message.member);
-            if (hasIgnoredRole) {
-                this.client.logger.debug('[Snipe] Message author has ignored snipe role', {
+            // Verify channel is in allowlist
+            const isChannelAllowed = await this.isChannelAllowed(message.guildId, message.channelId);
+            if (!isChannelAllowed) {
+                this.client.logger.debug('[Snipe] Message deleted in non-allowed channel', {
                     guildId: message.guildId,
-                    authorId: message.author?.id,
                     channelId: message.channelId
                 });
                 return;
             }
-        }
 
-        // Store the deleted message
-        if (message.author && message.channel && message.guild) {
-            const snipedMessage = this.buildSnipedMessage(message);
-            const guildState = this.getOrCreateGuildState(message.guildId);
-            guildState.messages.set(message.channelId, snipedMessage);
+            // Skip if author has ignored snipe roles
+            if (message.member) {
+                const hasIgnoredRole = await this.hasIgnoredSnipeRoles(message.guildId, message.member);
+                if (hasIgnoredRole) {
+                    this.client.logger.debug('[Snipe] Message author has ignored snipe role', {
+                        guildId: message.guildId,
+                        authorId: message.author?.id,
+                        channelId: message.channelId
+                    });
+                    return;
+                }
+            }
 
-            this.client.logger.debug('[Snipe] Message stored for sniping', {
+            // Store the deleted message
+            if (message.author && message.channel && message.guild) {
+                const snipedMessage = this.buildSnipedMessage(message);
+                const guildState = this.getOrCreateGuildState(message.guildId);
+                guildState.messages.set(message.channelId, snipedMessage);
+
+                this.client.logger.debug('[Snipe] Message stored for sniping', {
+                    guildId: message.guildId,
+                    channelId: message.channelId,
+                    messageId: message.id,
+                    authorId: message.author.id
+                });
+            }
+        } catch (error) {
+            this.client.logger.error('[Snipe] Unhandled error during message delete handling', error, {
                 guildId: message.guildId,
                 channelId: message.channelId,
-                messageId: message.id,
-                authorId: message.author.id
+                messageId: message.id
             });
         }
     }
