@@ -358,6 +358,8 @@ Submit suspicious files, URLs, domains, and IP addresses to VirusTotal for compr
 - All analysis data is provided by VirusTotal's comprehensive threat intelligence platform.
 - Files up to 650MB are supported for scanning.
 - Responses include detailed reports as downloadable text files.
+- All `/virustotal` replies are ephemeral by default; set `ephemeral:false` to make them public.
+- The bot reuses existing VirusTotal scans when a file hash already exists, and URL scans wait ~30s for analysis completion while respecting public rate limits.
 
 </details>
 
