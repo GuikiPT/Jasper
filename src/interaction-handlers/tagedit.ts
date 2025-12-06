@@ -1,4 +1,4 @@
-// tagedit module within interaction-handlers
+// Tag edit modal handler - processes tag update form submission
 import { ApplyOptions } from '@sapphire/decorators';
 import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
 import { MessageFlags, type ModalSubmitInteraction } from 'discord.js';
@@ -26,6 +26,7 @@ import {
 } from '../subcommands/support/tag/utils';
 import { SupportTagDuplicateNameError } from '../services/supportTagService';
 
+// Parsed modal metadata containing tag ID
 type ParsedEditModalData = {
 	tagId: number;
 };
@@ -34,7 +35,9 @@ type ParsedEditModalData = {
 	interactionHandlerType: InteractionHandlerTypes.ModalSubmit
 })
 export class SupportTagEditModalHandler extends InteractionHandler {
+	// Parse modal custom ID and extract tag ID
 	public override parse(interaction: ModalSubmitInteraction) {
+		// Expected format: prefix:tagId
 		if (!interaction.customId.startsWith(`${SUPPORT_TAG_EDIT_MODAL_ID_PREFIX}:`)) {
 			return this.none();
 		}
@@ -49,7 +52,9 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 		return this.some<ParsedEditModalData>({ tagId });
 	}
 
+	// Handle modal submission and update existing tag
 	public async run(interaction: ModalSubmitInteraction, { tagId }: ParsedEditModalData) {
+		// Validate guild context
 		const guildId = interaction.guildId;
 		if (!guildId) {
 			return interaction.reply({
@@ -58,11 +63,13 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 			});
 		}
 
+		// Verify user has support role access
 		const supportAccess = await ensureSupportRoleAccess(this, interaction);
 		if (!supportAccess.allowed) {
 			return interaction.reply({ content: SUPPORT_ROLE_REQUIRED_MESSAGE, flags: MessageFlags.Ephemeral });
 		}
 
+		// Verify channel access restrictions
 		const channelAccess = await ensureTagChannelAccess(this, interaction);
 		if (!channelAccess.allowed) {
 			const message = formatTagChannelRestrictionMessage(channelAccess, {
@@ -74,6 +81,7 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 			return interaction.reply({ content: message, flags: MessageFlags.Ephemeral });
 		}
 
+		// Extract and normalize updated field values
 		const rawName = interaction.fields.getTextInputValue(SUPPORT_TAG_MODAL_FIELD_NAME).trim();
 		const updatedName = normalizeTagName(rawName);
 		const updatedTitle = interaction.fields.getTextInputValue(SUPPORT_TAG_MODAL_FIELD_TITLE).trim();
@@ -81,6 +89,7 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 		const updatedImage = normalizeOptional(interaction.fields.getTextInputValue(SUPPORT_TAG_MODAL_FIELD_IMAGE));
 		const updatedFooter = normalizeOptional(interaction.fields.getTextInputValue(SUPPORT_TAG_MODAL_FIELD_FOOTER));
 
+		// Validate tag name format
 		if (!validateName(updatedName)) {
 			return interaction.reply({
 				content: 'Tag names must be alphanumeric and may include dashes or underscores.',
@@ -88,6 +97,7 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 			});
 		}
 
+		// Validate title is not empty
 		if (updatedTitle.length === 0) {
 			return interaction.reply({
 				content: 'Tag titles cannot be empty.',
@@ -95,6 +105,7 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 			});
 		}
 
+		// Validate image URL if provided
 		if (updatedImage && !validateUrl(updatedImage)) {
 			return interaction.reply({
 				content: 'The image URL you provided is not valid.',
@@ -104,12 +115,14 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
+		// Get support tag service
 		const service = this.container.supportTagService;
 		if (!service) {
 			this.container.logger.error('Support tag service is not initialised');
 			return interaction.editReply({ content: 'Support tags are not available right now. Please try again later.' });
 		}
 
+		// Fetch existing tag by ID
 		let tag;
 		try {
 			tag = await service.findTagById(tagId);
@@ -120,10 +133,12 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 			throw error;
 		}
 
+		// Verify tag exists and belongs to current guild
 		if (!tag || tag.guildId !== guildId) {
 			return interaction.editReply({ content: 'The tag you tried to edit no longer exists.' });
 		}
 
+		// Check for name collision if name changed
 		if (updatedName !== tag.name) {
 			try {
 				const collision = await service.findTagByName(guildId, updatedName);
@@ -139,6 +154,7 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 			}
 		}
 
+		// Update tag in database
 		try {
 			const updated = await service.updateTag(tag.id, {
 				name: updatedName,
