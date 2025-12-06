@@ -11,10 +11,13 @@ import {
 	ActionRowBuilder,
 	MessageActionRowComponentBuilder,
 	ButtonBuilder,
-	ButtonStyle
+	ButtonStyle,
+	SlashCommandBuilder,
+	SlashCommandBooleanOption
 } from 'discord.js';
 
-// Provides the `/ping` diagnostic command for checking latency.
+
+// Diagnostic command to measure Discord API and websocket latency
 @ApplyOptions<Command.Options>({
 	name: 'ping',
 	description: 'Check the current websocket heartbeat and interaction round-trip time.',
@@ -27,36 +30,62 @@ import {
 	},
 	aliases: ['latency'],
 	fullCategory: ['General'],
-	cooldownLimit: 1,
-	cooldownDelay: 10_000,
 	cooldownScope: BucketScope.User,
-	requiredClientPermissions: ['SendMessages'],
+	// requiredClientPermissions: ['SendMessages'],
+	// Validates user has required role permissions before execution
+	preconditions: [
+		{
+			name: 'AllowedGuildRoleBuckets',
+			context: {
+				buckets: [
+					'allowedAdminRoles',
+					'allowedStaffRoles',
+					'allowedTagAdminRoles',
+					'allowedTagRoles',
+					'supportRoles'
+				] as const,
+				allowManageGuild: false,
+				errorMessage: 'You need an allowed tag role, staff role, or admin role to use this command.'
+			}
+		}
+	],
 	runIn: [CommandOptionsRunTypeEnum.Dm, CommandOptionsRunTypeEnum.GuildAny]
 })
 export class UserCommand extends Command {
+	// Supports both server and user-installed app installations
 	private readonly integrationTypes: ApplicationIntegrationType[] = [
 		ApplicationIntegrationType.GuildInstall,
 		ApplicationIntegrationType.UserInstall
 	];
+	// Defines where command can be used: bot DMs, guilds, and private channels
 	private readonly contexts: InteractionContextType[] = [
 		InteractionContextType.BotDM,
 		InteractionContextType.Guild,
 		InteractionContextType.PrivateChannel
 	];
 
+
+	// Registers the /ping slash command with Discord API including ephemeral option
 	public override registerApplicationCommands(registry: Command.Registry) {
-		registry.registerChatInputCommand({
-			name: this.name,
-			description: this.description,
-			integrationTypes: this.integrationTypes,
-			contexts: this.contexts
-		});
+		registry.registerChatInputCommand((builder: SlashCommandBuilder) =>
+			builder
+				.setName(this.name)
+				.setDescription(this.description)
+				.setIntegrationTypes(this.integrationTypes)
+				.setContexts(this.contexts)
+				.addBooleanOption((option: SlashCommandBooleanOption) =>
+					option.setName('ephemeral').setDescription('Whether the response should be visible only to you.').setRequired(false)
+				)
+		);
 	}
 
-	/** Responds with websocket and interaction latency measurements. */
+
+	// Handles command execution: defers reply, calculates latency, and sends Components v2 UI
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		try {
-			await interaction.deferReply({ flags: ['Ephemeral'] });
+			const isEphemeral = interaction.options.getBoolean('ephemeral') ?? false;
+			// Defer immediately to show "thinking" state and prevent timeout
+			await interaction.deferReply({ flags: isEphemeral ? ['Ephemeral'] : [] });
 		} catch (error) {
 			this.container.logger.error('Failed to defer ping response', error, {
 				guildId: interaction.guildId ?? 'dm'
@@ -69,24 +98,11 @@ export class UserCommand extends Command {
 			}
 		}
 
-		try {
-			const latency = Date.now() - interaction.createdTimestamp;
 
-			// Present websocket and API latency metrics alongside a link to Discord's status page
-			const components = [
-				new ContainerBuilder()
-					.addTextDisplayComponents(
-						new TextDisplayBuilder().setContent(
-							`### Discord API Latency\n\`\`\`\n[ ${Math.round(this.container.client.ws.ping)}ms ]\n\`\`\`\n### Bot Latency\n\`\`\`\n[ ${latency}ms ]\n\`\`\``
-						)
-					)
-					.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
-					.addActionRowComponents(
-						new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
-							new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Discord Status Page').setURL('https://discordstatus.com/')
-						)
-					)
-			];
+		try {
+			// Calculate round-trip latency from command creation to now
+			const latency = Date.now() - interaction.createdTimestamp;
+			const components = this.buildLatencyComponents(latency);
 
 			return interaction.editReply({ components, flags: ['IsComponentsV2'] });
 		} catch (error) {
@@ -97,5 +113,27 @@ export class UserCommand extends Command {
 				content: 'I hit an unexpected error while measuring latency. Please try again shortly.'
 			});
 		}
+	}
+
+
+	// Builds Components v2 UI with websocket and API latency metrics plus Discord status link
+	private buildLatencyComponents(latency: number): ContainerBuilder[] {
+		const websocketPing = Math.round(this.container.client.ws.ping);
+
+		// Create container with latency displays, separator, and status page link button
+		return [
+			new ContainerBuilder()
+				.addTextDisplayComponents(
+					new TextDisplayBuilder().setContent(
+						`### Discord API Latency\n\`\`\`\n[ ${websocketPing}ms ]\n\`\`\`\n### Bot Latency\n\`\`\`\n[ ${latency}ms ]\n\`\`\``
+					)
+				)
+				.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true))
+				.addActionRowComponents(
+					new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(
+						new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Discord Status Page').setURL('https://discordstatus.com/')
+					)
+				)
+		];
 	}
 }
