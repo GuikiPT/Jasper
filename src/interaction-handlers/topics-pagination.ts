@@ -126,6 +126,10 @@ export class TopicListPaginationHandler extends InteractionHandler {
 				guildId: interaction.guildId ?? 'dm',
 				userId: interaction.user.id
 			});
+			return interaction.reply({
+				content: 'An error occurred while processing the topic list. Please try again later.',
+				flags: MessageFlags.Ephemeral
+			});
 		}
 	}
 }
