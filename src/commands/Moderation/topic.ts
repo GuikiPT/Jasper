@@ -1,7 +1,15 @@
 // topic module within commands/Moderation
 import { ApplyOptions } from '@sapphire/decorators';
 import { BucketScope, Command, CommandOptionsRunTypeEnum } from '@sapphire/framework';
-import { ApplicationIntegrationType, InteractionContextType, MessageFlags, type Message } from 'discord.js';
+import {
+	ApplicationIntegrationType,
+	InteractionContextType,
+	MessageFlags,
+	type GuildBasedChannel,
+	type GuildTextBasedChannel,
+	type Message
+} from 'discord.js';
+import { replyWithComponent } from '../../lib/components.js';
 
 interface GuildTopicSettings {
 	id: number;
@@ -60,9 +68,14 @@ export class TopicCommand extends Command {
 				return message.reply('This command can only be used inside a server.');
 			}
 
-			if (!message.channel.isSendable()) {
-				return message.reply('I cannot send messages in this channel.');
+			if (!this.canSendToChannel(message.channel)) {
+				await message.author
+					.send('I cannot send messages in that channel. Please adjust my permissions.')
+					.catch(() => undefined);
+				return;
 			}
+
+			const targetChannel = message.channel as GuildTextBasedChannel;
 
 			// Fetch random topic from database
 			const topic = await this.fetchRandomTopic(message.guildId);
@@ -76,7 +89,7 @@ export class TopicCommand extends Command {
 			}
 
 			// Send formatted topic to channel
-			return message.channel.send({ content: this.formatTopic(topic) });
+			return targetChannel.send({ content: this.formatTopic(topic) });
 		} catch (error) {
 			this.container.logger.error('[Topic] Failed to process prefix command', error, {
 				guildId: message.guildId ?? 'dm'
@@ -96,12 +109,11 @@ export class TopicCommand extends Command {
 				});
 			}
 
-			if (!interaction.channel || !interaction.channel.isSendable()) {
-				return interaction.reply({
-					content: 'I cannot send messages in this channel.',
-					flags: MessageFlags.Ephemeral
-				});
+			if (!interaction.channel || !this.canSendToChannel(interaction.channel)) {
+				return replyWithComponent(interaction, 'I cannot send messages in this channel. Please adjust my permissions.', true);
 			}
+
+			const targetChannel = interaction.channel as GuildTextBasedChannel;
 
 			// Fetch random topic from database
 			const topic = await this.fetchRandomTopic(interaction.guildId);
@@ -113,7 +125,7 @@ export class TopicCommand extends Command {
 			}
 
 			// Send formatted topic to channel
-			await interaction.channel.send({ content: this.formatTopic(topic) });
+			await targetChannel.send({ content: this.formatTopic(topic) });
 
 			// Confirm to user ephemerally
 			return interaction.reply({
@@ -155,5 +167,22 @@ export class TopicCommand extends Command {
 	// Format topic as markdown heading
 	private formatTopic(topic: GuildTopicSettings): string {
 		return `## ${topic.value}`;
+	}
+
+	// Ensure the bot can view and send messages in the target channel
+	private canSendToChannel(channel: Message['channel'] | NonNullable<Command.ChatInputCommandInteraction['channel']>): channel is GuildTextBasedChannel {
+		if (!('guild' in channel) || !channel.guild) return false;
+
+		const me = channel.guild.members.me;
+		if (!me) return false;
+
+		const permissions = me.permissionsIn(channel as GuildBasedChannel);
+		if (!permissions.has('ViewChannel')) return false;
+
+		if ('isThread' in channel && typeof channel.isThread === 'function' && channel.isThread()) {
+			return permissions.has('SendMessagesInThreads');
+		}
+
+		return permissions.has('SendMessages');
 	}
 }
