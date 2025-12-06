@@ -3,7 +3,7 @@
 dev.db-shm
 dev.db-wal
 *.db*
-automod-rules.json
+src/data/automod-rules.json
 
 # Ignore a blackhole and the folder for development
 node_modules/
