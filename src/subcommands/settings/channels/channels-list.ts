@@ -1,4 +1,4 @@
-// channels-list module within subcommands/settings/channels
+// Channel list subcommand - displays channels in allowlist buckets
 import type { Args } from '@sapphire/framework';
 import type { Message } from 'discord.js';
 import { MessageFlags } from 'discord.js';
@@ -14,9 +14,12 @@ import {
 	denyInteraction
 } from './utils';
 
+// Handle message command: !settings channels list [bucket]
 export async function messageChannelList(command: ChannelCommand, message: Message, args: Args) {
 	try {
+		// Parse optional bucket argument (null = show all buckets)
 		const bucket = await parseBucket(args, false);
+
 		return executeChannelList({
 			command,
 			guildId: message.guildId ?? null,
@@ -35,8 +38,9 @@ export async function messageChannelList(command: ChannelCommand, message: Messa
 	}
 }
 
+// Handle slash command: /settings channels list [setting:<bucket>]
 export async function chatInputChannelList(command: ChannelCommand, interaction: ChannelChatInputInteraction) {
-	// If the user doesn't choose a setting, display all configured buckets.
+	// Get optional bucket selection (null = display all buckets)
 	const selected = interaction.options.getString('setting');
 	const bucket = selected ? parseBucketChoice(selected, CHANNEL_BUCKETS[0].key) : null;
 

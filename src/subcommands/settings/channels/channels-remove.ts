@@ -1,4 +1,4 @@
-// channels-remove module within subcommands/settings/channels
+// Channel remove subcommand - removes channels from allowlist buckets
 import type { Args } from '@sapphire/framework';
 import type { GuildBasedChannel, Message } from 'discord.js';
 import { MessageFlags } from 'discord.js';
@@ -13,9 +13,12 @@ import {
 	denyInteraction
 } from './utils';
 
+// Handle message command: !settings channels remove <bucket> hannel>
 export async function messageChannelRemove(command: ChannelCommand, message: Message, args: Args) {
 	try {
+		// Parse bucket key from arguments
 		const bucket = (await parseBucket(args, true)) as ChannelBucketKey;
+		// Parse channel from arguments
 		const channel = (await args.pick('channel')) as GuildBasedChannel;
 
 		return executeChannelMutation({
@@ -32,7 +35,9 @@ export async function messageChannelRemove(command: ChannelCommand, message: Mes
 	}
 }
 
+// Handle slash command: /settings channels remove setting:<bucket> channel:hannel>
 export async function chatInputChannelRemove(command: ChannelCommand, interaction: ChannelChatInputInteraction) {
+	// Get bucket and channel from slash command options
 	const bucket = interaction.options.getString('setting', true) as ChannelBucketKey;
 	const channel = interaction.options.getChannel('channel', true) as GuildBasedChannel;
 

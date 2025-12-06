@@ -1,13 +1,14 @@
-// utils module within subcommands/settings/channels
+// Utilities for channel allowlist settings (snipe, tags, slowmode)
 import type { Args } from '@sapphire/framework';
 import type { Subcommand } from '@sapphire/plugin-subcommands';
 import { MessageFlags, type SlashCommandSubcommandGroupBuilder } from 'discord.js';
 import type { ChannelBucketKey as ChannelBucketKeyBase } from '../../../services/guildChannelSettingsService';
-export type ChannelBucketKey = ChannelBucketKeyBase;
 
+export type ChannelBucketKey = ChannelBucketKeyBase;
 export type ChannelCommand = Subcommand;
 export type ChannelChatInputInteraction = Subcommand.ChatInputCommandInteraction;
 
+// Context for add/remove operations
 export type ChannelMutationContext = {
 	command: ChannelCommand;
 	guildId: string | null;
@@ -19,6 +20,7 @@ export type ChannelMutationContext = {
 	defer?: () => Promise<unknown>;
 };
 
+// Context for list operations
 export type ChannelListContext = {
 	command: ChannelCommand;
 	guildId: string | null;
@@ -29,16 +31,19 @@ export type ChannelListContext = {
 	defer?: () => Promise<unknown>;
 };
 
+// Available channel bucket configurations
 export const CHANNEL_BUCKETS = [
 	{ key: 'allowedSnipeChannels', label: 'Allowed Snipe Channels' },
 	{ key: 'allowedTagChannels', label: 'Allowed Tag Channels' },
 	{ key: 'automaticSlowmodeChannels', label: 'Automatic Slowmode Channels' }
 ] as const satisfies ReadonlyArray<{ key: ChannelBucketKey; label: string }>;
 
+// Map for resolving bucket keys from user input (case-insensitive)
 export const bucketLookup = new Map<string, ChannelBucketKey>(
 	CHANNEL_BUCKETS.flatMap((bucket) => [bucket.key, bucket.label].map((value) => [value.toLowerCase(), bucket.key]))
 );
 
+// Register Discord slash command structure for channels group
 export const registerChannelSubcommandGroup = (group: SlashCommandSubcommandGroupBuilder) =>
 	group
 		.setName('channels')
@@ -82,11 +87,13 @@ export const registerChannelSubcommandGroup = (group: SlashCommandSubcommandGrou
 				)
 		);
 
+// Format error messages for user display
 export function formatError(error: unknown) {
 	if (error instanceof Error) return error.message;
 	return 'An unexpected error occurred.';
 }
 
+// Parse bucket key from message command arguments
 export async function parseBucket(args: Args, required: boolean): Promise<ChannelBucketKey | null> {
 	const result = await args.pickResult('string');
 
@@ -105,6 +112,7 @@ export async function parseBucket(args: Args, required: boolean): Promise<Channe
 	return resolved;
 }
 
+// Parse bucket key from slash command choice
 export function parseBucketChoice(value: string | null, fallback: ChannelBucketKey): ChannelBucketKey {
 	if (!value) return fallback;
 	const resolved = bucketLookup.get(value.toLowerCase());
@@ -114,7 +122,9 @@ export function parseBucketChoice(value: string | null, fallback: ChannelBucketK
 	return resolved;
 }
 
+// Execute add or remove operation on a channel bucket
 export async function executeChannelMutation({ command, guildId, bucket, channelId, operation, deny, respond, defer }: ChannelMutationContext) {
+	// Validate guild context
 	if (!guildId) {
 		return deny('This command can only be used inside a server.');
 	}
@@ -123,12 +133,14 @@ export async function executeChannelMutation({ command, guildId, bucket, channel
 		await defer();
 	}
 
+	// Get channel settings service
 	const service = command.container.guildChannelSettingsService;
 	if (!service) {
 		return respond('Channel settings are not available right now.');
 	}
 	const label = bucketLabel(bucket);
 
+	// Perform operation
 	if (operation === 'add') {
 		const { added } = await service.addChannel(guildId, bucket, channelId);
 		if (!added) {
@@ -144,7 +156,9 @@ export async function executeChannelMutation({ command, guildId, bucket, channel
 	return respond(operation === 'add' ? `Added <#${channelId}> to **${label}**.` : `Removed <#${channelId}> from **${label}**.`);
 }
 
+// List channels in one or all buckets
 export async function executeChannelList({ command, guildId, bucket, deny, respond, respondComponents, defer }: ChannelListContext) {
+	// Validate guild context
 	if (!guildId) {
 		return deny('This command can only be used inside a server.');
 	}
@@ -153,14 +167,17 @@ export async function executeChannelList({ command, guildId, bucket, deny, respo
 		await defer();
 	}
 
+	// Get channel settings service
 	const service = command.container.guildChannelSettingsService;
 	if (!service) {
 		return respond('Channel settings are not available right now.');
 	}
+
+	// Determine which buckets to list
 	const buckets = bucket ? [bucket] : CHANNEL_BUCKETS.map((entry) => entry.key);
 	const allBuckets = await service.getAllBuckets(guildId);
 
-	// Use components if available, otherwise fallback to text
+	// Use Discord Components v2 for slash commands if available
 	if (respondComponents) {
 		const { createListComponent, createMultiSectionComponent } = await import('../../../lib/components.js');
 
@@ -169,10 +186,10 @@ export async function executeChannelList({ command, guildId, bucket, deny, respo
 			const chans = allBuckets[bucket];
 			const label = bucketLabel(bucket);
 			const items = chans.length === 0 ? [] : chans.map((id) => `<#${id}>`);
-			const component = createListComponent(label, items, 'No channels configured yet.', false); // Channel mentions are short, use commas
+			const component = createListComponent(label, items, 'No channels configured yet.', false);
 			return respondComponents([component]);
 		} else {
-			// Multiple buckets - use multi-section component with proper sections and separators
+			// Multiple buckets - use multi-section component
 			const sections = buckets.map((key) => {
 				const chans = allBuckets[key];
 				const label = bucketLabel(key);
@@ -189,11 +206,11 @@ export async function executeChannelList({ command, guildId, bucket, deny, respo
 			if (component) {
 				return respondComponents([component]);
 			}
-			// Fallback to plain text if the component would exceed Discord limits
+			// Fallback to plain text if component would exceed Discord limits
 		}
 	}
 
-	// Fallback to text for message commands
+	// Fallback to plain text for message commands
 	const lines = buckets.map((key) => {
 		const chans = allBuckets[key];
 		const label = bucketLabel(key);
@@ -204,9 +221,11 @@ export async function executeChannelList({ command, guildId, bucket, deny, respo
 	return respond(lines.join('\n'));
 }
 
+// Get human-readable label for a bucket key
 export function bucketLabel(bucket: ChannelBucketKey) {
 	return CHANNEL_BUCKETS.find((entry) => entry.key === bucket)?.label ?? bucket;
 }
 
+// Send ephemeral denial message for slash commands
 export const denyInteraction = (interaction: ChannelChatInputInteraction, content: string) =>
 	interaction.reply({ content, flags: MessageFlags.Ephemeral });
