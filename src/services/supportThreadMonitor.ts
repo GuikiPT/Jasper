@@ -63,7 +63,6 @@ export class SupportThreadMonitor {
 		if (this.checkTimer) return;
 
 		const effectiveInterval = Math.max(intervalMs, 1_000);
-		this.logger.info('Starting inactivity monitor', { intervalMs, effectiveInterval });
 		this.checkTimer = setInterval(() => void this.runMaintenance(), effectiveInterval);
 		void this.runMaintenance();
 	}
@@ -203,24 +202,23 @@ export class SupportThreadMonitor {
 			});
 
 			const now = Date.now();
-			this.logger.debug('Maintenance sweep started', { guildCount: guildSettings.length, now });
+
+			// Only log when there are guilds to process
+			if (guildSettings.length > 0) {
+				this.logger.debug('Maintenance sweep started', { guildCount: guildSettings.length, now });
+			}
 
 			for (const settings of guildSettings) {
 				const inactivityMinutes = Math.max(settings.inactivityReminderMinutes ?? 2880, MINIMUM_THRESHOLD_MINUTES);
 				const autoCloseMinutes = Math.max(settings.autoCloseMinutes ?? 1440, MINIMUM_THRESHOLD_MINUTES);
 
-				this.logger.debug('Evaluating guild for inactivity', {
-					guildId: settings.guildId,
-					supportForumChannelId: settings.supportForumChannelId,
-					inactivityMinutes,
-					autoCloseMinutes
-				});
-
 				await this.processRemindersForGuild(settings, now, inactivityMinutes);
 				await this.processAutoClosuresForGuild(settings, now, autoCloseMinutes);
 			}
 
-			this.logger.debug('Maintenance sweep finished', { guildCount: guildSettings.length });
+			if (guildSettings.length > 0) {
+				this.logger.debug('Maintenance sweep finished', { guildCount: guildSettings.length });
+			}
 		} catch (error) {
 			this.logger.error('Maintenance run failed', error);
 		} finally {

@@ -81,7 +81,6 @@ ${line03}${dev ? ` ${pad}${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MO
 	private async startSupportThreadMonitor() {
 		try {
 			this.container.supportThreadMonitor.start();
-			this.container.logger.info('[SupportThreadMonitor] Initialised inactivity monitor');
 		} catch (error) {
 			this.container.logger.error('Failed to start SupportThreadMonitor:', error);
 		}
