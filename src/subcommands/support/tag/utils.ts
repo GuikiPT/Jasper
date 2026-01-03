@@ -71,16 +71,25 @@ type SupportRoleAwareInteraction = {
 // Tag Embed Builders
 // ============================================================
 
+// Process escape sequences in tag content (e.g., \n to actual newlines)
+const processTagContent = (content: string): string => {
+	return content
+		.replace(/\\n/g, '\n')
+		.replace(/\\t/g, '\t')
+		.replace(/\\r/g, '\r')
+		.replace(/\\\\/g, '\\');
+};
+
 // Build legacy embed format for tag (deprecated)
 export const buildTagEmbed = (tag: GuildSupportTagSettings) => {
 	const embed = new EmbedBuilder().setTitle(tag.embedTitle).setColor(0x5865f2);
 
 	if (tag.embedDescription) {
-		embed.setDescription(tag.embedDescription);
+		embed.setDescription(processTagContent(tag.embedDescription));
 	}
 
 	if (tag.embedFooter) {
-		embed.setFooter({ text: tag.embedFooter });
+		embed.setFooter({ text: processTagContent(tag.embedFooter) });
 	}
 
 	if (tag.embedImageUrl) {
@@ -110,7 +119,7 @@ export const buildTagComponents = (tag: GuildSupportTagSettings, user?: { id: st
 
 	// Add body (description) if present
 	if (tag.embedDescription) {
-		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(tag.embedDescription));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(processTagContent(tag.embedDescription)));
 
 		// Add separator after body
 		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
@@ -126,7 +135,7 @@ export const buildTagComponents = (tag: GuildSupportTagSettings, user?: { id: st
 
 	// Add footer if present
 	if (tag.embedFooter) {
-		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(tag.embedFooter));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(processTagContent(tag.embedFooter)));
 	}
 
 	// Add the container to components
