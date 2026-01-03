@@ -13,7 +13,8 @@ import {
 	name: 'support-prune-inactive-threads',
 	description: 'Prune stale support thread tracking records.',
 	detailedDescription: {
-		summary: 'Scans the support thread tracking table and removes entries for threads that are already closed, resolved, deleted, or outside the configured forum.',
+		summary:
+			'Scans the support thread tracking table and removes entries for threads that are already closed, resolved, deleted, or outside the configured forum.',
 		notes: ['Requires an allowed admin role or Manage Server permission.']
 	},
 	fullCategory: ['Support'],
@@ -45,10 +46,7 @@ export class SupportPruneCommand extends Command {
 				.setIntegrationTypes(this.integrationTypes)
 				.setContexts(this.contexts)
 				.addBooleanOption((option: SlashCommandBooleanOption) =>
-					option
-						.setName('ephemeral')
-						.setDescription('Reply privately (default: on)')
-						.setRequired(false)
+					option.setName('ephemeral').setDescription('Reply privately (default: on)').setRequired(false)
 				)
 		);
 	}

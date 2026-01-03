@@ -165,17 +165,20 @@ export class SupportTagCreateModalHandler extends InteractionHandler {
 				this.container.logger.error('Failed to create support tag', error);
 				return interaction.editReply({ content: 'Unable to create the tag right now. Please try again later.' });
 			}
-		}
-		catch (error) {
+		} catch (error) {
 			this.container.logger.error('Failed to process support tag create modal interaction', error, {
 				guildId: interaction.guildId ?? 'dm',
 				userId: interaction.user.id
 			});
 			const fallbackFlags = MessageFlags.Ephemeral;
 			if (interaction.deferred || interaction.replied) {
-				return interaction.editReply({ content: 'I could not create the tag right now. Please try again later.' }).catch(() => this.container.logger.error('Failed to edit reply after support tag create modal failure', error));
+				return interaction
+					.editReply({ content: 'I could not create the tag right now. Please try again later.' })
+					.catch(() => this.container.logger.error('Failed to edit reply after support tag create modal failure', error));
 			}
-			return interaction.reply({ content: 'I could not create the tag right now. Please try again later.', flags: fallbackFlags }).catch(() => this.container.logger.error('Failed to send reply after support tag create modal failure', error));
+			return interaction
+				.reply({ content: 'I could not create the tag right now. Please try again later.', flags: fallbackFlags })
+				.catch(() => this.container.logger.error('Failed to send reply after support tag create modal failure', error));
 		}
 	}
 }

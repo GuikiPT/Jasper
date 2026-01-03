@@ -45,9 +45,9 @@ colorette.createColors({ useColor: true });
 
 // Extend Skyra env utilities with required environment variables
 declare module '@skyra/env-utilities' {
-    interface Env {
-        OWNERS: ArrayString;
-        DATABASE_URL: string;
-        DISCORD_TOKEN: string;
-    }
+	interface Env {
+		OWNERS: ArrayString;
+		DATABASE_URL: string;
+		DISCORD_TOKEN: string;
+	}
 }

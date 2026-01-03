@@ -127,11 +127,7 @@ export class ResolveCommand extends Command {
 			this.container.logger.error('[Resolve] Failed to load support settings', error, {
 				guildId
 			});
-			return replyWithComponent(
-				interaction,
-				'I could not load support settings right now. Please try again later.',
-				true
-			);
+			return replyWithComponent(interaction, 'I could not load support settings right now. Please try again later.', true);
 		}
 
 		if (!supportSettings) {

@@ -158,17 +158,19 @@ export class ModerationVirusTotalCommand extends Subcommand {
 				userId: interaction.user.id,
 				interactionId: interaction.id
 			});
-			return interaction.reply({
-				content: 'I could not complete that VirusTotal IP lookup. Please try again shortly.',
-				flags: MessageFlags.Ephemeral
-			}).catch((replyError) => {
-				this.container.logger.error('[VirusTotal] ip fallback reply failed', replyError, {
-					guildId: interaction.guildId ?? 'dm',
-					userId: interaction.user.id,
-					interactionId: interaction.id
+			return interaction
+				.reply({
+					content: 'I could not complete that VirusTotal IP lookup. Please try again shortly.',
+					flags: MessageFlags.Ephemeral
+				})
+				.catch((replyError) => {
+					this.container.logger.error('[VirusTotal] ip fallback reply failed', replyError, {
+						guildId: interaction.guildId ?? 'dm',
+						userId: interaction.user.id,
+						interactionId: interaction.id
+					});
+					return undefined;
 				});
-				return undefined;
-			});
 		}
 	}
 
@@ -188,17 +190,19 @@ export class ModerationVirusTotalCommand extends Subcommand {
 				userId: interaction.user.id,
 				interactionId: interaction.id
 			});
-			return interaction.reply({
-				content: 'I could not complete that VirusTotal domain lookup. Please try again shortly.',
-				flags: MessageFlags.Ephemeral
-			}).catch((replyError) => {
-				this.container.logger.error('[VirusTotal] domain fallback reply failed', replyError, {
-					guildId: interaction.guildId ?? 'dm',
-					userId: interaction.user.id,
-					interactionId: interaction.id
+			return interaction
+				.reply({
+					content: 'I could not complete that VirusTotal domain lookup. Please try again shortly.',
+					flags: MessageFlags.Ephemeral
+				})
+				.catch((replyError) => {
+					this.container.logger.error('[VirusTotal] domain fallback reply failed', replyError, {
+						guildId: interaction.guildId ?? 'dm',
+						userId: interaction.user.id,
+						interactionId: interaction.id
+					});
+					return undefined;
 				});
-				return undefined;
-			});
 		}
 	}
 
@@ -218,17 +222,19 @@ export class ModerationVirusTotalCommand extends Subcommand {
 				userId: interaction.user.id,
 				interactionId: interaction.id
 			});
-			return interaction.reply({
-				content: 'I could not complete that VirusTotal file scan. Please try again shortly.',
-				flags: MessageFlags.Ephemeral
-			}).catch((replyError) => {
-				this.container.logger.error('[VirusTotal] file fallback reply failed', replyError, {
-					guildId: interaction.guildId ?? 'dm',
-					userId: interaction.user.id,
-					interactionId: interaction.id
+			return interaction
+				.reply({
+					content: 'I could not complete that VirusTotal file scan. Please try again shortly.',
+					flags: MessageFlags.Ephemeral
+				})
+				.catch((replyError) => {
+					this.container.logger.error('[VirusTotal] file fallback reply failed', replyError, {
+						guildId: interaction.guildId ?? 'dm',
+						userId: interaction.user.id,
+						interactionId: interaction.id
+					});
+					return undefined;
 				});
-				return undefined;
-			});
 		}
 	}
 
@@ -248,17 +254,19 @@ export class ModerationVirusTotalCommand extends Subcommand {
 				userId: interaction.user.id,
 				interactionId: interaction.id
 			});
-			return interaction.reply({
-				content: 'I could not complete that VirusTotal URL scan. Please try again shortly.',
-				flags: MessageFlags.Ephemeral
-			}).catch((replyError) => {
-				this.container.logger.error('[VirusTotal] url fallback reply failed', replyError, {
-					guildId: interaction.guildId ?? 'dm',
-					userId: interaction.user.id,
-					interactionId: interaction.id
+			return interaction
+				.reply({
+					content: 'I could not complete that VirusTotal URL scan. Please try again shortly.',
+					flags: MessageFlags.Ephemeral
+				})
+				.catch((replyError) => {
+					this.container.logger.error('[VirusTotal] url fallback reply failed', replyError, {
+						guildId: interaction.guildId ?? 'dm',
+						userId: interaction.user.id,
+						interactionId: interaction.id
+					});
+					return undefined;
 				});
-				return undefined;
-			});
 		}
 	}
 }

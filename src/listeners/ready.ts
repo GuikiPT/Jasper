@@ -49,7 +49,7 @@ ${line03}${dev ? ` ${pad}${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MO
 	private setBotActivity() {
 		try {
 			const { client } = this.container;
-			client.user?.setActivity("👀 Support Threads", { type: ActivityType.Watching });
+			client.user?.setActivity('👀 Support Threads', { type: ActivityType.Watching });
 			client.user?.setStatus('idle');
 		} catch (error) {
 			this.container.logger.error('Failed to set bot activity and status', error);

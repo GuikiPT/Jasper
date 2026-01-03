@@ -36,7 +36,7 @@ export interface SupportThreadReminderPayload {
 export class SupportThreadService {
 	private readonly logger = createSubsystemLogger('SupportThreadService');
 
-	public constructor(private readonly database: PrismaClient) { }
+	public constructor(private readonly database: PrismaClient) {}
 
 	// ============================================================
 	// Thread Retrieval
@@ -44,7 +44,7 @@ export class SupportThreadService {
 
 	/**
 	 * Gets a support thread record by ID
-	 * 
+	 *
 	 * @param threadId Thread ID
 	 * @returns Thread record or null if not found
 	 */
@@ -67,9 +67,9 @@ export class SupportThreadService {
 			orderBy: { threadId: 'asc' },
 			...(cursor
 				? {
-					skip: 1,
-					cursor: { threadId: cursor }
-				}
+						skip: 1,
+						cursor: { threadId: cursor }
+					}
 				: {})
 		});
 	}
@@ -84,7 +84,7 @@ export class SupportThreadService {
 	 * - Updates last activity timestamp
 	 * - Resets reminder state (clears sent reminders)
 	 * - Reopens thread if previously closed
-	 * 
+	 *
 	 * @param payload Activity data
 	 * @returns Updated thread record
 	 */
@@ -124,7 +124,7 @@ export class SupportThreadService {
 	 * - Updates last reminder timestamp
 	 * - Stores reminder message ID for later dismissal
 	 * - Increments reminder counter
-	 * 
+	 *
 	 * @param payload Reminder data
 	 * @returns Updated thread record
 	 */
@@ -155,7 +155,7 @@ export class SupportThreadService {
 	 * Marks a thread as closed
 	 * - Deletes the tracking row so closed/resolved threads don't pile up
 	 * - Stops further monitoring and lets future activity recreate the record
-	 * 
+	 *
 	 * @param threadId Thread ID
 	 */
 	public async markThreadClosed(threadId: string): Promise<void> {
@@ -173,7 +173,7 @@ export class SupportThreadService {
 	 * Clears reminder state for a thread
 	 * - Used when owner manually dismisses reminder
 	 * - Resets reminder timestamp and message ID
-	 * 
+	 *
 	 * @param threadId Thread ID
 	 */
 	public async clearReminder(threadId: string): Promise<void> {
@@ -198,7 +198,7 @@ export class SupportThreadService {
 	 * - Must have valid author message ID
 	 * - Last activity before cutoff
 	 * - No reminder sent, or last reminder before cutoff
-	 * 
+	 *
 	 * @param cutoff Inactivity threshold timestamp
 	 * @param options Query options (optional guild filter)
 	 * @returns Array of thread records needing reminders
@@ -231,7 +231,7 @@ export class SupportThreadService {
 	 * - Must have valid author message ID
 	 * - Reminder must have been sent
 	 * - Last activity and reminder both before cutoff
-	 * 
+	 *
 	 * @param reminderCutoff Auto-close threshold timestamp
 	 * @param options Query options (optional guild filter)
 	 * @returns Array of thread records needing closure

@@ -197,8 +197,7 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 				this.container.logger.error('Failed to update support tag', error);
 				return interaction.editReply({ content: 'Unable to update the tag right now. Please try again later.' });
 			}
-		}
-		catch (error) {
+		} catch (error) {
 			this.container.logger.error('Failed to process support tag edit modal interaction', error, {
 				guildId: interaction.guildId ?? 'dm',
 				userId: interaction.user.id,

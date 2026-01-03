@@ -69,9 +69,7 @@ export class TopicCommand extends Command {
 			}
 
 			if (!this.canSendToChannel(message.channel)) {
-				await message.author
-					.send('I cannot send messages in that channel. Please adjust my permissions.')
-					.catch(() => undefined);
+				await message.author.send('I cannot send messages in that channel. Please adjust my permissions.').catch(() => undefined);
 				return;
 			}
 
@@ -221,7 +219,9 @@ export class TopicCommand extends Command {
 	}
 
 	// Ensure the bot can view and send messages in the target channel
-	private canSendToChannel(channel: Message['channel'] | NonNullable<Command.ChatInputCommandInteraction['channel']>): channel is GuildTextBasedChannel {
+	private canSendToChannel(
+		channel: Message['channel'] | NonNullable<Command.ChatInputCommandInteraction['channel']>
+	): channel is GuildTextBasedChannel {
 		if (!('guild' in channel) || !channel.guild) return false;
 
 		const me = channel.guild.members.me;

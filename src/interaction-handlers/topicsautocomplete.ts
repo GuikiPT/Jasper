@@ -103,8 +103,7 @@ export class TopicsAutocompleteHandler extends InteractionHandler {
 				this.container.logger.error('Failed to resolve topics autocomplete suggestions', error);
 				return this.some([]);
 			}
-		}
-		catch (error) {
+		} catch (error) {
 			this.container.logger.error('Failed to parse topics autocomplete interaction', error, {
 				guildId: interaction.guildId ?? 'dm',
 				userId: interaction.user.id

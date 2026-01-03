@@ -74,7 +74,7 @@ export class SupportThreadCloseModalHandler extends InteractionHandler {
 			const thread = await this.fetchThread(data.threadId);
 			if (!thread) {
 				return interaction.reply({
-					content: 'I couldn\'t find the support thread.',
+					content: "I couldn't find the support thread.",
 					flags: MessageFlags.Ephemeral
 				});
 			}
@@ -100,7 +100,7 @@ export class SupportThreadCloseModalHandler extends InteractionHandler {
 			const ownerId = await this.resolveThreadOwnerId(thread);
 			if (!ownerId) {
 				return interaction.reply({
-					content: 'I couldn\'t determine who created this thread.',
+					content: "I couldn't determine who created this thread.",
 					flags: MessageFlags.Ephemeral
 				});
 			}
@@ -152,7 +152,10 @@ export class SupportThreadCloseModalHandler extends InteractionHandler {
 				});
 
 				// Lock thread to prevent further replies
-				await freshThread.setLocked(true, `Locked by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id} via modal.`);
+				await freshThread.setLocked(
+					true,
+					`Locked by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id} via modal.`
+				);
 
 				// Archive thread
 				await freshThread.setArchived(
@@ -182,7 +185,7 @@ export class SupportThreadCloseModalHandler extends InteractionHandler {
 					threadId: thread.id
 				});
 				return interaction.editReply({
-					content: 'I couldn\'t close the thread.Please try again shortly.'
+					content: "I couldn't close the thread.Please try again shortly."
 				});
 			}
 		} catch (error) {
@@ -192,7 +195,7 @@ export class SupportThreadCloseModalHandler extends InteractionHandler {
 				customId: interaction.customId
 			});
 			return interaction.reply({
-				content: 'I couldn\'t process your request. Please try again shortly.',
+				content: "I couldn't process your request. Please try again shortly.",
 				flags: MessageFlags.Ephemeral
 			});
 		}

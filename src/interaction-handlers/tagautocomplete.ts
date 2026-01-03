@@ -117,8 +117,7 @@ export class SupportTagsAutocompleteHandler extends InteractionHandler {
 				this.container.logger.error('Failed to resolve support tag autocomplete suggestions', error);
 				return this.some([]);
 			}
-		}
-		catch (error) {
+		} catch (error) {
 			this.container.logger.error('Failed to parse support tag autocomplete interaction', error, {
 				guildId: interaction.guildId ?? 'dm',
 				userId: interaction.user.id

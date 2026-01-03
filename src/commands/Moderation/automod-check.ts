@@ -53,7 +53,7 @@ const VIOLATIONS_PER_PAGE = 5;
 				errorMessage: 'You need staff or admin permissions to use the automod-check command.'
 			}
 		}
-	],
+	]
 	// requiredClientPermissions: ['SendMessages']
 })
 export class AutomodCheckCommand extends Command {
@@ -138,7 +138,10 @@ export class AutomodCheckCommand extends Command {
 			});
 
 			try {
-				return editReplyWithComponent(interaction, 'An error occurred while checking the content against automod rules. Please try again later.');
+				return editReplyWithComponent(
+					interaction,
+					'An error occurred while checking the content against automod rules. Please try again later.'
+				);
 			} catch (replyError) {
 				this.container.logger.error('[AutomodCheck] Failed to send error fallback', replyError, {
 					guildId: interaction.guildId,
@@ -218,9 +221,10 @@ export class AutomodCheckCommand extends Command {
 
 		const matchCount = result.matchCount || 1;
 		const header = matchCount > 1 ? `## 🚫 BLOCKED (${matchCount} matches)` : '## 🚫 BLOCKED';
-		const subtitle = matchCount > 1
-			? `This content would be flagged by automod (${matchCount} rule violations found)`
-			: 'This content would be flagged by automod';
+		const subtitle =
+			matchCount > 1
+				? `This content would be flagged by automod (${matchCount} rule violations found)`
+				: 'This content would be flagged by automod';
 
 		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(header));
 		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(subtitle));
@@ -241,9 +245,7 @@ export class AutomodCheckCommand extends Command {
 		const endIndex = Math.min(startIndex + VIOLATIONS_PER_PAGE, result.allMatches!.length);
 		const pageMatches = result.allMatches!.slice(startIndex, endIndex);
 
-		const pageTitle = totalPages > 1
-			? `## **Rule Violations:** (Page ${validPage}/${totalPages})`
-			: '## **All Rule Violations:**';
+		const pageTitle = totalPages > 1 ? `## **Rule Violations:** (Page ${validPage}/${totalPages})` : '## **All Rule Violations:**';
 		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(pageTitle));
 
 		pageMatches.forEach((match, localIndex) => {
@@ -264,7 +266,9 @@ export class AutomodCheckCommand extends Command {
 		const escapedPattern = this.escapePattern(result.matchedPattern!);
 		const caughtText = this.findCaughtText(content, result.matchedPattern!);
 
-		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`### - **Rule:** \`${result.matchedRuleId} - ${result.matchedRule}\``));
+		container.addTextDisplayComponents(
+			new TextDisplayBuilder().setContent(`### - **Rule:** \`${result.matchedRuleId} - ${result.matchedRule}\``)
+		);
 		container.addTextDisplayComponents(
 			new TextDisplayBuilder().setContent(`- **Type:** \`${result.matchType === 'word' ? 'Word/Phrase Match' : 'Regex Pattern'}\``)
 		);
@@ -277,7 +281,9 @@ export class AutomodCheckCommand extends Command {
 		const escapedPattern = this.escapePattern(match.matchedPattern);
 		const caughtText = this.findCaughtText(content, match.matchedPattern);
 
-		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${index}. **Rule:** \`${match.matchedRuleId} - ${match.matchedRule}\``));
+		container.addTextDisplayComponents(
+			new TextDisplayBuilder().setContent(`### ${index}. **Rule:** \`${match.matchedRuleId} - ${match.matchedRule}\``)
+		);
 		container.addTextDisplayComponents(
 			new TextDisplayBuilder().setContent(`- **Type:** \`${match.matchType === 'word' ? 'Word/Phrase Match' : 'Regex Pattern'}\``)
 		);

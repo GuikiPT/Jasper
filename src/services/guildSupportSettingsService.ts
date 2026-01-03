@@ -36,7 +36,7 @@ export class GuildSupportSettingsService {
 	public constructor(
 		private readonly database: PrismaClient,
 		private readonly guildSettingsService: GuildSettingsService
-	) { }
+	) {}
 
 	// ============================================================
 	// Settings Management
@@ -44,7 +44,7 @@ export class GuildSupportSettingsService {
 
 	/**
 	 * Gets support settings for a guild without creating them
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Support settings or null if not found
 	 */
@@ -56,7 +56,7 @@ export class GuildSupportSettingsService {
 	 * Gets or creates support settings for a guild
 	 * - Creates settings with default values if they don't exist
 	 * - Ensures parent guild settings exist first
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Support settings for the guild
 	 */
@@ -76,7 +76,7 @@ export class GuildSupportSettingsService {
 	 * Sets a single support setting
 	 * - Creates settings if they don't exist
 	 * - Updates existing settings if found
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param key Setting key to update
 	 * @param value New value (string for IDs, number for durations, null to clear)

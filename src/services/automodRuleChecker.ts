@@ -217,14 +217,10 @@ export class AutomodRuleChecker {
 	private matchesWildcard(content: string, pattern: string): boolean {
 		try {
 			// Escape special regex chars, then convert * to .*
-			const regexPattern = pattern
-				.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-				.replace(/\\\*/g, '.*');
+			const regexPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*');
 
 			const hasSpecialChars = /[<>@#.\-\/\\]/.test(pattern);
-			const regex = hasSpecialChars
-				? new RegExp(regexPattern, 'i')
-				: new RegExp(`\\b${regexPattern}\\b`, 'i');
+			const regex = hasSpecialChars ? new RegExp(regexPattern, 'i') : new RegExp(`\\b${regexPattern}\\b`, 'i');
 
 			return regex.test(content);
 		} catch (error) {

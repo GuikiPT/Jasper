@@ -132,8 +132,7 @@ export class AutomodCheckPaginationHandler extends InteractionHandler {
 					flags: MessageFlags.Ephemeral
 				});
 			}
-		}
-		catch (error) {
+		} catch (error) {
 			this.container.logger.error('[AutomodCheckPagination] Unexpected error in run method', error, {
 				userId: interaction.user.id,
 				customId: interaction.customId

@@ -46,7 +46,7 @@ import type { SnipedMessage } from '../../services/snipeManager';
 				errorMessage: 'You need staff or admin permissions to use the snipe command.'
 			}
 		}
-	],
+	]
 	// requiredClientPermissions: ['SendMessages']
 })
 export class SnipeCommand extends Command {
@@ -255,17 +255,13 @@ export class SnipeCommand extends Command {
 
 		// Add message text content
 		if (snipedMessage.content) {
-			const truncated = snipedMessage.content.length > 1800
-				? snipedMessage.content.substring(0, 1797) + '...'
-				: snipedMessage.content;
+			const truncated = snipedMessage.content.length > 1800 ? snipedMessage.content.substring(0, 1797) + '...' : snipedMessage.content;
 			parts.push(truncated);
 		}
 
 		// Add attachment links
 		if (snipedMessage.attachments?.length > 0) {
-			const attachmentLines = snipedMessage.attachments.map(
-				(att) => `📎 [${att.name}](${att.url}) (${this.formatFileSize(att.size)})`
-			);
+			const attachmentLines = snipedMessage.attachments.map((att) => `📎 [${att.name}](${att.url}) (${this.formatFileSize(att.size)})`);
 			parts.push(`\n**Attachments:**\n${attachmentLines.join('\n')}`);
 		}
 

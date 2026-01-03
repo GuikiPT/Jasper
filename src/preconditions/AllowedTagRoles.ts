@@ -62,7 +62,7 @@ export class AllowedTagRolesPrecondition extends AllFlowsPrecondition {
 	 * - Validates guild context
 	 * - Checks both tag roles and admin roles
 	 * - Logs all access attempts
-	 * 
+	 *
 	 * @param guildId Guild ID or null for DMs
 	 * @param member Member object or null
 	 * @param silentOnFail Whether to suppress error messages
@@ -131,7 +131,7 @@ export class AllowedTagRolesPrecondition extends AllFlowsPrecondition {
 	/**
 	 * Creates user-friendly error message explaining access requirements
 	 * - Mentions both role buckets
-	 * 
+	 *
 	 * @param allowedRoles List of configured tag roles
 	 * @param allowedAdminRoles List of configured tag admin roles
 	 * @returns Error message string
@@ -148,7 +148,7 @@ export class AllowedTagRolesPrecondition extends AllFlowsPrecondition {
 
 	/**
 	 * Fetches configured tag roles from database
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Array of role IDs or empty array on error
 	 */
@@ -169,7 +169,7 @@ export class AllowedTagRolesPrecondition extends AllFlowsPrecondition {
 
 	/**
 	 * Fetches configured tag admin roles from database
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Array of role IDs or empty array on error
 	 */
@@ -192,7 +192,7 @@ export class AllowedTagRolesPrecondition extends AllFlowsPrecondition {
 	 * Checks if member has any of the allowed roles
 	 * - Handles both API and GuildMember types
 	 * - Supports array and cache-based role storage
-	 * 
+	 *
 	 * @param member Member to check
 	 * @param allowedRoles List of allowed role IDs
 	 * @returns True if member has at least one allowed role

@@ -43,7 +43,7 @@ export class GuildChannelSettingsService extends BaseBucketSettingsService<Guild
 	 * Gets or creates channel settings for a guild
 	 * - Creates blank settings if they don't exist
 	 * - Ensures parent guild settings exist first
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Channel settings for the guild
 	 */
@@ -64,7 +64,7 @@ export class GuildChannelSettingsService extends BaseBucketSettingsService<Guild
 
 	/**
 	 * Gets channel settings for a guild without creating them
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Channel settings or null if not found
 	 */
@@ -78,7 +78,7 @@ export class GuildChannelSettingsService extends BaseBucketSettingsService<Guild
 
 	/**
 	 * Lists all channel IDs in a bucket
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param bucket Bucket key name
 	 * @returns Array of channel IDs
@@ -91,7 +91,7 @@ export class GuildChannelSettingsService extends BaseBucketSettingsService<Guild
 	/**
 	 * Adds a channel to a bucket
 	 * - Prevents duplicates
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param bucket Bucket key name
 	 * @param channelId Channel ID to add
@@ -124,7 +124,7 @@ export class GuildChannelSettingsService extends BaseBucketSettingsService<Guild
 	/**
 	 * Removes a channel from a bucket
 	 * - No-op if channel not in bucket
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param bucket Bucket key name
 	 * @param channelId Channel ID to remove
@@ -157,7 +157,7 @@ export class GuildChannelSettingsService extends BaseBucketSettingsService<Guild
 	/**
 	 * Replaces entire bucket contents with new channel list
 	 * - Removes duplicates automatically
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param bucket Bucket key name
 	 * @param channels Channel IDs to set
@@ -182,7 +182,7 @@ export class GuildChannelSettingsService extends BaseBucketSettingsService<Guild
 	/**
 	 * Gets all channel buckets for a guild
 	 * - Returns all buckets in a single object
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Object mapping bucket keys to channel ID arrays
 	 */
@@ -203,7 +203,7 @@ export class GuildChannelSettingsService extends BaseBucketSettingsService<Guild
 
 	/**
 	 * Creates blank channel settings with empty buckets
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Settings object with empty JSON arrays
 	 */

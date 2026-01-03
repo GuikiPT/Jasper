@@ -44,7 +44,7 @@ export class YouTubeService {
 	private globalCheckInterval: NodeJS.Timeout | null = null;
 	private readonly CHECK_INTERVAL_MS = CHECK_INTERVAL_MS;
 
-	private constructor() { }
+	private constructor() {}
 
 	/**
 	 * Gets the singleton instance of YouTubeService
@@ -127,7 +127,7 @@ export class YouTubeService {
 	 * Determines if a guild should be updated
 	 * - Returns true if never updated
 	 * - Returns true if update interval has passed
-	 * 
+	 *
 	 * @param settings The guild's YouTube settings
 	 * @param currentTime The current time
 	 * @returns True if the guild should be updated
@@ -155,7 +155,7 @@ export class YouTubeService {
 	 * Forces an immediate update for a specific guild
 	 * - Bypasses update interval cooldown
 	 * - Validates configuration before updating
-	 * 
+	 *
 	 * @param guildId The guild ID to force update
 	 * @returns Result with success status and message
 	 */
@@ -183,7 +183,7 @@ export class YouTubeService {
 	 * Gets the tracking status for a guild
 	 * - Returns current configuration
 	 * - Calculates next scheduled update time
-	 * 
+	 *
 	 * @param guildId The guild ID to check
 	 * @returns Status object with tracking details
 	 */
@@ -228,7 +228,7 @@ export class YouTubeService {
 	 * - Fetches current count from YouTube
 	 * - Updates Discord channel name
 	 * - Stores count and metadata in database
-	 * 
+	 *
 	 * @param guildId The guild ID to update
 	 * @returns Result with success status and message
 	 */
@@ -305,7 +305,7 @@ export class YouTubeService {
 	/**
 	 * Gets the subscriber count from a YouTube channel URL
 	 * - Convenience method that extracts only subscriber count
-	 * 
+	 *
 	 * @param channelUrl The YouTube channel URL
 	 * @param lang Language preference for the response (default: en-US)
 	 * @returns The subscriber count as a string or null if not found
@@ -320,7 +320,7 @@ export class YouTubeService {
 	 * - Extracts subscriber count, channel name, and avatar
 	 * - Uses multiple regex patterns for different YouTube layouts
 	 * - Falls back to alternative patterns if primary fails
-	 * 
+	 *
 	 * @param channelUrl The YouTube channel URL
 	 * @param lang Language preference (default: en-US)
 	 * @returns Channel metadata or null on error
@@ -387,7 +387,7 @@ export class YouTubeService {
 	/**
 	 * Formats a Discord channel name with subscriber count
 	 * - Adds emoji and formatting
-	 * 
+	 *
 	 * @param subCount The subscriber count string
 	 * @returns Formatted channel name
 	 */
@@ -399,7 +399,7 @@ export class YouTubeService {
 	 * Validates if a URL is a valid YouTube channel URL
 	 * - Checks hostname against allowed hosts
 	 * - Verifies path format
-	 * 
+	 *
 	 * @param url The URL to validate
 	 * @returns True if valid YouTube channel URL
 	 */

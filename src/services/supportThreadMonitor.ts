@@ -55,7 +55,7 @@ export class SupportThreadMonitor {
 		private readonly supportThreadService: SupportThreadService,
 		private readonly supportSettingsService: GuildSupportSettingsService,
 		private readonly database: PrismaClient
-	) { }
+	) {}
 
 	// ============================================================
 	// Monitor Control
@@ -65,7 +65,7 @@ export class SupportThreadMonitor {
 	 * Starts the inactivity monitor
 	 * - Runs periodic maintenance sweeps
 	 * - Checks for threads needing reminders or closure
-	 * 
+	 *
 	 * @param intervalMs Check interval in milliseconds (default: 15s)
 	 */
 	public start(intervalMs: number = DEFAULT_REMINDER_INTERVAL_MS) {
@@ -96,7 +96,7 @@ export class SupportThreadMonitor {
 	 * - Tracks activity from thread owners
 	 * - Registers new threads for monitoring
 	 * - Dismisses reminder messages when owner responds
-	 * 
+	 *
 	 * @param message Discord message
 	 */
 	public async handleMessage(message: Message) {
@@ -509,7 +509,7 @@ export class SupportThreadMonitor {
 		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('## Thread closed due to inactivity'));
 		container.addTextDisplayComponents(
 			new TextDisplayBuilder().setContent(
-				'Because we didn\'t receive a response, the thread was closed automatically. If you still need help, please open a new thread.'
+				"Because we didn't receive a response, the thread was closed automatically. If you still need help, please open a new thread."
 			)
 		);
 		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));

@@ -176,7 +176,17 @@ export async function executeRoleMutation({
 	}
 }
 
-export async function executeRoleList({ command, guildId, bucket, actorId, allowed = true, deny, respond, respondComponents, defer }: RoleListContext) {
+export async function executeRoleList({
+	command,
+	guildId,
+	bucket,
+	actorId,
+	allowed = true,
+	deny,
+	respond,
+	respondComponents,
+	defer
+}: RoleListContext) {
 	if (!guildId) {
 		logger.warn('Role list denied (no guild)', { bucket, actorId, allowed });
 		return deny('This command can only be used inside a server.');

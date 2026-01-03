@@ -35,7 +35,7 @@ function mergeMeta(subsystem: string, meta?: Record<string, unknown>) {
  * Creates a scoped logger for a specific subsystem
  * - Automatically prefixes messages with subsystem name
  * - Tags all logs with subsystem metadata for filtering and context
- * 
+ *
  * @param subsystem - Identifier for the subsystem (e.g., 'AutomodService', 'SupportThreads')
  * @returns Logger instance with subsystem context
  */

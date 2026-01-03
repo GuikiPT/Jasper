@@ -50,7 +50,7 @@ export class GuildRoleSettingsService extends BaseBucketSettingsService<GuildRol
 	 * Gets or creates role settings for a guild
 	 * - Creates blank settings if they don't exist
 	 * - Ensures parent guild settings exist first
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Role settings for the guild
 	 */
@@ -71,7 +71,7 @@ export class GuildRoleSettingsService extends BaseBucketSettingsService<GuildRol
 
 	/**
 	 * Gets role settings for a guild without creating them
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Role settings or null if not found
 	 */
@@ -85,7 +85,7 @@ export class GuildRoleSettingsService extends BaseBucketSettingsService<GuildRol
 
 	/**
 	 * Lists all role IDs in a bucket
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param bucket Bucket key name
 	 * @returns Array of role IDs
@@ -98,7 +98,7 @@ export class GuildRoleSettingsService extends BaseBucketSettingsService<GuildRol
 	/**
 	 * Adds a role to a bucket
 	 * - Prevents duplicates
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param bucket Bucket key name
 	 * @param roleId Role ID to add
@@ -131,7 +131,7 @@ export class GuildRoleSettingsService extends BaseBucketSettingsService<GuildRol
 	/**
 	 * Removes a role from a bucket
 	 * - No-op if role not in bucket
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param bucket Bucket key name
 	 * @param roleId Role ID to remove
@@ -164,7 +164,7 @@ export class GuildRoleSettingsService extends BaseBucketSettingsService<GuildRol
 	/**
 	 * Replaces entire bucket contents with new role list
 	 * - Removes duplicates automatically
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param bucket Bucket key name
 	 * @param roles Role IDs to set
@@ -190,7 +190,7 @@ export class GuildRoleSettingsService extends BaseBucketSettingsService<GuildRol
 	 * Gets all role buckets for a guild
 	 * - Returns all buckets in a single object
 	 * - Reduces database round-trips for bulk access
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Object mapping bucket keys to role ID arrays
 	 */
@@ -211,7 +211,7 @@ export class GuildRoleSettingsService extends BaseBucketSettingsService<GuildRol
 
 	/**
 	 * Creates blank role settings with empty buckets
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Settings object with empty JSON arrays
 	 */

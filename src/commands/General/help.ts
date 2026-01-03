@@ -18,28 +18,27 @@ import {
 } from 'discord.js';
 import { createErrorTextComponent } from '../../lib/components.js';
 
-
 // Interactive /help command with autocomplete-backed command lookup
 type DetailedDescriptionMetadata =
 	| string
 	| {
-		summary?: string;
-		chatInputUsage?: string;
-		messageUsage?: string;
-		examples?: string[];
-		notes?: string[];
-		subcommands?: Array<{
-			group?: string;
-			name: string;
-			description?: string;
+			summary?: string;
 			chatInputUsage?: string;
 			messageUsage?: string;
 			examples?: string[];
 			notes?: string[];
-			aliases?: string[];
-			keywords?: string[];
-		}>;
-	};
+			subcommands?: Array<{
+				group?: string;
+				name: string;
+				description?: string;
+				chatInputUsage?: string;
+				messageUsage?: string;
+				examples?: string[];
+				notes?: string[];
+				aliases?: string[];
+				keywords?: string[];
+			}>;
+	  };
 
 interface NormalisedSubcommandMetadata {
 	group?: string;
@@ -102,13 +101,7 @@ interface HelpReplyPayload {
 		{
 			name: 'AllowedGuildRoleBuckets',
 			context: {
-				buckets: [
-					'allowedAdminRoles',
-					'allowedStaffRoles',
-					'allowedTagAdminRoles',
-					'allowedTagRoles',
-					'supportRoles'
-				] as const,
+				buckets: ['allowedAdminRoles', 'allowedStaffRoles', 'allowedTagAdminRoles', 'allowedTagRoles', 'supportRoles'] as const,
 				allowManageGuild: false,
 				errorMessage: 'You need an allowed tag role, staff role, or admin role to use this command.'
 			}
@@ -221,10 +214,10 @@ export class HelpCommand extends Command {
 
 			const emptyFallback = !query
 				? entries
-					.filter((entry) => entry.type === 'command')
-					.sort((a, b) => a.commandName.localeCompare(b.commandName))
-					.slice(0, this.maxAutocompleteResults)
-					.map((entry) => ({ entry, score: 1 }))
+						.filter((entry) => entry.type === 'command')
+						.sort((a, b) => a.commandName.localeCompare(b.commandName))
+						.slice(0, this.maxAutocompleteResults)
+						.map((entry) => ({ entry, score: 1 }))
 				: [];
 
 			const collection = scored.length > 0 ? scored : emptyFallback;
@@ -278,7 +271,6 @@ export class HelpCommand extends Command {
 					? this.createNotFoundResponse({ query: normalizedQuery, mode: 'slash', prefix })
 					: this.createOverviewResponse(entries, prefix, { ephemeral: isEphemeral });
 
-
 			const reply = await interaction.reply({
 				components: [response.component],
 				flags: response.flags
@@ -327,7 +319,6 @@ export class HelpCommand extends Command {
 				: normalizedQuery
 					? this.createNotFoundResponse({ query: normalizedQuery, mode: 'message', prefix })
 					: this.createOverviewResponse(entries, prefix, { ephemeral: false });
-
 
 			const reply = await message.reply({
 				components: [response.component],
@@ -459,33 +450,33 @@ export class HelpCommand extends Command {
 
 		const subcommands: NormalisedSubcommandMetadata[] = Array.isArray(details.subcommands)
 			? details.subcommands.flatMap((entry) => {
-				if (!entry || typeof entry !== 'object') return [];
-				if (typeof entry.name !== 'string') return [];
-				const group = typeof entry.group === 'string' ? entry.group : undefined;
-				const description = typeof entry.description === 'string' ? entry.description : undefined;
-				const chatUsage = typeof entry.chatInputUsage === 'string' ? entry.chatInputUsage : undefined;
-				const messageUsageLocal = typeof entry.messageUsage === 'string' ? entry.messageUsage : undefined;
-				const examplesLocal = Array.isArray(entry.examples)
-					? entry.examples.filter((item): item is string => typeof item === 'string')
-					: [];
-				const notesLocal = Array.isArray(entry.notes) ? entry.notes.filter((item): item is string => typeof item === 'string') : [];
-				const aliases = Array.isArray(entry.aliases) ? entry.aliases.filter((item): item is string => typeof item === 'string') : [];
-				const keywords = Array.isArray(entry.keywords) ? entry.keywords.filter((item): item is string => typeof item === 'string') : [];
+					if (!entry || typeof entry !== 'object') return [];
+					if (typeof entry.name !== 'string') return [];
+					const group = typeof entry.group === 'string' ? entry.group : undefined;
+					const description = typeof entry.description === 'string' ? entry.description : undefined;
+					const chatUsage = typeof entry.chatInputUsage === 'string' ? entry.chatInputUsage : undefined;
+					const messageUsageLocal = typeof entry.messageUsage === 'string' ? entry.messageUsage : undefined;
+					const examplesLocal = Array.isArray(entry.examples)
+						? entry.examples.filter((item): item is string => typeof item === 'string')
+						: [];
+					const notesLocal = Array.isArray(entry.notes) ? entry.notes.filter((item): item is string => typeof item === 'string') : [];
+					const aliases = Array.isArray(entry.aliases) ? entry.aliases.filter((item): item is string => typeof item === 'string') : [];
+					const keywords = Array.isArray(entry.keywords) ? entry.keywords.filter((item): item is string => typeof item === 'string') : [];
 
-				const normalised: NormalisedSubcommandMetadata = {
-					group,
-					name: entry.name,
-					description,
-					chatInputUsage: chatUsage,
-					messageUsage: messageUsageLocal,
-					examples: examplesLocal,
-					notes: notesLocal,
-					aliases,
-					keywords
-				};
+					const normalised: NormalisedSubcommandMetadata = {
+						group,
+						name: entry.name,
+						description,
+						chatInputUsage: chatUsage,
+						messageUsage: messageUsageLocal,
+						examples: examplesLocal,
+						notes: notesLocal,
+						aliases,
+						keywords
+					};
 
-				return [normalised];
-			})
+					return [normalised];
+				})
 			: [];
 
 		return { summary, chatInputUsage, messageUsage, examples, notes, subcommands };
@@ -783,5 +774,4 @@ export class HelpCommand extends Command {
 		}
 		return { component, flags };
 	}
-
 }

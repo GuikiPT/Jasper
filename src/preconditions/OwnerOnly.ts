@@ -71,7 +71,7 @@ export class UserPrecondition extends AllFlowsPrecondition {
 
 	/**
 	 * Checks if user ID is in the owners list
-	 * 
+	 *
 	 * @param userId User ID to check
 	 * @returns Success if user is owner, error otherwise
 	 */

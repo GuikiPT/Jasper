@@ -1,17 +1,18 @@
 // Clean inactive threads DB subcommand
-import { MessageFlags, type ChatInputCommandInteraction } from 'discord.js';
+import { MessageFlags } from 'discord.js';
 import type { Subcommand } from '@sapphire/plugin-subcommands';
 
 export type SupportCleanInteraction = Subcommand.ChatInputCommandInteraction;
+export type SupportCommand = Subcommand;
 
-export async function chatInputSupportCleanInactiveThreads(interaction: SupportCleanInteraction) {
+export async function chatInputSupportCleanInactiveThreads(command: SupportCommand, interaction: SupportCleanInteraction) {
 	if (!interaction.guildId) {
 		return interaction.reply({ content: 'This command can only be used in a server.', flags: MessageFlags.Ephemeral });
 	}
 
-	const monitor = interaction.container.supportThreadMonitor;
+	const monitor = command.container.supportThreadMonitor;
 	if (!monitor) {
-		interaction.container.logger.error('[SupportCleanInactiveThreads] SupportThreadMonitor is not available');
+		command.container.logger.error('[SupportCleanInactiveThreads] SupportThreadMonitor is not available');
 		return interaction.reply({ content: 'Support monitoring is unavailable right now.', flags: MessageFlags.Ephemeral });
 	}
 
@@ -20,7 +21,7 @@ export async function chatInputSupportCleanInactiveThreads(interaction: SupportC
 	await interaction.deferReply({ ephemeral, flags: replyFlags });
 
 	const started = Date.now();
-	const db = interaction.container.database;
+	const db = command.container.database;
 	const preCount = await db.supportThread.count();
 
 	try {
@@ -38,7 +39,7 @@ export async function chatInputSupportCleanInactiveThreads(interaction: SupportC
 
 		return interaction.editReply(message);
 	} catch (error) {
-		interaction.container.logger.error('[SupportCleanInactiveThreads] Failed to prune stale records', error, {
+		command.container.logger.error('[SupportCleanInactiveThreads] Failed to prune stale records', error, {
 			guildId: interaction.guildId,
 			userId: interaction.user.id,
 			interactionId: interaction.id

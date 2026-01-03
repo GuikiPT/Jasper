@@ -13,7 +13,10 @@ import type {
 // Lightweight rate limiter to respect VirusTotal public limits
 class RateLimiter {
 	private requests: number[] = [];
-	constructor(private readonly maxRequests = VIRUSTOTAL_CONFIG.API.RATE_LIMITS.PUBLIC.REQUESTS_PER_MINUTE, private readonly windowMs = 60000) { }
+	constructor(
+		private readonly maxRequests = VIRUSTOTAL_CONFIG.API.RATE_LIMITS.PUBLIC.REQUESTS_PER_MINUTE,
+		private readonly windowMs = 60000
+	) {}
 
 	async wait(): Promise<void> {
 		const now = Date.now();

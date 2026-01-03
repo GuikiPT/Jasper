@@ -51,11 +51,7 @@ export function parseJsonStringArray(value: string | null | undefined): string[]
 }
 
 export function logSuccessCommand(
-	payload:
-		| ContextMenuCommandSuccessPayload
-		| ChatInputCommandSuccessPayload
-		| ChatInputCommandAcceptedPayload
-		| MessageCommandSuccessPayload,
+	payload: ContextMenuCommandSuccessPayload | ChatInputCommandSuccessPayload | ChatInputCommandAcceptedPayload | MessageCommandSuccessPayload,
 	stage: 'accepted' | 'success' = 'success'
 ): void {
 	if ('interaction' in payload) {
@@ -136,16 +132,26 @@ function getSubcommandPath(options: unknown): string | null {
 }
 
 function resolveInteractionKind(interaction: unknown) {
-	if (interaction && typeof interaction === 'object' && 'isChatInputCommand' in interaction && typeof (interaction as any).isChatInputCommand === 'function') {
+	if (
+		interaction &&
+		typeof interaction === 'object' &&
+		'isChatInputCommand' in interaction &&
+		typeof (interaction as any).isChatInputCommand === 'function'
+	) {
 		try {
 			if ((interaction as any).isChatInputCommand()) return 'chatInput';
-		} catch { }
+		} catch {}
 	}
 
-	if (interaction && typeof interaction === 'object' && 'isContextMenuCommand' in interaction && typeof (interaction as any).isContextMenuCommand === 'function') {
+	if (
+		interaction &&
+		typeof interaction === 'object' &&
+		'isContextMenuCommand' in interaction &&
+		typeof (interaction as any).isContextMenuCommand === 'function'
+	) {
 		try {
 			if ((interaction as any).isContextMenuCommand()) return 'contextMenu';
-		} catch { }
+		} catch {}
 	}
 
 	return 'interaction';

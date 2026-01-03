@@ -101,7 +101,7 @@ export class AllowedGuildRoleBucketsPrecondition extends AllFlowsPrecondition {
 	 * - Checks Manage Server permission (if enabled)
 	 * - Verifies role membership across buckets
 	 * - Logs all access attempts
-	 * 
+	 *
 	 * @param guildId Guild ID or null for DMs
 	 * @param member Member object or null
 	 * @param hasManageGuild Whether member has Manage Server permission
@@ -264,7 +264,7 @@ export class AllowedGuildRoleBucketsPrecondition extends AllFlowsPrecondition {
 	 * Fetches allowed roles from multiple buckets
 	 * - Aggregates roles from all specified buckets
 	 * - Deduplicates role IDs
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param buckets Role bucket keys to fetch
 	 * @returns Array of unique role IDs

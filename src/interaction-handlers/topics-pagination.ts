@@ -130,8 +130,7 @@ export class TopicListPaginationHandler extends InteractionHandler {
 			});
 
 			return reply;
-		}
-		catch (error) {
+		} catch (error) {
 			this.container.logger.error('Failed to process topic list pagination interaction', error, {
 				guildId: interaction.guildId ?? 'dm',
 				userId: interaction.user.id

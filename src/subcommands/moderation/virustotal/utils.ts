@@ -64,9 +64,9 @@ export function createProgressComponents(
 			.addTextDisplayComponents(
 				new TextDisplayBuilder().setContent(
 					`🔍 **${title}**\n\n` +
-					resourceInfo +
-					`\n\n${isExisting ? '📋 **Using existing analysis...** Resource already scanned.' : '⏳ **Scanning in progress...** Please wait while we analyze the resource.'}\n\n` +
-					`Expected completion: <t:${expectedCompletion}:R>`
+						resourceInfo +
+						`\n\n${isExisting ? '📋 **Using existing analysis...** Resource already scanned.' : '⏳ **Scanning in progress...** Please wait while we analyze the resource.'}\n\n` +
+						`Expected completion: <t:${expectedCompletion}:R>`
 				)
 			)
 			.addMediaGalleryComponents(

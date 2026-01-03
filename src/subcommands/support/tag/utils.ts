@@ -76,11 +76,7 @@ type SupportRoleAwareInteraction = {
 
 // Process escape sequences in tag content (e.g., \n to actual newlines)
 const processTagContent = (content: string): string => {
-	return content
-		.replace(/\\n/g, '\n')
-		.replace(/\\t/g, '\t')
-		.replace(/\\r/g, '\r')
-		.replace(/\\\\/g, '\\');
+	return content.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\r/g, '\r').replace(/\\\\/g, '\\');
 };
 
 // Build legacy embed format for tag (deprecated)

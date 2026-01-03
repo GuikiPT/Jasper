@@ -16,7 +16,7 @@ export class GuildSlowmodeSettingsService {
 	public constructor(
 		private readonly database: PrismaClient,
 		private readonly guildSettingsService: GuildSettingsService
-	) { }
+	) {}
 
 	// ============================================================
 	// Settings Management
@@ -26,7 +26,7 @@ export class GuildSlowmodeSettingsService {
 	 * Gets or creates slowmode settings for a guild
 	 * - Creates settings with default values if they don't exist
 	 * - Ensures parent guild settings exist first
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Slowmode settings for the guild
 	 */
@@ -46,7 +46,7 @@ export class GuildSlowmodeSettingsService {
 
 	/**
 	 * Gets slowmode settings for a guild without creating them
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Slowmode settings or null if not found
 	 */
@@ -58,7 +58,7 @@ export class GuildSlowmodeSettingsService {
 	 * Updates slowmode settings for a guild
 	 * - Creates settings if they don't exist
 	 * - Only updates provided fields
-	 * 
+	 *
 	 * Updatable fields:
 	 * - enabled: Whether automatic slowmode is active
 	 * - messageThreshold: Number of messages to trigger slowmode
@@ -66,7 +66,7 @@ export class GuildSlowmodeSettingsService {
 	 * - cooldownDuration: Slowmode cooldown in seconds
 	 * - resetTime: Time in seconds before slowmode resets
 	 * - maxSlowmode: Maximum slowmode duration allowed
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param updates Partial settings to update
 	 * @returns Updated slowmode settings

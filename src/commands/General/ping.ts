@@ -17,7 +17,6 @@ import {
 	MessageFlags
 } from 'discord.js';
 
-
 // Diagnostic command to measure Discord API and websocket latency
 @ApplyOptions<Command.Options>({
 	name: 'ping',
@@ -38,13 +37,7 @@ import {
 		{
 			name: 'AllowedGuildRoleBuckets',
 			context: {
-				buckets: [
-					'allowedAdminRoles',
-					'allowedStaffRoles',
-					'allowedTagAdminRoles',
-					'allowedTagRoles',
-					'supportRoles'
-				] as const,
+				buckets: ['allowedAdminRoles', 'allowedStaffRoles', 'allowedTagAdminRoles', 'allowedTagRoles', 'supportRoles'] as const,
 				allowManageGuild: false,
 				errorMessage: 'You need an allowed tag role, staff role, or admin role to use this command.'
 			}
@@ -65,7 +58,6 @@ export class UserCommand extends Command {
 		InteractionContextType.PrivateChannel
 	];
 
-
 	// Registers the /ping slash command with Discord API including ephemeral option
 	public override registerApplicationCommands(registry: Command.Registry) {
 		registry.registerChatInputCommand((builder: SlashCommandBuilder) =>
@@ -79,7 +71,6 @@ export class UserCommand extends Command {
 				)
 		);
 	}
-
 
 	// Handles command execution: defers reply, calculates latency, and sends Components v2 UI
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
@@ -101,7 +92,6 @@ export class UserCommand extends Command {
 				}
 			}
 		}
-
 
 		try {
 			// Calculate round-trip latency from command creation to now
@@ -129,14 +119,15 @@ export class UserCommand extends Command {
 				});
 			} catch (replyError) {
 				this.logPingError('Failed to send ping error fallback', interaction, replyError);
-				return interaction.followUp({
-					content: 'I could not send the latency result because of an unexpected error.',
-					flags: MessageFlags.Ephemeral
-				}).catch(() => undefined);
+				return interaction
+					.followUp({
+						content: 'I could not send the latency result because of an unexpected error.',
+						flags: MessageFlags.Ephemeral
+					})
+					.catch(() => undefined);
 			}
 		}
 	}
-
 
 	private logPingError(stage: string, interaction: Command.ChatInputCommandInteraction, error: unknown) {
 		this.container.logger.error(`[Ping] ${stage}`, error, {
@@ -146,10 +137,8 @@ export class UserCommand extends Command {
 		});
 	}
 
-
 	// Builds Components v2 UI with websocket and API latency metrics plus Discord status link
 	private buildLatencyComponents(latency: number, websocketPing: number): ContainerBuilder[] {
-
 		// Create container with latency displays, separator, and status page link button
 		return [
 			new ContainerBuilder()

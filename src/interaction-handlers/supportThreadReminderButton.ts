@@ -97,7 +97,7 @@ export class SupportThreadReminderButtonHandler extends InteractionHandler {
 			// Validate thread is in configured support forum
 			if (!thread.parent || thread.parent.id !== settings.supportForumChannelId) {
 				return interaction.reply({
-					content: 'This component isn\'t associated with a valid support thread.',
+					content: "This component isn't associated with a valid support thread.",
 					flags: MessageFlags.Ephemeral
 				});
 			}
@@ -106,7 +106,7 @@ export class SupportThreadReminderButtonHandler extends InteractionHandler {
 			const ownerId = await this.resolveThreadOwnerId(thread);
 			if (!ownerId) {
 				return interaction.reply({
-					content: 'I couldn\'t determine who created this thread.',
+					content: "I couldn't determine who created this thread.",
 					flags: MessageFlags.Ephemeral
 				});
 			}
@@ -131,7 +131,7 @@ export class SupportThreadReminderButtonHandler extends InteractionHandler {
 				action: data.action
 			});
 			return interaction.reply({
-				content: 'I couldn\'t process your request. Please try again shortly.',
+				content: "I couldn't process your request. Please try again shortly.",
 				flags: MessageFlags.Ephemeral
 			});
 		}
@@ -165,7 +165,7 @@ export class SupportThreadReminderButtonHandler extends InteractionHandler {
 				threadId: thread.id
 			});
 			return interaction.reply({
-				content: 'I couldn\'t update the thread. Please try again shortly.',
+				content: "I couldn't update the thread. Please try again shortly.",
 				flags: MessageFlags.Ephemeral
 			});
 		}
@@ -201,7 +201,7 @@ export class SupportThreadReminderButtonHandler extends InteractionHandler {
 				threadId
 			});
 			return interaction.reply({
-				content: 'I couldn\'t open the close modal. Please try again shortly.',
+				content: "I couldn't open the close modal. Please try again shortly.",
 				flags: MessageFlags.Ephemeral
 			});
 		}
@@ -239,7 +239,7 @@ export class SupportThreadReminderButtonHandler extends InteractionHandler {
 	private buildAcknowledgedComponent(userId: string): ContainerBuilder {
 		const container = new ContainerBuilder();
 		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`✅ Thread kept open by <@${userId}>.`));
-		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('We\'ll notify you again if we detect another period of inactivity.'));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent("We'll notify you again if we detect another period of inactivity."));
 		return container;
 	}
 

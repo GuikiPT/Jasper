@@ -98,7 +98,11 @@ export async function executeSlowmodeView({ command, guildId, respond, respondCo
 	const channelService = command.container.guildChannelSettingsService;
 
 	if (!slowmodeService || !channelService) {
-		logger.error('Slowmode view services unavailable', { guildId, slowmodeService: Boolean(slowmodeService), channelService: Boolean(channelService) });
+		logger.error('Slowmode view services unavailable', {
+			guildId,
+			slowmodeService: Boolean(slowmodeService),
+			channelService: Boolean(channelService)
+		});
 		return respond('Slowmode settings are not available right now.');
 	}
 
@@ -176,7 +180,11 @@ export async function executeSlowmodeUpdate({ command, guildId, updates, respond
 	const channelService = command.container.guildChannelSettingsService;
 
 	if (!slowmodeService || !channelService) {
-		logger.error('Slowmode update services unavailable', { guildId, slowmodeService: Boolean(slowmodeService), channelService: Boolean(channelService) });
+		logger.error('Slowmode update services unavailable', {
+			guildId,
+			slowmodeService: Boolean(slowmodeService),
+			channelService: Boolean(channelService)
+		});
 		return respond('Slowmode settings are not available right now.');
 	}
 

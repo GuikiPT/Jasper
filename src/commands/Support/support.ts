@@ -9,10 +9,7 @@ import {
 	type SlashCommandBooleanOption,
 	type SlashCommandSubcommandBuilder
 } from 'discord.js';
-import {
-	chatInputSupportCleanInactiveThreads,
-	type SupportCleanInteraction
-} from '../../subcommands/support/maintenance/clean-inactive-threads-db';
+import { chatInputSupportCleanInactiveThreads, type SupportCleanInteraction } from '../../subcommands/support/maintenance/clean-inactive-threads-db';
 
 @ApplyOptions<Subcommand.Options>({
 	name: 'support',
@@ -73,10 +70,7 @@ export class SupportCommand extends Subcommand {
 						.setName('clean-inactive-threads-db')
 						.setDescription('Prune stale support thread tracking records (inactive/resolved/deleted).')
 						.addBooleanOption((option: SlashCommandBooleanOption) =>
-							option
-								.setName('ephemeral')
-								.setDescription('Reply privately (default: on)')
-								.setRequired(false)
+							option.setName('ephemeral').setDescription('Reply privately (default: on)').setRequired(false)
 						)
 				)
 		);
@@ -88,7 +82,7 @@ export class SupportCommand extends Subcommand {
 
 	public async chatInputSupportCleanInactiveThreads(interaction: SupportCleanInteraction) {
 		try {
-			const result = await chatInputSupportCleanInactiveThreads(interaction);
+			const result = await chatInputSupportCleanInactiveThreads(this, interaction);
 			this.logSuccess(interaction, 'support clean-inactive-threads-db');
 			return result;
 		} catch (error) {

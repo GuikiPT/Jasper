@@ -134,15 +134,14 @@ export class SupportTagListPaginationHandler extends InteractionHandler {
 			});
 
 			return reply;
-		}
-		catch (error) {
+		} catch (error) {
 			this.container.logger.error('Failed to process support tag list pagination interaction', error, {
 				guildId: interaction.guildId ?? 'dm',
 				userId: interaction.user.id,
 				customId: interaction.customId
 			});
 			return interaction.reply({
-				content: 'I couldn\'t update the tag list. Please try again shortly.',
+				content: "I couldn't update the tag list. Please try again shortly.",
 				flags: MessageFlags.Ephemeral
 			});
 		}

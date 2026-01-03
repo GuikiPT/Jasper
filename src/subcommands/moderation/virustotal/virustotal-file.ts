@@ -182,13 +182,7 @@ async function showProgress(
 }
 
 // Upload file to VirusTotal
-async function uploadFile(
-	fileBuffer: Buffer,
-	filename: string,
-	uploadUrl: string,
-	fileSizeMB: number,
-	sha256: string
-): Promise<string> {
+async function uploadFile(fileBuffer: Buffer, filename: string, uploadUrl: string, fileSizeMB: number, sha256: string): Promise<string> {
 	try {
 		const formData = createSecureFormData(fileBuffer, filename);
 
@@ -220,17 +214,12 @@ async function uploadFile(
 
 // Wait for analysis to complete based on upload status
 async function waitForAnalysis(skipUpload: boolean): Promise<void> {
-	const waitTime = skipUpload
-		? VIRUSTOTAL_CONFIG.TIMING.ANALYSIS_WAIT_EXISTING_MS
-		: VIRUSTOTAL_CONFIG.TIMING.ANALYSIS_WAIT_NEW_MS;
+	const waitTime = skipUpload ? VIRUSTOTAL_CONFIG.TIMING.ANALYSIS_WAIT_EXISTING_MS : VIRUSTOTAL_CONFIG.TIMING.ANALYSIS_WAIT_NEW_MS;
 	await new Promise((resolve) => setTimeout(resolve, waitTime));
 }
 
 // Fetch analysis results from VirusTotal
-async function fetchAnalysisResults(
-	analysisId: string,
-	skipUpload: boolean
-): Promise<VirusTotalApiResponse<VirusTotalFileAttributes>> {
+async function fetchAnalysisResults(analysisId: string, skipUpload: boolean): Promise<VirusTotalApiResponse<VirusTotalFileAttributes>> {
 	if (skipUpload) {
 		// File already existed, fetch directly
 		return makeVirusTotalRequest<VirusTotalApiResponse<VirusTotalFileAttributes>>({
@@ -270,9 +259,7 @@ async function sendAnalysisReport(
 	const results = attributes.last_analysis_results;
 	const status = getSecurityStatus(stats);
 
-	const lastAnalysisDate = attributes.last_analysis_date
-		? new Date(attributes.last_analysis_date * 1000).toLocaleDateString()
-		: 'Unknown';
+	const lastAnalysisDate = attributes.last_analysis_date ? new Date(attributes.last_analysis_date * 1000).toLocaleDateString() : 'Unknown';
 
 	// Create detailed text report
 	const detailedReport = createDetailedReport(

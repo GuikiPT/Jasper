@@ -11,7 +11,7 @@ import { createSubsystemLogger } from '../lib/subsystemLogger';
 export class GuildSettingsService {
 	private readonly logger = createSubsystemLogger('GuildSettingsService');
 
-	public constructor(private readonly database: PrismaClient) { }
+	public constructor(private readonly database: PrismaClient) {}
 
 	// ============================================================
 	// Guild Management
@@ -22,7 +22,7 @@ export class GuildSettingsService {
 	 * - Creates record if it doesn't exist
 	 * - Returns existing record if found
 	 * - Used by other services to ensure parent record exists
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Guild settings record
 	 */
@@ -39,7 +39,7 @@ export class GuildSettingsService {
 
 	/**
 	 * Retrieves guild settings without creating them
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Guild settings or null if not found
 	 */
@@ -55,7 +55,7 @@ export class GuildSettingsService {
 	 * Gets the custom prefix for a guild
 	 * - Returns null if no custom prefix is set
 	 * - Falls back to default Sapphire prefix when null
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Custom prefix or null
 	 */
@@ -68,7 +68,7 @@ export class GuildSettingsService {
 	 * Sets a custom prefix for a guild
 	 * - Creates guild record if it doesn't exist
 	 * - Updates existing record if found
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param prefix Custom prefix to set
 	 */
@@ -86,7 +86,7 @@ export class GuildSettingsService {
 	 * Clears the custom prefix for a guild
 	 * - Sets prefix to null
 	 * - Bot will use default Sapphire prefix
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 */
 	public async clearPrefix(guildId: string): Promise<void> {

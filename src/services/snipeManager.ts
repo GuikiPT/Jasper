@@ -92,7 +92,7 @@ export class SnipeManager {
 	 * - Verifies author doesn't have ignored roles
 	 * - Filters out bot messages and commands
 	 * - Stores message for snipe command
-	 * 
+	 *
 	 * @param message Deleted message (may be partial)
 	 */
 	public async handleMessageDelete(message: Message | PartialMessage) {
@@ -174,7 +174,7 @@ export class SnipeManager {
 	 * Retrieves the last deleted message for a channel
 	 * - Returns null if no message or expired
 	 * - Automatically removes expired messages
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param channelId Channel ID
 	 * @returns Sniped message or null
@@ -206,7 +206,7 @@ export class SnipeManager {
 	 * Marks a message ID to be ignored when deleted
 	 * - Used to prevent snipe of command invocations
 	 * - Automatically expires after TTL
-	 * 
+	 *
 	 * @param messageId Message ID to ignore
 	 * @param ttl Time to live in milliseconds (default: 60s)
 	 */
@@ -223,7 +223,7 @@ export class SnipeManager {
 	/**
 	 * Checks if user has permission to use snipe command
 	 * - Requires staff or admin roles
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param member Member to check
 	 * @returns True if member can use snipe
@@ -251,7 +251,7 @@ export class SnipeManager {
 
 	/**
 	 * Checks if channel is in the allowed snipe channels list
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param channelId Channel ID
 	 * @returns True if channel allows snipe
@@ -275,7 +275,7 @@ export class SnipeManager {
 	/**
 	 * Checks if member has any ignored snipe roles
 	 * - Members with these roles won't have their messages sniped
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param member Member to check
 	 * @returns True if member has ignored role
@@ -304,7 +304,7 @@ export class SnipeManager {
 	 * Builds a SnipedMessage object from Discord Message
 	 * - Extracts author, channel, and guild information
 	 * - Preserves attachments and embeds
-	 * 
+	 *
 	 * @param message Discord message
 	 * @returns Sniped message object
 	 */
@@ -327,18 +327,20 @@ export class SnipeManager {
 				id: message.guild!.id,
 				name: message.guild!.name
 			},
-			attachments: message.attachments?.map((att) => ({
-				id: att.id,
-				name: att.name,
-				url: att.url,
-				proxyURL: att.proxyURL,
-				size: att.size
-			})) || [],
-			embeds: message.embeds?.map((embed) => ({
-				title: embed.title || undefined,
-				description: embed.description || undefined,
-				url: embed.url || undefined
-			})) || [],
+			attachments:
+				message.attachments?.map((att) => ({
+					id: att.id,
+					name: att.name,
+					url: att.url,
+					proxyURL: att.proxyURL,
+					size: att.size
+				})) || [],
+			embeds:
+				message.embeds?.map((embed) => ({
+					title: embed.title || undefined,
+					description: embed.description || undefined,
+					url: embed.url || undefined
+				})) || [],
 			deletedAt: new Date(),
 			createdAt: message.createdAt || new Date()
 		};

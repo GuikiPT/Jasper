@@ -45,7 +45,7 @@ export class AllowedStaffRolesPrecondition extends AllFlowsPrecondition {
 	 * - Validates guild context
 	 * - Verifies staff role membership
 	 * - No permission-based bypass
-	 * 
+	 *
 	 * @param guildId Guild ID or null for DMs
 	 * @param member Member object or null
 	 * @param silentOnFail Whether to suppress error messages
@@ -103,7 +103,7 @@ export class AllowedStaffRolesPrecondition extends AllFlowsPrecondition {
 
 	/**
 	 * Creates user-friendly error message explaining access requirements
-	 * 
+	 *
 	 * @param allowedRoles List of configured staff roles
 	 * @returns Error message string
 	 */
@@ -117,7 +117,7 @@ export class AllowedStaffRolesPrecondition extends AllFlowsPrecondition {
 
 	/**
 	 * Fetches configured staff roles from database
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Array of role IDs or empty array on error
 	 */
@@ -140,7 +140,7 @@ export class AllowedStaffRolesPrecondition extends AllFlowsPrecondition {
 	 * Checks if member has any of the allowed roles
 	 * - Handles both API and GuildMember types
 	 * - Supports array and cache-based role storage
-	 * 
+	 *
 	 * @param member Member to check
 	 * @param allowedRoles List of allowed role IDs
 	 * @returns True if member has at least one allowed role

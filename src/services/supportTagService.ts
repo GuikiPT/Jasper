@@ -84,7 +84,7 @@ const isDuplicateError = (error: unknown): error is Prisma.PrismaClientKnownRequ
 export class SupportTagService {
 	private readonly logger = createSubsystemLogger('SupportTagService');
 
-	public constructor(private readonly database: PrismaClient) { }
+	public constructor(private readonly database: PrismaClient) {}
 
 	// ============================================================
 	// Tag Retrieval
@@ -93,7 +93,7 @@ export class SupportTagService {
 	/**
 	 * Finds a tag by name in a guild
 	 * - Case-sensitive lookup
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param name Tag name
 	 * @returns Tag or null if not found
@@ -114,7 +114,7 @@ export class SupportTagService {
 
 	/**
 	 * Finds a tag by ID
-	 * 
+	 *
 	 * @param id Tag ID
 	 * @returns Tag or null if not found
 	 */
@@ -133,7 +133,7 @@ export class SupportTagService {
 	/**
 	 * Lists all tags for a guild
 	 * - Sorted alphabetically by name
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Array of all tags
 	 */
@@ -153,7 +153,7 @@ export class SupportTagService {
 	/**
 	 * Retrieves tags with pagination
 	 * - Sorted alphabetically by name
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param skip Number of tags to skip
 	 * @param take Number of tags to fetch
@@ -178,7 +178,7 @@ export class SupportTagService {
 	 * Searches tags by name substring
 	 * - Case-insensitive search
 	 * - Returns up to limit results
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param query Search query
 	 * @param limit Maximum results to return
@@ -204,7 +204,7 @@ export class SupportTagService {
 	/**
 	 * Creates a new tag
 	 * - Validates name uniqueness within guild
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param data Tag data
 	 * @returns Created tag
@@ -246,7 +246,7 @@ export class SupportTagService {
 	 * Updates an existing tag
 	 * - Updates only provided fields
 	 * - Validates name uniqueness if name is changed
-	 * 
+	 *
 	 * @param tagId Tag ID
 	 * @param data Partial tag data to update
 	 * @returns Updated tag
@@ -288,7 +288,7 @@ export class SupportTagService {
 
 	/**
 	 * Deletes a tag by ID
-	 * 
+	 *
 	 * @param tagId Tag ID
 	 */
 	public async deleteTag(tagId: number): Promise<void> {
@@ -302,7 +302,7 @@ export class SupportTagService {
 
 	/**
 	 * Deletes all tags for a guild
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Number of tags deleted
 	 */
@@ -325,7 +325,7 @@ export class SupportTagService {
 	 * - Optionally overwrites existing tags
 	 * - Creates new tags or updates existing ones
 	 * - Runs in transaction for atomicity
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param entries Array of normalized tag entries
 	 * @param options Import options (overwrite, actorId)
@@ -351,8 +351,8 @@ export class SupportTagService {
 					const existing = options.overwrite
 						? null
 						: await tx.guildSupportTagSettings.findFirst({
-							where: { guildId, name: entry.name }
-						});
+								where: { guildId, name: entry.name }
+							});
 
 					// Create new tag if doesn't exist
 					if (!existing) {

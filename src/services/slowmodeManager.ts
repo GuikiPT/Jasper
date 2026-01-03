@@ -69,7 +69,7 @@ export class SlowmodeManager {
 	public constructor(
 		private readonly client: SapphireClient,
 		private readonly database: PrismaClient
-	) { }
+	) {}
 
 	// ============================================================
 	// Message Handling
@@ -80,7 +80,7 @@ export class SlowmodeManager {
 	 * - Tracks message timestamps within configured window
 	 * - Applies or upgrades slowmode when threshold exceeded
 	 * - Respects cooldown periods between updates
-	 * 
+	 *
 	 * @param message Discord message
 	 */
 	public async handleMessage(message: Message) {
@@ -264,7 +264,7 @@ export class SlowmodeManager {
 	 * Handles manual settings updates
 	 * - Refreshes configuration from database
 	 * - Applies changes to all managed channels
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 */
 	public async handleSettingsUpdated(guildId: string) {
@@ -287,7 +287,7 @@ export class SlowmodeManager {
 	/**
 	 * Schedules a slowmode reset after inactivity
 	 * - Cancels previous timer if exists
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param channelId Channel ID
 	 * @param resetTime Reset delay in seconds
@@ -306,7 +306,7 @@ export class SlowmodeManager {
 	 * Resets slowmode to minimum after inactivity
 	 * - Clears activity tracking state
 	 * - Optionally prunes channel state from memory
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param channelId Channel ID
 	 * @param options Reset options
@@ -398,7 +398,7 @@ export class SlowmodeManager {
 	 * Calculates slowmode duration based on message count
 	 * - Scales with messages over threshold
 	 * - Capped at maximum configured slowmode
-	 * 
+	 *
 	 * @param messageCount Number of messages in window
 	 * @param config Slowmode configuration
 	 * @returns Slowmode duration in seconds
@@ -449,7 +449,7 @@ export class SlowmodeManager {
 
 	/**
 	 * Loads slowmode configuration from database
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Configuration or null if not found
 	 */

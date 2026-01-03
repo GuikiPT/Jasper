@@ -149,7 +149,7 @@ export class UserEvent extends Listener {
 	 * Determines if a thread is a support thread
 	 * - Checks guild context
 	 * - Verifies parent channel matches configured support forum
-	 * 
+	 *
 	 * @param thread Thread to check
 	 * @returns True if thread is in configured support forum
 	 */
@@ -196,7 +196,7 @@ export class UserEvent extends Listener {
 
 	/**
 	 * Resolves thread owner ID from thread object or API
-	 * 
+	 *
 	 * @param thread Thread to resolve owner for
 	 * @returns Owner user ID or null if unable to resolve
 	 */

@@ -28,7 +28,7 @@ export class TopicAlreadyExistsError extends Error {
 export class GuildTopicSettingsService {
 	private readonly logger = createSubsystemLogger('GuildTopicSettingsService');
 
-	public constructor(private readonly database: PrismaClient) { }
+	public constructor(private readonly database: PrismaClient) {}
 
 	// ============================================================
 	// Topic Management
@@ -37,7 +37,7 @@ export class GuildTopicSettingsService {
 	/**
 	 * Adds a new topic to a guild
 	 * - Prevents duplicates via database constraint
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param value Topic text content
 	 * @returns Created topic record
@@ -64,7 +64,7 @@ export class GuildTopicSettingsService {
 	/**
 	 * Removes a topic from a guild
 	 * - Verifies topic belongs to guild before deletion
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param topicId Topic ID to remove
 	 * @returns Deleted topic or null if not found
@@ -87,7 +87,7 @@ export class GuildTopicSettingsService {
 	/**
 	 * Lists all topics for a guild
 	 * - Ordered by ID (creation order)
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Array of topic records
 	 */
@@ -106,7 +106,7 @@ export class GuildTopicSettingsService {
 	 * Gets a random topic for a guild
 	 * - Uses database skip for randomization
 	 * - Returns null if no topics exist
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Random topic or null
 	 */
@@ -132,7 +132,7 @@ export class GuildTopicSettingsService {
 	/**
 	 * Exports all topics for a guild
 	 * - Ordered by ID for consistent export
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @returns Array of all topic records
 	 */
@@ -147,7 +147,7 @@ export class GuildTopicSettingsService {
 	 * Imports topics in bulk for a guild
 	 * - Skips duplicates automatically
 	 * - Returns count of newly created topics
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param topics Array of topic text values to import
 	 * @returns Number of topics successfully created
@@ -177,7 +177,7 @@ export class GuildTopicSettingsService {
 	/**
 	 * Fetches topics with pagination support
 	 * - Ordered by ID for consistent pagination
-	 * 
+	 *
 	 * @param guildId Guild ID
 	 * @param take Number of topics to fetch
 	 * @param skip Number of topics to skip
