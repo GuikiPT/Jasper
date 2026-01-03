@@ -10,7 +10,6 @@ const logger = createSubsystemLogger('SettingsChannels');
 export type ChannelBucketKey = ChannelBucketKeyBase;
 export type ChannelCommand = Subcommand;
 export type ChannelChatInputInteraction = Subcommand.ChatInputCommandInteraction;
-logger.warn('Channel mutation denied (no guild)', { bucket, channelId, operation });
 
 // Context for add/remove operations
 export type ChannelMutationContext = {
@@ -130,6 +129,7 @@ export function parseBucketChoice(value: string | null, fallback: ChannelBucketK
 export async function executeChannelMutation({ command, guildId, bucket, channelId, operation, deny, respond, defer }: ChannelMutationContext) {
 	// Validate guild context
 	if (!guildId) {
+		logger.warn('Channel mutation denied (no guild)', { bucket, channelId, operation });
 		return deny('This command can only be used inside a server.');
 	}
 
