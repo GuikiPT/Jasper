@@ -15,10 +15,10 @@ import { createSubsystemLogger } from '../lib/subsystemLogger';
  * - autoCloseMinutes: Minutes of inactivity before auto-closing thread
  */
 export const SUPPORT_SETTING_KEYS = [
-    'supportForumChannelId',
-    'resolvedTagId',
-    'inactivityReminderMinutes',
-    'autoCloseMinutes'
+	'supportForumChannelId',
+	'resolvedTagId',
+	'inactivityReminderMinutes',
+	'autoCloseMinutes'
 ] as const satisfies readonly (keyof GuildSupportSettings)[];
 
 export type SupportSettingKey = (typeof SUPPORT_SETTING_KEYS)[number];
@@ -31,80 +31,80 @@ export type SupportSettingKey = (typeof SUPPORT_SETTING_KEYS)[number];
  * - Used by support thread monitor and thread creation handler
  */
 export class GuildSupportSettingsService {
-    private readonly logger = createSubsystemLogger('GuildSupportSettingsService');
+	private readonly logger = createSubsystemLogger('GuildSupportSettingsService');
 
-    public constructor(
-        private readonly database: PrismaClient,
-        private readonly guildSettingsService: GuildSettingsService
-    ) {}
+	public constructor(
+		private readonly database: PrismaClient,
+		private readonly guildSettingsService: GuildSettingsService
+	) { }
 
-    // ============================================================
-    // Settings Management
-    // ============================================================
+	// ============================================================
+	// Settings Management
+	// ============================================================
 
-    /**
-     * Gets support settings for a guild without creating them
-     * 
-     * @param guildId Guild ID
-     * @returns Support settings or null if not found
-     */
-    public async getSettings(guildId: string): Promise<GuildSupportSettings | null> {
-        return this.database.guildSupportSettings.findUnique({ where: { guildId } });
-    }
+	/**
+	 * Gets support settings for a guild without creating them
+	 * 
+	 * @param guildId Guild ID
+	 * @returns Support settings or null if not found
+	 */
+	public async getSettings(guildId: string): Promise<GuildSupportSettings | null> {
+		return this.database.guildSupportSettings.findUnique({ where: { guildId } });
+	}
 
-    /**
-     * Gets or creates support settings for a guild
-     * - Creates settings with default values if they don't exist
-     * - Ensures parent guild settings exist first
-     * 
-     * @param guildId Guild ID
-     * @returns Support settings for the guild
-     */
-    public async getOrCreateSettings(guildId: string): Promise<GuildSupportSettings> {
-        const existing = await this.getSettings(guildId);
-        if (existing) return existing;
+	/**
+	 * Gets or creates support settings for a guild
+	 * - Creates settings with default values if they don't exist
+	 * - Ensures parent guild settings exist first
+	 * 
+	 * @param guildId Guild ID
+	 * @returns Support settings for the guild
+	 */
+	public async getOrCreateSettings(guildId: string): Promise<GuildSupportSettings> {
+		const existing = await this.getSettings(guildId);
+		if (existing) return existing;
 
-        // Ensure parent guild settings exist
-        await this.guildSettingsService.ensureGuild(guildId);
-        
-        const created = await this.database.guildSupportSettings.create({ data: { guildId } });
-        this.logger.info('Created support settings for guild', { guildId });
-        return created;
-    }
+		// Ensure parent guild settings exist
+		await this.guildSettingsService.ensureGuild(guildId);
 
-    /**
-     * Sets a single support setting
-     * - Creates settings if they don't exist
-     * - Updates existing settings if found
-     * 
-     * @param guildId Guild ID
-     * @param key Setting key to update
-     * @param value New value (string for IDs, number for durations, null to clear)
-     * @returns Updated support settings
-     */
-    public async setSetting(guildId: string, key: SupportSettingKey, value: string | number | null): Promise<GuildSupportSettings> {
-        // Ensure parent guild settings exist
-        await this.guildSettingsService.ensureGuild(guildId);
-        
-        const updated = await this.database.guildSupportSettings.upsert({
-            where: { guildId },
-            create: {
-                guildId,
-                [key]: value
-            },
-            update: {
-                [key]: value
-            }
-        });
+		const created = await this.database.guildSupportSettings.create({ data: { guildId } });
+		this.logger.info('Created support settings for guild', { guildId });
+		return created;
+	}
 
-        this.logger.info('Support setting updated', {
-            guildId,
-            key,
-            value
-        });
+	/**
+	 * Sets a single support setting
+	 * - Creates settings if they don't exist
+	 * - Updates existing settings if found
+	 * 
+	 * @param guildId Guild ID
+	 * @param key Setting key to update
+	 * @param value New value (string for IDs, number for durations, null to clear)
+	 * @returns Updated support settings
+	 */
+	public async setSetting(guildId: string, key: SupportSettingKey, value: string | number | null): Promise<GuildSupportSettings> {
+		// Ensure parent guild settings exist
+		await this.guildSettingsService.ensureGuild(guildId);
 
-        return updated;
-    }
+		const updated = await this.database.guildSupportSettings.upsert({
+			where: { guildId },
+			create: {
+				guildId,
+				[key]: value
+			},
+			update: {
+				[key]: value
+			}
+		});
+
+		this.logger.info('Support setting updated', {
+			guildId,
+			key,
+			value
+		});
+
+		return updated;
+	}
 }
 
 // ============================================================
@@ -112,7 +112,7 @@ export class GuildSupportSettingsService {
 // ============================================================
 
 declare module '@sapphire/pieces' {
-    interface Container {
-        guildSupportSettingsService: GuildSupportSettingsService;
-    }
+	interface Container {
+		guildSupportSettingsService: GuildSupportSettingsService;
+	}
 }

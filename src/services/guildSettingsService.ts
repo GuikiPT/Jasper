@@ -9,95 +9,95 @@ import { createSubsystemLogger } from '../lib/subsystemLogger';
  * - Foundation service for other guild setting services
  */
 export class GuildSettingsService {
-    private readonly logger = createSubsystemLogger('GuildSettingsService');
+	private readonly logger = createSubsystemLogger('GuildSettingsService');
 
-    public constructor(private readonly database: PrismaClient) {}
+	public constructor(private readonly database: PrismaClient) { }
 
-    // ============================================================
-    // Guild Management
-    // ============================================================
+	// ============================================================
+	// Guild Management
+	// ============================================================
 
-    /**
-     * Ensures a guild record exists in the database
-     * - Creates record if it doesn't exist
-     * - Returns existing record if found
-     * - Used by other services to ensure parent record exists
-     * 
-     * @param guildId Guild ID
-     * @returns Guild settings record
-     */
-    public async ensureGuild(guildId: string): Promise<GuildSettings> {
-        const record = await this.database.guildSettings.upsert({
-            where: { id: guildId },
-            create: { id: guildId },
-            update: {}
-        });
+	/**
+	 * Ensures a guild record exists in the database
+	 * - Creates record if it doesn't exist
+	 * - Returns existing record if found
+	 * - Used by other services to ensure parent record exists
+	 * 
+	 * @param guildId Guild ID
+	 * @returns Guild settings record
+	 */
+	public async ensureGuild(guildId: string): Promise<GuildSettings> {
+		const record = await this.database.guildSettings.upsert({
+			where: { id: guildId },
+			create: { id: guildId },
+			update: {}
+		});
 
-        this.logger.debug('Ensured guild settings', { guildId });
-        return record;
-    }
+		this.logger.debug('Ensured guild settings', { guildId });
+		return record;
+	}
 
-    /**
-     * Retrieves guild settings without creating them
-     * 
-     * @param guildId Guild ID
-     * @returns Guild settings or null if not found
-     */
-    public async getSettings(guildId: string): Promise<GuildSettings | null> {
-        return this.database.guildSettings.findUnique({ where: { id: guildId } });
-    }
+	/**
+	 * Retrieves guild settings without creating them
+	 * 
+	 * @param guildId Guild ID
+	 * @returns Guild settings or null if not found
+	 */
+	public async getSettings(guildId: string): Promise<GuildSettings | null> {
+		return this.database.guildSettings.findUnique({ where: { id: guildId } });
+	}
 
-    // ============================================================
-    // Prefix Management
-    // ============================================================
+	// ============================================================
+	// Prefix Management
+	// ============================================================
 
-    /**
-     * Gets the custom prefix for a guild
-     * - Returns null if no custom prefix is set
-     * - Falls back to default Sapphire prefix when null
-     * 
-     * @param guildId Guild ID
-     * @returns Custom prefix or null
-     */
-    public async getPrefix(guildId: string): Promise<string | null> {
-        const settings = await this.getSettings(guildId);
-        return settings?.prefix ?? null;
-    }
+	/**
+	 * Gets the custom prefix for a guild
+	 * - Returns null if no custom prefix is set
+	 * - Falls back to default Sapphire prefix when null
+	 * 
+	 * @param guildId Guild ID
+	 * @returns Custom prefix or null
+	 */
+	public async getPrefix(guildId: string): Promise<string | null> {
+		const settings = await this.getSettings(guildId);
+		return settings?.prefix ?? null;
+	}
 
-    /**
-     * Sets a custom prefix for a guild
-     * - Creates guild record if it doesn't exist
-     * - Updates existing record if found
-     * 
-     * @param guildId Guild ID
-     * @param prefix Custom prefix to set
-     */
-    public async setPrefix(guildId: string, prefix: string): Promise<void> {
-        await this.database.guildSettings.upsert({
-            where: { id: guildId },
-            create: { id: guildId, prefix },
-            update: { prefix }
-        });
+	/**
+	 * Sets a custom prefix for a guild
+	 * - Creates guild record if it doesn't exist
+	 * - Updates existing record if found
+	 * 
+	 * @param guildId Guild ID
+	 * @param prefix Custom prefix to set
+	 */
+	public async setPrefix(guildId: string, prefix: string): Promise<void> {
+		await this.database.guildSettings.upsert({
+			where: { id: guildId },
+			create: { id: guildId, prefix },
+			update: { prefix }
+		});
 
-        this.logger.info('Custom prefix set', { guildId, prefix });
-    }
+		this.logger.info('Custom prefix set', { guildId, prefix });
+	}
 
-    /**
-     * Clears the custom prefix for a guild
-     * - Sets prefix to null
-     * - Bot will use default Sapphire prefix
-     * 
-     * @param guildId Guild ID
-     */
-    public async clearPrefix(guildId: string): Promise<void> {
-        await this.database.guildSettings.upsert({
-            where: { id: guildId },
-            create: { id: guildId, prefix: null },
-            update: { prefix: null }
-        });
+	/**
+	 * Clears the custom prefix for a guild
+	 * - Sets prefix to null
+	 * - Bot will use default Sapphire prefix
+	 * 
+	 * @param guildId Guild ID
+	 */
+	public async clearPrefix(guildId: string): Promise<void> {
+		await this.database.guildSettings.upsert({
+			where: { id: guildId },
+			create: { id: guildId, prefix: null },
+			update: { prefix: null }
+		});
 
-        this.logger.info('Custom prefix cleared', { guildId });
-    }
+		this.logger.info('Custom prefix cleared', { guildId });
+	}
 }
 
 // ============================================================
@@ -105,7 +105,7 @@ export class GuildSettingsService {
 // ============================================================
 
 declare module '@sapphire/pieces' {
-    interface Container {
-        guildSettingsService: GuildSettingsService;
-    }
+	interface Container {
+		guildSettingsService: GuildSettingsService;
+	}
 }
