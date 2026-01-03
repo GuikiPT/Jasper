@@ -4,6 +4,7 @@ import { BucketScope, Command, CommandOptionsRunTypeEnum } from '@sapphire/frame
 import {
 	ApplicationIntegrationType,
 	InteractionContextType,
+	MessageFlags,
 	type SlashCommandBuilder,
 	type SlashCommandBooleanOption
 } from 'discord.js';
@@ -54,17 +55,18 @@ export class SupportPruneCommand extends Command {
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.guildId) {
-			return interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+			return interaction.reply({ content: 'This command can only be used in a server.', flags: MessageFlags.Ephemeral });
 		}
 
 		const monitor = this.container.supportThreadMonitor;
 		if (!monitor) {
 			this.container.logger.error('[SupportPrune] SupportThreadMonitor is not available');
-			return interaction.reply({ content: 'Support monitoring is unavailable right now.', ephemeral: true });
+			return interaction.reply({ content: 'Support monitoring is unavailable right now.', flags: MessageFlags.Ephemeral });
 		}
 
 		const ephemeral = interaction.options.getBoolean('ephemeral', false) ?? true;
-		await interaction.deferReply({ ephemeral });
+		const replyFlags = ephemeral ? MessageFlags.Ephemeral : undefined;
+		await interaction.deferReply({ ephemeral, flags: replyFlags });
 
 		const started = Date.now();
 		const db = this.container.database;
