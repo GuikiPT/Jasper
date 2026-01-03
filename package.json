@@ -31,6 +31,7 @@
     "@sapphire/ts-config": "^5.0.1",
     "@types/node": "^24.5.2",
     "@types/ws": "^8.18.1",
+    "husky": "^9.1.7",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.6.2",
     "prisma": "^6.16.2",
@@ -57,7 +58,8 @@
     "db:push": "prisma db push",
     "db:validate": "prisma validate",
     "db:autodeploy": "run-s db:validate db:generate db:deploy",
-    "db:dev-setup": "run-s db:validate db:reset db:generate db:seed"
+    "db:dev-setup": "run-s db:validate db:reset db:generate db:seed",
+    "prepare": "husky"
   },
   "prettier": "@sapphire/prettier-config"
 }
