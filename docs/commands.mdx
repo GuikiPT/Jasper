@@ -501,6 +501,7 @@ Submit a URL to VirusTotal for security scanning and threat analysis.
 | Command | Summary |
 | --- | --- |
 | [`/resolve`](#resolve) | Close a support thread with an optional Q&A summary. |
+| [`/support`](#support) | Support related commands. |
 | [`/tag`](#tag) | Manage reusable support tags and canned replies. |
 
 <a id="resolve"></a>
@@ -534,6 +535,70 @@ Apply the configured resolved tag, optionally post a question and answer summary
 **Syntax**
 
 `/resolve [question] [answer]`
+
+</details>
+
+<a id="support"></a>
+### `/support`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Support related commands.
+
+**Where it works**
+
+- Guilds only
+
+**Base permissions**
+
+- Allowed Admin Roles
+- Manage Server permission
+
+**Subcommand quick reference**
+
+| Subcommand | Summary |
+| --- | --- |
+| [`clean-inactive-threads-db`](#support-clean-inactive-threads-db) | Prune stale thread tracking records from the database. |
+
+</details>
+
+<a id="support-clean-inactive-threads-db"></a>
+#### `/support clean-inactive-threads-db`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Scan the support thread tracking database and remove records for threads that are already closed, resolved, or no longer exist. This helps clean up stale data that may have accumulated over time.
+
+**Permissions**
+
+- Allowed Admin Roles
+- Manage Server permission
+
+**Options**
+
+- `ephemeral` (boolean, optional, default: `true`): Whether the response should be visible only to you.
+
+**Syntax**
+
+`/support clean-inactive-threads-db [ephemeral:true|false]`
+
+**Additional notes**
+
+- The command reports:
+  - Total threads checked
+  - Threads deleted from tracking
+  - Scan duration and processing rate
+  - Percentage of records cleaned
+  - Remaining tracked threads
+- Respects the `IGNORE_SUPPORT_THREAD_INACTIVE_VERIFICATION` environment variable to skip specific thread IDs.
+- Uses rate limiting (250ms delay between API fetches) to avoid Discord API spam.
+- This process also runs automatically every 30 minutes during bot maintenance.
 
 </details>
 
