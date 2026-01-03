@@ -158,7 +158,7 @@ export class SupportThreadService {
 			where: { threadId }
 		});
 
-		this.logger.info('Support thread closed and pruned', {
+		this.logger.debug('Support thread closed and pruned', {
 			threadId,
 			deletedCount: result.count
 		});

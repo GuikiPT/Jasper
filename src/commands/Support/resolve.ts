@@ -273,7 +273,7 @@ export class ResolveCommand extends Command {
 
 			// Update internal tracking
 			await this.markSupportThreadClosed(freshThread);
-			this.container.logger.info('[Resolve] Thread resolved successfully', {
+			this.container.logger.debug('[Resolve] Thread resolved successfully', {
 				guildId,
 				threadId: thread.id,
 				interactionId: interaction.id,
