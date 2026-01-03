@@ -1,6 +1,7 @@
 // Guild topic settings service - Manages conversation topics for guilds
 import type { GuildTopicSettings, PrismaClient } from '@prisma/client';
 import { Prisma } from '@prisma/client';
+import { createSubsystemLogger } from '../lib/subsystemLogger';
 
 // ============================================================
 // Custom Errors
@@ -25,6 +26,8 @@ export class TopicAlreadyExistsError extends Error {
  * - Paginated topic fetching
  */
 export class GuildTopicSettingsService {
+    private readonly logger = createSubsystemLogger('GuildTopicSettingsService');
+
     public constructor(private readonly database: PrismaClient) {}
 
     // ============================================================
@@ -42,12 +45,16 @@ export class GuildTopicSettingsService {
      */
     public async addTopic(guildId: string, value: string): Promise<GuildTopicSettings> {
         try {
-            return await this.database.guildTopicSettings.create({
+            const created = await this.database.guildTopicSettings.create({
                 data: { guildId, value }
             });
+
+            this.logger.info('Topic added', { guildId, topicId: created.id });
+            return created;
         } catch (error) {
             // Handle unique constraint violation (duplicate topic)
             if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+                this.logger.warn('Duplicate topic detected', error, { guildId });
                 throw new TopicAlreadyExistsError();
             }
             throw error;
@@ -68,10 +75,12 @@ export class GuildTopicSettingsService {
             where: { id: topicId, guildId }
         });
         if (!topic) {
+            this.logger.debug('Topic not found for removal', { guildId, topicId });
             return null;
         }
 
         await this.database.guildTopicSettings.delete({ where: { id: topicId } });
+        this.logger.info('Topic removed', { guildId, topicId });
         return topic;
     }
 
@@ -150,6 +159,12 @@ export class GuildTopicSettingsService {
         const result = await this.database.guildTopicSettings.createMany({
             data: payload,
             skipDuplicates: true
+        });
+
+        this.logger.info('Topics imported', {
+            guildId,
+            requested: topics.length,
+            created: result.count
         });
 
         return result.count;

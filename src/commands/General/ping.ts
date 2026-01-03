@@ -83,19 +83,22 @@ export class UserCommand extends Command {
 
 	// Handles command execution: defers reply, calculates latency, and sends Components v2 UI
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
+		const isEphemeral = interaction.options.getBoolean('ephemeral') ?? true;
 		try {
-			const isEphemeral = interaction.options.getBoolean('ephemeral') ?? true;
 			// Defer immediately to show "thinking" state and prevent timeout
 			await interaction.deferReply({ flags: isEphemeral ? MessageFlags.Ephemeral : [] });
 		} catch (error) {
-			this.container.logger.error('Failed to defer ping response', error, {
-				guildId: interaction.guildId ?? 'dm'
-			});
+			this.logPingError('Failed to defer ping response', interaction, error);
 			if (!interaction.deferred && !interaction.replied) {
-				return interaction.reply({
-					content: 'I could not start the ping measurement because Discord rejected the response. Please try again.',
-					flags: MessageFlags.Ephemeral
-				});
+				try {
+					return interaction.reply({
+						content: 'I could not start the ping measurement because Discord rejected the response. Please try again.',
+						flags: MessageFlags.Ephemeral
+					});
+				} catch (replyError) {
+					this.logPingError('Failed to send ping defer fallback', interaction, replyError);
+					return;
+				}
 			}
 		}
 
@@ -103,23 +106,49 @@ export class UserCommand extends Command {
 		try {
 			// Calculate round-trip latency from command creation to now
 			const latency = Date.now() - interaction.createdTimestamp;
-			const components = this.buildLatencyComponents(latency);
+			const websocketPing = Math.round(this.container.client.ws.ping);
+			const components = this.buildLatencyComponents(latency, websocketPing);
 
-			return interaction.editReply({ components, flags: ['IsComponentsV2'] });
+			const reply = await interaction.editReply({ components, flags: ['IsComponentsV2'] });
+
+			this.container.logger.debug('[Ping] Sent latency response', {
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id,
+				interactionId: interaction.id,
+				latency,
+				websocketPing,
+				isEphemeral
+			});
+
+			return reply;
 		} catch (error) {
-			this.container.logger.error('Failed to send ping response', error, {
-				guildId: interaction.guildId ?? 'dm'
-			});
-			return interaction.editReply({
-				content: 'I hit an unexpected error while measuring latency. Please try again shortly.'
-			});
+			this.logPingError('Failed to send ping response', interaction, error);
+			try {
+				return interaction.editReply({
+					content: 'I hit an unexpected error while measuring latency. Please try again shortly.'
+				});
+			} catch (replyError) {
+				this.logPingError('Failed to send ping error fallback', interaction, replyError);
+				return interaction.followUp({
+					content: 'I could not send the latency result because of an unexpected error.',
+					flags: MessageFlags.Ephemeral
+				}).catch(() => undefined);
+			}
 		}
 	}
 
 
+	private logPingError(stage: string, interaction: Command.ChatInputCommandInteraction, error: unknown) {
+		this.container.logger.error(`[Ping] ${stage}`, error, {
+			guildId: interaction.guildId ?? 'dm',
+			userId: interaction.user.id,
+			interactionId: interaction.id
+		});
+	}
+
+
 	// Builds Components v2 UI with websocket and API latency metrics plus Discord status link
-	private buildLatencyComponents(latency: number): ContainerBuilder[] {
-		const websocketPing = Math.round(this.container.client.ws.ping);
+	private buildLatencyComponents(latency: number, websocketPing: number): ContainerBuilder[] {
 
 		// Create container with latency displays, separator, and status page link button
 		return [

@@ -89,12 +89,33 @@ export class TopicCommand extends Command {
 			}
 
 			// Send formatted topic to channel
-			return targetChannel.send({ content: this.formatTopic(topic) });
+			const sent = await targetChannel.send({ content: this.formatTopic(topic) });
+
+			this.container.logger.debug('[Topic] Posted random topic via prefix', {
+				guildId: message.guildId,
+				channelId: message.channelId,
+				userId: message.author.id,
+				topicId: topic.id,
+				messageId: sent.id
+			});
+
+			return sent;
 		} catch (error) {
 			this.container.logger.error('[Topic] Failed to process prefix command', error, {
-				guildId: message.guildId ?? 'dm'
+				guildId: message.guildId ?? 'dm',
+				channelId: message.channelId,
+				userId: message.author.id,
+				messageId: message.id
 			});
-			return message.reply('I could not fetch a topic right now. Please try again later.').catch(() => this.container.logger.error('Failed to send reply after topic command failure', error));
+			return message.reply('I could not fetch a topic right now. Please try again later.').catch((replyError) => {
+				this.container.logger.error('[Topic] Failed to send reply after prefix failure', replyError, {
+					guildId: message.guildId ?? 'dm',
+					channelId: message.channelId,
+					userId: message.author.id,
+					messageId: message.id
+				});
+				return undefined;
+			});
 		}
 	}
 
@@ -128,20 +149,50 @@ export class TopicCommand extends Command {
 			await targetChannel.send({ content: this.formatTopic(topic) });
 
 			// Confirm to user ephemerally
-			return interaction.reply({
+			const reply = await interaction.reply({
 				content: 'Topic sent.',
 				flags: MessageFlags.Ephemeral
 			});
+
+			this.container.logger.debug('[Topic] Posted random topic via slash', {
+				guildId: interaction.guildId,
+				channelId: interaction.channelId,
+				userId: interaction.user.id,
+				topicId: topic.id,
+				interactionId: interaction.id
+			});
+
+			return reply;
 		} catch (error) {
 			this.container.logger.error('[Topic] Failed to process slash command', error, {
 				guildId: interaction.guildId ?? 'dm',
-				channelId: interaction.channelId
+				channelId: interaction.channelId,
+				userId: interaction.user.id,
+				interactionId: interaction.id
 			});
 			const fallbackFlags = MessageFlags.Ephemeral;
 			if (interaction.deferred || interaction.replied) {
-				return interaction.editReply({ content: 'I could not fetch a topic right now. Please try again later.' }).catch(() => this.container.logger.error('Failed to edit reply after topic command failure', error));
+				return interaction.editReply({ content: 'I could not fetch a topic right now. Please try again later.' }).catch((replyError) => {
+					this.container.logger.error('[Topic] Failed to edit reply after slash failure', replyError, {
+						guildId: interaction.guildId ?? 'dm',
+						channelId: interaction.channelId,
+						userId: interaction.user.id,
+						interactionId: interaction.id
+					});
+					return undefined;
+				});
 			}
-			return interaction.reply({ content: 'I could not fetch a topic right now. Please try again later.', flags: fallbackFlags }).catch(() => this.container.logger.error('Failed to send reply after topic command failure', error));
+			return interaction
+				.reply({ content: 'I could not fetch a topic right now. Please try again later.', flags: fallbackFlags })
+				.catch((replyError) => {
+					this.container.logger.error('[Topic] Failed to send reply after slash failure', replyError, {
+						guildId: interaction.guildId ?? 'dm',
+						channelId: interaction.channelId,
+						userId: interaction.user.id,
+						interactionId: interaction.id
+					});
+					return undefined;
+				});
 		}
 	}
 
@@ -159,7 +210,7 @@ export class TopicCommand extends Command {
 
 			return { id: entry.id, value: entry.value };
 		} catch (error) {
-			this.container.logger.error('Failed to fetch random topic', error);
+			this.container.logger.error('Failed to fetch random topic', error, { guildId });
 			return null;
 		}
 	}

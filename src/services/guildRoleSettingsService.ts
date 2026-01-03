@@ -2,6 +2,7 @@
 import type { GuildRoleSettings, PrismaClient } from '@prisma/client';
 import { GuildSettingsService } from './guildSettingsService';
 import { BaseBucketSettingsService } from './baseBucketSettingsService';
+import { createSubsystemLogger } from '../lib/subsystemLogger';
 
 // ============================================================
 // Constants and Types
@@ -35,6 +36,8 @@ export type RoleBucketKey = (typeof ROLE_BUCKET_KEYS)[number];
  * - Inherits common bucket management from base service
  */
 export class GuildRoleSettingsService extends BaseBucketSettingsService<GuildRoleSettings, RoleBucketKey> {
+    private readonly logger = createSubsystemLogger('GuildRoleSettingsService');
+
     public constructor(database: PrismaClient, guildSettingsService: GuildSettingsService) {
         super(database, guildSettingsService);
     }
@@ -58,9 +61,12 @@ export class GuildRoleSettingsService extends BaseBucketSettingsService<GuildRol
         // Ensure parent guild settings exist
         await this.guildSettingsService.ensureGuild(guildId);
 
-        return this.database.guildRoleSettings.create({
+        const created = await this.database.guildRoleSettings.create({
             data: this.createBlankSettings(guildId)
         });
+
+        this.logger.info('Created role settings for guild', { guildId });
+        return created;
     }
 
     /**
@@ -111,6 +117,14 @@ export class GuildRoleSettingsService extends BaseBucketSettingsService<GuildRol
                 });
             }
         );
+
+        this.logger.info(result.added ? 'Role added to bucket' : 'Role already present in bucket', {
+            guildId,
+            bucket,
+            roleId,
+            count: result.items.length
+        });
+
         return { added: result.added, roles: result.items };
     }
 
@@ -136,6 +150,14 @@ export class GuildRoleSettingsService extends BaseBucketSettingsService<GuildRol
                 });
             }
         );
+
+        this.logger.info(result.removed ? 'Role removed from bucket' : 'Role not present in bucket', {
+            guildId,
+            bucket,
+            roleId,
+            count: result.items.length
+        });
+
         return { removed: result.removed, roles: result.items };
     }
 
@@ -148,11 +170,19 @@ export class GuildRoleSettingsService extends BaseBucketSettingsService<GuildRol
      * @param roles Role IDs to set
      */
     public async replaceBucket(guildId: string, bucket: RoleBucketKey, roles: Iterable<string>) {
-        await this.replaceBucketContents(guildId, bucket, roles, async (guildId, bucket, data) => {
+        const uniqueRoles = Array.from(new Set(Array.from(roles)));
+
+        await this.replaceBucketContents(guildId, bucket, uniqueRoles, async (guildId, bucket, data) => {
             await this.database.guildRoleSettings.update({
                 where: { guildId },
                 data: { [bucket]: data }
             });
+        });
+
+        this.logger.info('Replaced role bucket contents', {
+            guildId,
+            bucket,
+            count: uniqueRoles.length
         });
     }
 

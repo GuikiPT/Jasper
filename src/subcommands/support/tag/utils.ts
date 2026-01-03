@@ -13,6 +13,9 @@ import {
 } from 'discord.js';
 import type { GuildSupportTagSettings } from '@prisma/client';
 import { GuildSupportTagTableMissingError, type NormalizedImportEntry as SupportTagNormalizedImportEntry } from '../../../services/supportTagService';
+import { createSubsystemLogger } from '../../../lib/subsystemLogger';
+
+const logger = createSubsystemLogger('SupportTagCommands');
 
 // Type aliases
 export type TagCommand = Subcommand;
@@ -165,6 +168,7 @@ export const isSupportTagPrismaTableMissingError = (error: unknown): error is Gu
 export const findTag = async (command: TagCommand, guildId: string, name: string) => {
 	const service = command.container.supportTagService;
 	if (!service) {
+		logger.error('Support tag service unavailable');
 		throw new Error('Support tag service is not initialised.');
 	}
 
@@ -179,14 +183,14 @@ export const findTag = async (command: TagCommand, guildId: string, name: string
 export const fetchAllowedTagChannels = async (context: ContainerAccessor, guildId: string) => {
 	const service = context.container.guildChannelSettingsService;
 	if (!service) {
-		context.container.logger.error('[SupportTag] Channel settings service is unavailable');
+		logger.error('Channel settings service unavailable', { guildId });
 		return [];
 	}
 
 	try {
 		return await service.listBucket(guildId, 'allowedTagChannels');
 	} catch (error) {
-		context.container.logger.error('[SupportTag] Failed to load allowed tag channels', error, { guildId });
+		logger.error('Failed to load allowed tag channels', error, { guildId });
 		return [];
 	}
 };
@@ -256,14 +260,14 @@ export const formatTagChannelRestrictionMessage = (access: RestrictedTagChannelA
 const fetchSupportRoles = async (context: ContainerAccessor, guildId: string) => {
 	const service = context.container.guildRoleSettingsService;
 	if (!service) {
-		context.container.logger.error('[SupportTag] Role settings service is unavailable');
+		logger.error('Role settings service unavailable', { guildId });
 		return [];
 	}
 
 	try {
 		return await service.listBucket(guildId, 'supportRoles');
 	} catch (error) {
-		context.container.logger.error('[SupportTag] Failed to load support roles', error, { guildId });
+		logger.error('Failed to load support roles', error, { guildId });
 		return [];
 	}
 };
@@ -272,14 +276,14 @@ const fetchSupportRoles = async (context: ContainerAccessor, guildId: string) =>
 const fetchAllowedTagRoles = async (context: ContainerAccessor, guildId: string) => {
 	const service = context.container.guildRoleSettingsService;
 	if (!service) {
-		context.container.logger.error('[SupportTag] Role settings service is unavailable');
+		logger.error('Role settings service unavailable', { guildId });
 		return [];
 	}
 
 	try {
 		return await service.listBucket(guildId, 'allowedTagRoles');
 	} catch (error) {
-		context.container.logger.error('[SupportTag] Failed to load allowed tag roles', error, { guildId });
+		logger.error('Failed to load allowed tag roles', error, { guildId });
 		return [];
 	}
 };
@@ -288,14 +292,14 @@ const fetchAllowedTagRoles = async (context: ContainerAccessor, guildId: string)
 const fetchAllowedTagAdminRoles = async (context: ContainerAccessor, guildId: string) => {
 	const service = context.container.guildRoleSettingsService;
 	if (!service) {
-		context.container.logger.error('[SupportTag] Role settings service is unavailable');
+		logger.error('Role settings service unavailable', { guildId });
 		return [];
 	}
 
 	try {
 		return await service.listBucket(guildId, 'allowedTagAdminRoles');
 	} catch (error) {
-		context.container.logger.error('[SupportTag] Failed to load allowed tag admin roles', error, { guildId });
+		logger.error('Failed to load allowed tag admin roles', error, { guildId });
 		return [];
 	}
 };

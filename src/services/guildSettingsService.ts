@@ -1,5 +1,6 @@
 // Guild settings service - Manages core guild settings including custom prefixes
 import type { GuildSettings, PrismaClient } from '@prisma/client';
+import { createSubsystemLogger } from '../lib/subsystemLogger';
 
 /**
  * Service for managing core guild settings
@@ -8,6 +9,8 @@ import type { GuildSettings, PrismaClient } from '@prisma/client';
  * - Foundation service for other guild setting services
  */
 export class GuildSettingsService {
+    private readonly logger = createSubsystemLogger('GuildSettingsService');
+
     public constructor(private readonly database: PrismaClient) {}
 
     // ============================================================
@@ -24,11 +27,14 @@ export class GuildSettingsService {
      * @returns Guild settings record
      */
     public async ensureGuild(guildId: string): Promise<GuildSettings> {
-        return this.database.guildSettings.upsert({
+        const record = await this.database.guildSettings.upsert({
             where: { id: guildId },
             create: { id: guildId },
             update: {}
         });
+
+        this.logger.debug('Ensured guild settings', { guildId });
+        return record;
     }
 
     /**
@@ -72,6 +78,8 @@ export class GuildSettingsService {
             create: { id: guildId, prefix },
             update: { prefix }
         });
+
+        this.logger.info('Custom prefix set', { guildId, prefix });
     }
 
     /**
@@ -87,6 +95,8 @@ export class GuildSettingsService {
             create: { id: guildId, prefix: null },
             update: { prefix: null }
         });
+
+        this.logger.info('Custom prefix cleared', { guildId });
     }
 }
 

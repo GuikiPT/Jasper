@@ -1,6 +1,7 @@
 // Support tag service - Manages support tags (pre-formatted response templates)
 import type { GuildSupportTagSettings, PrismaClient } from '@prisma/client';
 import { Prisma } from '@prisma/client';
+import { createSubsystemLogger } from '../lib/subsystemLogger';
 
 // ============================================================
 // Type Definitions
@@ -81,6 +82,8 @@ const isDuplicateError = (error: unknown): error is Prisma.PrismaClientKnownRequ
  * - Supports name-based lookup for quick access
  */
 export class SupportTagService {
+    private readonly logger = createSubsystemLogger('SupportTagService');
+
     public constructor(private readonly database: PrismaClient) {}
 
     // ============================================================
@@ -97,9 +100,13 @@ export class SupportTagService {
      */
     public async findTagByName(guildId: string, name: string) {
         try {
-            return await this.database.guildSupportTagSettings.findFirst({
+            const tag = await this.database.guildSupportTagSettings.findFirst({
                 where: { guildId, name }
             });
+            if (tag) {
+                this.logger.debug('Tag fetched by name', { guildId, name, tagId: tag.id });
+            }
+            return tag;
         } catch (error) {
             throw this.transformError(error);
         }
@@ -113,7 +120,11 @@ export class SupportTagService {
      */
     public async findTagById(id: number) {
         try {
-            return await this.database.guildSupportTagSettings.findUnique({ where: { id } });
+            const tag = await this.database.guildSupportTagSettings.findUnique({ where: { id } });
+            if (tag) {
+                this.logger.debug('Tag fetched by id', { tagId: id, guildId: tag.guildId });
+            }
+            return tag;
         } catch (error) {
             throw this.transformError(error);
         }
@@ -128,10 +139,12 @@ export class SupportTagService {
      */
     public async listTags(guildId: string) {
         try {
-            return await this.database.guildSupportTagSettings.findMany({
+            const tags = await this.database.guildSupportTagSettings.findMany({
                 where: { guildId },
                 orderBy: { name: 'asc' }
             });
+            this.logger.debug('Listed all tags', { guildId, count: tags.length });
+            return tags;
         } catch (error) {
             throw this.transformError(error);
         }
@@ -148,12 +161,14 @@ export class SupportTagService {
      */
     public async paginateTags(guildId: string, skip: number, take: number) {
         try {
-            return await this.database.guildSupportTagSettings.findMany({
+            const tags = await this.database.guildSupportTagSettings.findMany({
                 where: { guildId },
                 orderBy: { name: 'asc' },
                 skip,
                 take
             });
+            this.logger.debug('Paginated tags fetched', { guildId, skip, take, count: tags.length });
+            return tags;
         } catch (error) {
             throw this.transformError(error);
         }
@@ -197,7 +212,7 @@ export class SupportTagService {
      */
     public async createTag(guildId: string, data: Omit<GuildSupportTagSettings, 'id' | 'guildId' | 'createdAt' | 'updatedAt'> & { name: string }) {
         try {
-            return await this.database.guildSupportTagSettings.create({
+            const created = await this.database.guildSupportTagSettings.create({
                 data: {
                     guildId,
                     name: data.name,
@@ -209,8 +224,18 @@ export class SupportTagService {
                     embedImageUrl: data.embedImageUrl ?? null
                 }
             });
+
+            this.logger.info('Support tag created', {
+                guildId,
+                tagId: created.id,
+                name: data.name,
+                authorId: data.authorId
+            });
+
+            return created;
         } catch (error) {
             if (isDuplicateError(error)) {
+                this.logger.warn('Support tag creation blocked due to duplicate name', error, { guildId, name: data.name });
                 throw new SupportTagDuplicateNameError();
             }
             throw this.transformError(error);
@@ -239,12 +264,22 @@ export class SupportTagService {
         }>
     ): Promise<GuildSupportTagSettings> {
         try {
-            return await this.database.guildSupportTagSettings.update({
+            const updated = await this.database.guildSupportTagSettings.update({
                 where: { id: tagId },
                 data
             });
+
+            this.logger.info('Support tag updated', {
+                tagId,
+                name: data.name,
+                embedTitle: data.embedTitle,
+                guildId: updated.guildId
+            });
+
+            return updated;
         } catch (error) {
             if (isDuplicateError(error)) {
+                this.logger.warn('Support tag update blocked due to duplicate name', error, { tagId, name: data.name });
                 throw new SupportTagDuplicateNameError();
             }
             throw this.transformError(error);
@@ -259,6 +294,7 @@ export class SupportTagService {
     public async deleteTag(tagId: number): Promise<void> {
         try {
             await this.database.guildSupportTagSettings.delete({ where: { id: tagId } });
+            this.logger.info('Support tag deleted', { tagId });
         } catch (error) {
             throw this.transformError(error);
         }
@@ -273,6 +309,7 @@ export class SupportTagService {
     public async deleteAllTags(guildId: string): Promise<number> {
         try {
             const result = await this.database.guildSupportTagSettings.deleteMany({ where: { guildId } });
+            this.logger.info('Deleted all support tags for guild', { guildId, count: result.count });
             return result.count;
         } catch (error) {
             throw this.transformError(error);
@@ -349,6 +386,15 @@ export class SupportTagService {
                     });
                     updated += 1;
                 }
+            });
+
+            this.logger.info('Support tags imported', {
+                guildId,
+                overwrite: options.overwrite,
+                requested: entries.length,
+                created,
+                updated,
+                actorId: options.actorId
             });
 
             return { created, updated };

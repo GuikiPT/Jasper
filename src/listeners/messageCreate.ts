@@ -15,6 +15,14 @@ const LAWREN_BOT_ID = '1306785011256659968';
 export class AutomaticSlowmodeListener extends Listener<typeof Events.MessageCreate> {
 	public override async run(message: Message) {
 		try {
+			this.container.logger.debug('messageCreate received', {
+				messageId: message.id,
+				guildId: message.guildId,
+				channelId: message.channel?.id,
+				userId: message.author.id,
+				isBot: message.author.bot
+			});
+
 			// Handle legacy bot message cleanup
 			if (message.author.bot) {
 				await this.handleLegacyBotMessages(message);
@@ -65,6 +73,13 @@ export class AutomaticSlowmodeListener extends Listener<typeof Events.MessageCre
 		if (message.author.id !== WOBIN_BOT_ID && message.author.id !== LAWREN_BOT_ID) {
 			return;
 		}
+
+		this.container.logger.debug('Handling legacy bot message', {
+			messageId: message.id,
+			channelId: message.channel.id,
+			guildId: message.guildId,
+			botId: message.author.id
+		});
 
 		// Handle Wobin legacy help messages
 		if (message.author.id === WOBIN_BOT_ID) {

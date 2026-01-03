@@ -6,7 +6,7 @@ import { logSuccessCommand } from '../../../lib/utils';
 
 export class UserEvent extends Listener {
 	public override run(payload: MessageCommandSuccessPayload) {
-		logSuccessCommand(payload);
+		logSuccessCommand(payload, 'success');
 	}
 
 	public override onLoad() {

@@ -108,7 +108,18 @@ export class AutomodCheckPaginationHandler extends InteractionHandler {
 				const components = await commandInstance.createResultComponents(data.content, result, data.ownerId, data.targetPage);
 
 				// Update message with new page
-				return interaction.update({ components });
+				const reply = await interaction.update({ components });
+
+				this.container.logger.debug('[AutomodCheckPagination] Updated automod results page', {
+					guildId: interaction.guildId ?? 'dm',
+					userId: interaction.user.id,
+					interactionId: interaction.id,
+					targetPage: data.targetPage,
+					isBlocked: result.isBlocked,
+					matchCount: result.matchCount ?? (result.isBlocked ? 1 : 0)
+				});
+
+				return reply;
 			} catch (error) {
 				this.container.logger.error('[AutomodCheckPagination] Failed to paginate results', error, {
 					userId: interaction.user.id,

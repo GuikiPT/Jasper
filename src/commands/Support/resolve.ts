@@ -92,7 +92,12 @@ export class ResolveCommand extends Command {
 		try {
 			return await this.resolveThread(interaction, thread, question, answer);
 		} catch (error) {
-			this.container.logger.error('Failed to resolve thread:', error);
+			this.container.logger.error('[Resolve] Failed to process command', error, {
+				guildId: interaction.guildId,
+				threadId: thread.id,
+				userId: interaction.user.id,
+				interactionId: interaction.id
+			});
 			return replyWithComponent(interaction, 'An error occurred while resolving the thread. Please try again.', true);
 		}
 	}
@@ -155,9 +160,24 @@ export class ResolveCommand extends Command {
 		} catch (error) {
 			this.container.logger.error('[Resolve] Failed to defer reply', error, {
 				guildId,
-				threadId: thread.id
+				threadId: thread.id,
+				interactionId: interaction.id,
+				userId: interaction.user.id
 			});
-			return replyWithComponent(interaction, 'I could not start resolving the thread because the reply was rejected.', true);
+			if (!interaction.deferred && !interaction.replied) {
+				return replyWithComponent(interaction, 'I could not start resolving the thread because the reply was rejected.', true);
+			}
+			try {
+				return editReplyWithComponent(interaction, 'I could not start resolving the thread because the reply was rejected.');
+			} catch (replyError) {
+				this.container.logger.error('[Resolve] Failed to send defer fallback', replyError, {
+					guildId,
+					threadId: thread.id,
+					interactionId: interaction.id,
+					userId: interaction.user.id
+				});
+				return;
+			}
 		}
 
 		// Verify resolved tag still exists
@@ -195,6 +215,12 @@ export class ResolveCommand extends Command {
 				);
 				// Wait for Discord to process unarchive
 				await new Promise((resolve) => setTimeout(resolve, 1000));
+				this.container.logger.debug('[Resolve] Reopened archived thread to apply updates', {
+					guildId,
+					threadId: thread.id,
+					interactionId: interaction.id,
+					userId: interaction.user.id
+				});
 			}
 
 			// Apply resolved tag
@@ -202,6 +228,14 @@ export class ResolveCommand extends Command {
 				newTags,
 				`Thread resolved by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}${answer ? ` | Answer: ${answer}` : ''}`
 			);
+			this.container.logger.debug('[Resolve] Applied resolved tag', {
+				guildId,
+				threadId: thread.id,
+				resolvedTagId: supportSettings.resolvedTagId,
+				interactionId: interaction.id,
+				userId: interaction.user.id,
+				appliedTags: newTags
+			});
 
 			// Send resolution summary message
 			const resolutionComponent = this.createResolutionComponent(question, answer, interaction.user.id);
@@ -210,29 +244,67 @@ export class ResolveCommand extends Command {
 				flags: MessageFlags.IsComponentsV2,
 				allowedMentions: { users: [] } // Prevent pinging the resolver
 			});
+			this.container.logger.debug('[Resolve] Posted resolution summary message', {
+				guildId,
+				threadId: thread.id,
+				interactionId: interaction.id,
+				userId: interaction.user.id
+			});
 
 			// Lock thread to prevent further replies
 			await freshThread.setLocked(
 				true,
 				`Thread locked by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}${answer ? ` | Answer: ${answer}` : ''}`
 			);
+			this.container.logger.debug('[Resolve] Locked thread after resolution', {
+				guildId,
+				threadId: thread.id,
+				interactionId: interaction.id,
+				userId: interaction.user.id
+			});
 
 			// Archive thread
 			await freshThread.setArchived(
 				true,
 				`Thread archived by <@!${interaction.user.id}> - ${interaction.user.tag} - ${interaction.user.id}${answer ? ` | Answer: ${answer}` : ''}`
 			);
+			this.container.logger.debug('[Resolve] Archived thread after resolution', {
+				guildId,
+				threadId: thread.id,
+				interactionId: interaction.id,
+				userId: interaction.user.id
+			});
 
 			// Update internal tracking
 			await this.markSupportThreadClosed(freshThread);
+			this.container.logger.info('[Resolve] Thread resolved successfully', {
+				guildId,
+				threadId: thread.id,
+				interactionId: interaction.id,
+				userId: interaction.user.id,
+				questionProvided: Boolean(question),
+				answerProvided: Boolean(answer)
+			});
 
 			return editReplyWithComponent(interaction, '✅ Thread resolved successfully!');
 		} catch (error) {
 			this.container.logger.error('[Resolve] Failed to apply thread resolution', error, {
 				guildId,
-				threadId: thread.id
+				threadId: thread.id,
+				interactionId: interaction.id,
+				userId: interaction.user.id
 			});
-			return editReplyWithComponent(interaction, 'Failed to apply thread resolution. I might not have the necessary permissions.');
+			try {
+				return editReplyWithComponent(interaction, 'Failed to apply thread resolution. I might not have the necessary permissions.');
+			} catch (replyError) {
+				this.container.logger.error('[Resolve] Failed to send resolution error fallback', replyError, {
+					guildId,
+					threadId: thread.id,
+					interactionId: interaction.id,
+					userId: interaction.user.id
+				});
+				return;
+			}
 		}
 	}
 
@@ -247,6 +319,9 @@ export class ResolveCommand extends Command {
 				await this.tryDeleteReminderMessage(thread, record.reminderMessageId);
 			}
 			await service.markThreadClosed(thread.id);
+			this.container.logger.debug('[Resolve] Marked support thread closed in database', {
+				threadId: thread.id
+			});
 		} catch (error) {
 			this.container.logger.debug('Failed to mark support thread as closed after /resolve', error, {
 				threadId: thread.id

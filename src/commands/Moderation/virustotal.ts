@@ -145,15 +145,29 @@ export class ModerationVirusTotalCommand extends Subcommand {
 	// Handle /virustotal ip subcommand
 	public async chatInputVirusTotalIp(interaction: VirusTotalChatInputInteraction) {
 		try {
-			return await chatInputVirusTotalIp(this, interaction);
+			const response = await chatInputVirusTotalIp(this, interaction);
+			this.container.logger.debug('[VirusTotal] ip subcommand succeeded', {
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id,
+				interactionId: interaction.id
+			});
+			return response;
 		} catch (error) {
 			this.container.logger.error('[VirusTotal] ip subcommand failed', error, {
 				guildId: interaction.guildId ?? 'dm',
-				userId: interaction.user.id
+				userId: interaction.user.id,
+				interactionId: interaction.id
 			});
 			return interaction.reply({
 				content: 'I could not complete that VirusTotal IP lookup. Please try again shortly.',
 				flags: MessageFlags.Ephemeral
+			}).catch((replyError) => {
+				this.container.logger.error('[VirusTotal] ip fallback reply failed', replyError, {
+					guildId: interaction.guildId ?? 'dm',
+					userId: interaction.user.id,
+					interactionId: interaction.id
+				});
+				return undefined;
 			});
 		}
 	}
@@ -161,15 +175,29 @@ export class ModerationVirusTotalCommand extends Subcommand {
 	// Handle /virustotal domain subcommand
 	public async chatInputVirusTotalDomain(interaction: VirusTotalChatInputInteraction) {
 		try {
-			return await chatInputVirusTotalDomain(this, interaction);
+			const response = await chatInputVirusTotalDomain(this, interaction);
+			this.container.logger.debug('[VirusTotal] domain subcommand succeeded', {
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id,
+				interactionId: interaction.id
+			});
+			return response;
 		} catch (error) {
 			this.container.logger.error('[VirusTotal] domain subcommand failed', error, {
 				guildId: interaction.guildId ?? 'dm',
-				userId: interaction.user.id
+				userId: interaction.user.id,
+				interactionId: interaction.id
 			});
 			return interaction.reply({
 				content: 'I could not complete that VirusTotal domain lookup. Please try again shortly.',
 				flags: MessageFlags.Ephemeral
+			}).catch((replyError) => {
+				this.container.logger.error('[VirusTotal] domain fallback reply failed', replyError, {
+					guildId: interaction.guildId ?? 'dm',
+					userId: interaction.user.id,
+					interactionId: interaction.id
+				});
+				return undefined;
 			});
 		}
 	}
@@ -177,15 +205,29 @@ export class ModerationVirusTotalCommand extends Subcommand {
 	// Handle /virustotal file subcommand
 	public async chatInputVirusTotalFile(interaction: VirusTotalChatInputInteraction) {
 		try {
-			return await chatInputVirusTotalFile(this, interaction);
+			const response = await chatInputVirusTotalFile(this, interaction);
+			this.container.logger.debug('[VirusTotal] file subcommand succeeded', {
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id,
+				interactionId: interaction.id
+			});
+			return response;
 		} catch (error) {
 			this.container.logger.error('[VirusTotal] file subcommand failed', error, {
 				guildId: interaction.guildId ?? 'dm',
-				userId: interaction.user.id
+				userId: interaction.user.id,
+				interactionId: interaction.id
 			});
 			return interaction.reply({
 				content: 'I could not complete that VirusTotal file scan. Please try again shortly.',
 				flags: MessageFlags.Ephemeral
+			}).catch((replyError) => {
+				this.container.logger.error('[VirusTotal] file fallback reply failed', replyError, {
+					guildId: interaction.guildId ?? 'dm',
+					userId: interaction.user.id,
+					interactionId: interaction.id
+				});
+				return undefined;
 			});
 		}
 	}
@@ -193,15 +235,29 @@ export class ModerationVirusTotalCommand extends Subcommand {
 	// Handle /virustotal url subcommand
 	public async chatInputVirusTotalUrl(interaction: VirusTotalChatInputInteraction) {
 		try {
-			return await chatInputVirusTotalUrl(this, interaction);
+			const response = await chatInputVirusTotalUrl(this, interaction);
+			this.container.logger.debug('[VirusTotal] url subcommand succeeded', {
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id,
+				interactionId: interaction.id
+			});
+			return response;
 		} catch (error) {
 			this.container.logger.error('[VirusTotal] url subcommand failed', error, {
 				guildId: interaction.guildId ?? 'dm',
-				userId: interaction.user.id
+				userId: interaction.user.id,
+				interactionId: interaction.id
 			});
 			return interaction.reply({
 				content: 'I could not complete that VirusTotal URL scan. Please try again shortly.',
 				flags: MessageFlags.Ephemeral
+			}).catch((replyError) => {
+				this.container.logger.error('[VirusTotal] url fallback reply failed', replyError, {
+					guildId: interaction.guildId ?? 'dm',
+					userId: interaction.user.id,
+					interactionId: interaction.id
+				});
+				return undefined;
 			});
 		}
 	}

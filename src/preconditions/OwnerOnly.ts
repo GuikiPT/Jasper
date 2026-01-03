@@ -76,7 +76,14 @@ export class UserPrecondition extends AllFlowsPrecondition {
 	 * @returns Success if user is owner, error otherwise
 	 */
 	private doOwnerCheck(userId: Snowflake) {
-		return OWNERS.includes(userId) ? this.ok() : this.error({ message: this.#message });
+		const isOwner = OWNERS.includes(userId);
+		if (isOwner) {
+			this.container.logger.debug('[OwnerOnly] Access granted', { userId });
+			return this.ok();
+		}
+
+		this.container.logger.warn('[OwnerOnly] Access denied', { userId });
+		return this.error({ message: this.#message });
 	}
 }
 

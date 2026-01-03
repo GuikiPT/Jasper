@@ -3,10 +3,14 @@ import type { Args } from '@sapphire/framework';
 import type { Subcommand } from '@sapphire/plugin-subcommands';
 import { MessageFlags, type SlashCommandSubcommandGroupBuilder } from 'discord.js';
 import type { ChannelBucketKey as ChannelBucketKeyBase } from '../../../services/guildChannelSettingsService';
+import { createSubsystemLogger } from '../../../lib/subsystemLogger';
+
+const logger = createSubsystemLogger('SettingsChannels');
 
 export type ChannelBucketKey = ChannelBucketKeyBase;
 export type ChannelCommand = Subcommand;
 export type ChannelChatInputInteraction = Subcommand.ChatInputCommandInteraction;
+		logger.warn('Channel mutation denied (no guild)', { bucket, channelId, operation });
 
 // Context for add/remove operations
 export type ChannelMutationContext = {
@@ -136,6 +140,7 @@ export async function executeChannelMutation({ command, guildId, bucket, channel
 	// Get channel settings service
 	const service = command.container.guildChannelSettingsService;
 	if (!service) {
+		logger.error('Channel settings service unavailable', { guildId });
 		return respond('Channel settings are not available right now.');
 	}
 	const label = bucketLabel(bucket);
@@ -144,13 +149,19 @@ export async function executeChannelMutation({ command, guildId, bucket, channel
 	if (operation === 'add') {
 		const { added } = await service.addChannel(guildId, bucket, channelId);
 		if (!added) {
+			logger.info('Channel already present in bucket', { guildId, bucket, channelId });
 			return respond(`That channel is already part of **${label}**.`);
 		}
+
+		logger.info('Channel added to bucket', { guildId, bucket, channelId });
 	} else {
 		const { removed } = await service.removeChannel(guildId, bucket, channelId);
 		if (!removed) {
+			logger.info('Channel not present in bucket', { guildId, bucket, channelId });
 			return respond(`That channel is not configured for **${label}**.`);
 		}
+
+		logger.info('Channel removed from bucket', { guildId, bucket, channelId });
 	}
 
 	return respond(operation === 'add' ? `Added <#${channelId}> to **${label}**.` : `Removed <#${channelId}> from **${label}**.`);
@@ -160,6 +171,7 @@ export async function executeChannelMutation({ command, guildId, bucket, channel
 export async function executeChannelList({ command, guildId, bucket, deny, respond, respondComponents, defer }: ChannelListContext) {
 	// Validate guild context
 	if (!guildId) {
+		logger.warn('Channel list denied (no guild)', { bucket });
 		return deny('This command can only be used inside a server.');
 	}
 
@@ -170,12 +182,21 @@ export async function executeChannelList({ command, guildId, bucket, deny, respo
 	// Get channel settings service
 	const service = command.container.guildChannelSettingsService;
 	if (!service) {
+		logger.error('Channel settings service unavailable for list', { guildId });
 		return respond('Channel settings are not available right now.');
 	}
 
 	// Determine which buckets to list
 	const buckets = bucket ? [bucket] : CHANNEL_BUCKETS.map((entry) => entry.key);
 	const allBuckets = await service.getAllBuckets(guildId);
+	logger.debug('Channel buckets listed', {
+		guildId,
+		bucket,
+		counts: buckets.reduce<Record<string, number>>((acc, key) => {
+			acc[key] = allBuckets[key].length;
+			return acc;
+		}, {})
+	});
 
 	// Use Discord Components v2 for slash commands if available
 	if (respondComponents) {

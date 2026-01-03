@@ -10,7 +10,14 @@ export class TopicsAutocompleteHandler extends InteractionHandler {
 	// Send autocomplete choices to Discord
 	public override async run(interaction: AutocompleteInteraction, choices: ApplicationCommandOptionChoiceData[]) {
 		try {
-			return interaction.respond(choices);
+			const response = await interaction.respond(choices);
+			this.container.logger.debug('[TopicsAutocomplete] Responded with choices', {
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id,
+				interactionId: interaction.id,
+				choiceCount: choices.length
+			});
+			return response;
 		} catch (error) {
 			this.container.logger.error('Failed to send topics autocomplete choices', error, {
 				guildId: interaction.guildId ?? 'dm',

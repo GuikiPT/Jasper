@@ -54,6 +54,7 @@ export class AllowedStaffRolesPrecondition extends AllFlowsPrecondition {
 		try {
 			// Require guild context and valid member
 			if (!guildId || !member) {
+				this.logDenial('missing-member', { guildId, memberId: this.resolveMemberId(member), silentOnFail });
 				return this.error({
 					message: this.createErrorMessage([]),
 					context: silentOnFail ? { silent: true } : {}
@@ -65,6 +66,7 @@ export class AllowedStaffRolesPrecondition extends AllFlowsPrecondition {
 
 			// Deny if no staff roles configured
 			if (allowedRoles.length === 0) {
+				this.logDenial('no-config', { guildId, memberId: this.resolveMemberId(member), allowedRoles, silentOnFail });
 				return this.error({
 					message: this.createErrorMessage([]),
 					context: silentOnFail ? { silent: true } : {}
@@ -73,6 +75,7 @@ export class AllowedStaffRolesPrecondition extends AllFlowsPrecondition {
 
 			// Check if member has any allowed role
 			if (this.memberHasAllowedRole(member, allowedRoles)) {
+				this.logGrant({ guildId, memberId: this.resolveMemberId(member), allowedRoles, silentOnFail });
 				return this.ok();
 			}
 
@@ -157,6 +160,35 @@ export class AllowedStaffRolesPrecondition extends AllFlowsPrecondition {
 		}
 
 		return false;
+	}
+
+	private resolveMemberId(member: GuildMember | APIInteractionGuildMember | null) {
+		if (!member) return 'unknown';
+		if ('user' in member && member.user) return member.user.id;
+		return (member as GuildMember)?.id ?? 'unknown';
+	}
+
+	private logGrant(details: { guildId: string | null; memberId: string; allowedRoles: readonly string[]; silentOnFail: boolean }) {
+		this.container.logger.debug('[AllowedStaffRoles] Access granted', {
+			guildId: details.guildId ?? 'unknown',
+			memberId: details.memberId,
+			allowedRoles: details.allowedRoles,
+			silent: details.silentOnFail
+		});
+	}
+
+	private logDenial(
+		reason: 'missing-member' | 'no-config' | 'forbidden',
+		details: { guildId: string | null; memberId: string; allowedRoles?: readonly string[]; silentOnFail: boolean }
+	) {
+		const level = details.silentOnFail ? 'debug' : reason === 'forbidden' ? 'warn' : 'info';
+		this.container.logger[level]('[AllowedStaffRoles] Access denied', {
+			reason,
+			guildId: details.guildId ?? 'unknown',
+			memberId: details.memberId,
+			allowedRoles: details.allowedRoles ?? [],
+			silent: details.silentOnFail
+		});
 	}
 }
 

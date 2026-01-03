@@ -5,7 +5,7 @@ import { logSuccessCommand } from '../../../lib/utils';
 
 export class UserListener extends Listener {
 	public override run(payload: ContextMenuCommandSuccessPayload) {
-		logSuccessCommand(payload);
+		logSuccessCommand(payload, 'success');
 	}
 
 	public override onLoad() {

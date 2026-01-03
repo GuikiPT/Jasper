@@ -1,6 +1,7 @@
 // Guild slowmode settings service - Manages automatic slowmode configuration per guild
 import type { GuildSlowmodeSettings, Prisma, PrismaClient } from '@prisma/client';
 import { GuildSettingsService } from './guildSettingsService';
+import { createSubsystemLogger } from '../lib/subsystemLogger';
 
 /**
  * Service for managing automatic slowmode settings
@@ -10,6 +11,8 @@ import { GuildSettingsService } from './guildSettingsService';
  * - Used by slowmode manager to enforce rate limiting
  */
 export class GuildSlowmodeSettingsService {
+    private readonly logger = createSubsystemLogger('GuildSlowmodeSettingsService');
+
     public constructor(
         private readonly database: PrismaClient,
         private readonly guildSettingsService: GuildSettingsService
@@ -36,7 +39,9 @@ export class GuildSlowmodeSettingsService {
 
         const createData: Prisma.GuildSlowmodeSettingsUncheckedCreateInput = { guildId };
 
-        return this.database.guildSlowmodeSettings.create({ data: createData });
+        const created = await this.database.guildSlowmodeSettings.create({ data: createData });
+        this.logger.info('Created slowmode settings for guild', { guildId });
+        return created;
     }
 
     /**
@@ -75,10 +80,17 @@ export class GuildSlowmodeSettingsService {
         // Ensure settings exist before updating
         await this.getOrCreateSettings(guildId);
         
-        return this.database.guildSlowmodeSettings.update({
+        const updated = await this.database.guildSlowmodeSettings.update({
             where: { guildId },
             data: updates
         });
+
+        this.logger.info('Updated slowmode settings', {
+            guildId,
+            updates
+        });
+
+        return updated;
     }
 }
 

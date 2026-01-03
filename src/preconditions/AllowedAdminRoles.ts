@@ -76,6 +76,7 @@ export class AllowedAdminRolesPrecondition extends AllFlowsPrecondition {
 		try {
 			// Require guild context and valid member
 			if (!guildId || !member) {
+				this.logDenial('missing-member', { guildId, memberId: this.resolveMemberId(member), hasAdministrator, silentOnFail });
 				return this.error({
 					message: this.createErrorMessage([]),
 					context: silentOnFail ? { silent: true } : {}
@@ -84,6 +85,7 @@ export class AllowedAdminRolesPrecondition extends AllFlowsPrecondition {
 
 			// Allow if member has Administrator permission
 			if (hasAdministrator) {
+				this.logGrant('administrator', { guildId, memberId: this.resolveMemberId(member), hasAdministrator });
 				return this.ok();
 			}
 
@@ -92,6 +94,7 @@ export class AllowedAdminRolesPrecondition extends AllFlowsPrecondition {
 
 			// Deny if no admin roles configured
 			if (allowedRoles.length === 0) {
+				this.logDenial('no-config', { guildId, memberId: this.resolveMemberId(member), hasAdministrator, silentOnFail });
 				return this.error({
 					message: this.createErrorMessage([]),
 					context: silentOnFail ? { silent: true } : {}
@@ -100,10 +103,23 @@ export class AllowedAdminRolesPrecondition extends AllFlowsPrecondition {
 
 			// Check if member has any allowed role
 			if (this.memberHasAllowedRole(member, allowedRoles)) {
+				this.logGrant('role', {
+					guildId,
+					memberId: this.resolveMemberId(member),
+					hasAdministrator,
+					allowedRoles
+				});
 				return this.ok();
 			}
 
 			// Deny access
+			this.logDenial('forbidden', {
+				guildId,
+				memberId: this.resolveMemberId(member),
+				hasAdministrator,
+				allowedRoles,
+				silentOnFail
+			});
 			return this.error({
 				message: this.createErrorMessage(allowedRoles),
 				context: silentOnFail ? { silent: true } : {}
@@ -194,6 +210,37 @@ export class AllowedAdminRolesPrecondition extends AllFlowsPrecondition {
 		}
 
 		return false;
+	}
+
+	private resolveMemberId(member: GuildMember | APIInteractionGuildMember | null) {
+		if (!member) return 'unknown';
+		if ('user' in member && member.user) return member.user.id;
+		return (member as GuildMember)?.id ?? 'unknown';
+	}
+
+	private logGrant(source: 'administrator' | 'role', meta: { guildId: string; memberId: string; hasAdministrator: boolean; allowedRoles?: string[] }) {
+		this.container.logger.debug('[AllowedAdminRoles] Access granted', {
+			source,
+			guildId: meta.guildId,
+			memberId: meta.memberId,
+			hasAdministrator: meta.hasAdministrator,
+			allowedRoles: meta.allowedRoles ?? []
+		});
+	}
+
+	private logDenial(
+		reason: 'missing-member' | 'no-config' | 'forbidden',
+		meta: { guildId: string | null; memberId: string; hasAdministrator: boolean; allowedRoles?: string[]; silentOnFail: boolean }
+	) {
+		const level = meta.silentOnFail ? 'debug' : reason === 'forbidden' ? 'warn' : 'info';
+		this.container.logger[level]('[AllowedAdminRoles] Access denied', {
+			reason,
+			guildId: meta.guildId ?? 'unknown',
+			memberId: meta.memberId,
+			hasAdministrator: meta.hasAdministrator,
+			allowedRoles: meta.allowedRoles ?? [],
+			silent: meta.silentOnFail
+		});
 	}
 }
 

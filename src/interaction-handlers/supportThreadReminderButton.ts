@@ -150,7 +150,16 @@ export class SupportThreadReminderButtonHandler extends InteractionHandler {
 
 			// Update message to show acknowledgement
 			const acknowledgement = this.buildAcknowledgedComponent(interaction.user.id);
-			return interaction.update({ components: [acknowledgement] });
+			const reply = await interaction.update({ components: [acknowledgement] });
+
+			this.container.logger.debug('[SupportThreadReminder] Kept thread open', {
+				guildId: interaction.guildId ?? 'dm',
+				threadId: thread.id,
+				userId: interaction.user.id,
+				interactionId: interaction.id
+			});
+
+			return reply;
 		} catch (error) {
 			this.container.logger.error('Failed to keep support thread open via button', error, {
 				threadId: thread.id
@@ -179,7 +188,14 @@ export class SupportThreadReminderButtonHandler extends InteractionHandler {
 					)
 				);
 
-			return interaction.showModal(modal);
+			const response = await interaction.showModal(modal);
+			this.container.logger.debug('[SupportThreadReminder] Opened close modal', {
+				guildId: interaction.guildId ?? 'dm',
+				threadId,
+				userId: interaction.user.id,
+				interactionId: interaction.id
+			});
+			return response;
 		} catch (error) {
 			this.container.logger.error('Failed to open support thread close modal', error, {
 				threadId

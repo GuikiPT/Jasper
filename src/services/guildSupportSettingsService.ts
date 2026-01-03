@@ -1,6 +1,7 @@
 // Guild support settings service - Manages support forum and thread configuration
 import type { GuildSupportSettings, PrismaClient } from '@prisma/client';
 import { GuildSettingsService } from './guildSettingsService';
+import { createSubsystemLogger } from '../lib/subsystemLogger';
 
 // ============================================================
 // Constants and Types
@@ -30,6 +31,8 @@ export type SupportSettingKey = (typeof SUPPORT_SETTING_KEYS)[number];
  * - Used by support thread monitor and thread creation handler
  */
 export class GuildSupportSettingsService {
+    private readonly logger = createSubsystemLogger('GuildSupportSettingsService');
+
     public constructor(
         private readonly database: PrismaClient,
         private readonly guildSettingsService: GuildSettingsService
@@ -64,7 +67,9 @@ export class GuildSupportSettingsService {
         // Ensure parent guild settings exist
         await this.guildSettingsService.ensureGuild(guildId);
         
-        return this.database.guildSupportSettings.create({ data: { guildId } });
+        const created = await this.database.guildSupportSettings.create({ data: { guildId } });
+        this.logger.info('Created support settings for guild', { guildId });
+        return created;
     }
 
     /**
@@ -81,7 +86,7 @@ export class GuildSupportSettingsService {
         // Ensure parent guild settings exist
         await this.guildSettingsService.ensureGuild(guildId);
         
-        return this.database.guildSupportSettings.upsert({
+        const updated = await this.database.guildSupportSettings.upsert({
             where: { guildId },
             create: {
                 guildId,
@@ -91,6 +96,14 @@ export class GuildSupportSettingsService {
                 [key]: value
             }
         });
+
+        this.logger.info('Support setting updated', {
+            guildId,
+            key,
+            value
+        });
+
+        return updated;
     }
 }
 

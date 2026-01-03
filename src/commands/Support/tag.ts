@@ -323,42 +323,149 @@ export class SupportTagCommand extends Subcommand {
 	// ============================================================
 
 	public async chatInputTagCreate(interaction: TagChatInputInteraction) {
-		return chatInputTagCreate(this, interaction);
+		try {
+			const result = await chatInputTagCreate(this, interaction);
+			this.logSuccess(interaction, 'tag create');
+			return result;
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'tag create', error);
+		}
 	}
 
 	public async chatInputTagDelete(interaction: TagChatInputInteraction) {
-		return chatInputTagDelete(this, interaction);
+		try {
+			const result = await chatInputTagDelete(this, interaction);
+			this.logSuccess(interaction, 'tag delete');
+			return result;
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'tag delete', error);
+		}
 	}
 
 	public async chatInputTagEdit(interaction: TagChatInputInteraction) {
-		return chatInputTagEdit(this, interaction);
+		try {
+			const result = await chatInputTagEdit(this, interaction);
+			this.logSuccess(interaction, 'tag edit');
+			return result;
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'tag edit', error);
+		}
 	}
 
 	public async chatInputTagExport(interaction: TagChatInputInteraction) {
-		return chatInputTagExport(this, interaction);
+		try {
+			const result = await chatInputTagExport(this, interaction);
+			this.logSuccess(interaction, 'tag export');
+			return result;
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'tag export', error);
+		}
 	}
 
 	public async chatInputTagImport(interaction: TagChatInputInteraction) {
-		return chatInputTagImport(this, interaction);
+		try {
+			const result = await chatInputTagImport(this, interaction);
+			this.logSuccess(interaction, 'tag import');
+			return result;
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'tag import', error);
+		}
 	}
 
 	public async chatInputTagInfo(interaction: TagChatInputInteraction) {
-		return chatInputTagInfo(this, interaction);
+		try {
+			const result = await chatInputTagInfo(this, interaction);
+			this.logSuccess(interaction, 'tag info');
+			return result;
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'tag info', error);
+		}
 	}
 
 	public async chatInputTagList(interaction: TagChatInputInteraction) {
-		return chatInputTagList(this, interaction);
+		try {
+			const result = await chatInputTagList(this, interaction);
+			this.logSuccess(interaction, 'tag list');
+			return result;
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'tag list', error);
+		}
 	}
 
 	public async chatInputTagRaw(interaction: TagChatInputInteraction) {
-		return chatInputTagRaw(this, interaction);
+		try {
+			const result = await chatInputTagRaw(this, interaction);
+			this.logSuccess(interaction, 'tag raw');
+			return result;
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'tag raw', error);
+		}
 	}
 
 	public async chatInputTagShow(interaction: TagChatInputInteraction) {
-		return chatInputTagShow(this, interaction);
+		try {
+			const result = await chatInputTagShow(this, interaction);
+			this.logSuccess(interaction, 'tag show');
+			return result;
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'tag show', error);
+		}
 	}
 
 	public async chatInputTagUse(interaction: TagChatInputInteraction) {
-		return chatInputTagUse(this, interaction);
+		try {
+			const result = await chatInputTagUse(this, interaction);
+			this.logSuccess(interaction, 'tag use');
+			return result;
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'tag use', error);
+		}
+	}
+
+	private async handleInteractionError(interaction: TagChatInputInteraction, stage: string, error: unknown) {
+		const subcommand = interaction.options.getSubcommand(false);
+		this.container.logger.error('[Tag] Command failed', error, {
+			stage,
+			subcommand: subcommand ?? 'none',
+			guildId: interaction.guildId ?? 'dm',
+			userId: interaction.user.id,
+			interactionId: interaction.id
+		});
+
+		const payload = {
+			content: 'I hit an error while processing that tag command. Please try again.',
+			ephemeral: true
+		};
+
+		if (interaction.replied || interaction.deferred) {
+			return interaction.editReply({ content: payload.content }).catch((replyError) => {
+				this.container.logger.error('[Tag] Failed to edit reply after error', replyError, {
+					guildId: interaction.guildId ?? 'dm',
+					userId: interaction.user.id,
+					interactionId: interaction.id
+				});
+				return undefined;
+			});
+		}
+
+		return interaction.reply(payload).catch((replyError) => {
+			this.container.logger.error('[Tag] Failed to send reply after error', replyError, {
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id,
+				interactionId: interaction.id
+			});
+			return undefined;
+		});
+	}
+
+	private logSuccess(interaction: TagChatInputInteraction, stage: string) {
+		const subcommand = interaction.options.getSubcommand(false);
+		this.container.logger.debug('[Tag] Command succeeded', {
+			stage,
+			subcommand: subcommand ?? 'none',
+			guildId: interaction.guildId ?? 'dm',
+			userId: interaction.user.id,
+			interactionId: interaction.id
+		});
 	}
 }

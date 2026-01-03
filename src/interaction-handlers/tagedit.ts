@@ -175,7 +175,18 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 					editedBy: interaction.user.id
 				});
 
-				return interaction.editReply({ content: `Updated tag **${updated.name}**.` });
+				const reply = await interaction.editReply({ content: `Updated tag **${updated.name}**.` });
+
+				this.container.logger.debug('[SupportTagEditModal] Updated tag', {
+					guildId,
+					userId: interaction.user.id,
+					tagId: updated.id,
+					oldName: tag.name,
+					newName: updated.name,
+					interactionId: interaction.id
+				});
+
+				return reply;
 			} catch (error) {
 				if (error instanceof SupportTagDuplicateNameError) {
 					return interaction.editReply({ content: 'A different tag with that name already exists.' });

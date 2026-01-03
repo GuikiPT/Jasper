@@ -123,7 +123,17 @@ export class SupportTagListPaginationHandler extends InteractionHandler {
 			const components = buttons.length > 0 ? [component, ...buttons] : [component];
 
 			// Update message with new page
-			return interaction.update({ components });
+			const reply = await interaction.update({ components });
+
+			this.container.logger.debug('[SupportTagListPagination] Updated tag list page', {
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id,
+				interactionId: interaction.id,
+				targetPage: currentPage,
+				totalPages
+			});
+
+			return reply;
 		}
 		catch (error) {
 			this.container.logger.error('Failed to process support tag list pagination interaction', error, {

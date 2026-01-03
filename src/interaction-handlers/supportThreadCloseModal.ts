@@ -163,9 +163,20 @@ export class SupportThreadCloseModalHandler extends InteractionHandler {
 				// Mark as closed in database
 				await this.container.supportThreadService.markThreadClosed(thread.id);
 
-				return interaction.editReply({
+				const reply = await interaction.editReply({
 					content: 'Thread closed successfully. Thanks for confirming!'
 				});
+
+				this.container.logger.debug('[SupportThreadCloseModal] Closed support thread via modal', {
+					guildId,
+					threadId: thread.id,
+					userId: interaction.user.id,
+					interactionId: interaction.id,
+					appliedResolvedTag: Boolean(settings.resolvedTagId),
+					removedReminder: Boolean(reminderMessageId)
+				});
+
+				return reply;
 			} catch (error) {
 				this.container.logger.error('Failed to close support thread via modal', error, {
 					threadId: thread.id

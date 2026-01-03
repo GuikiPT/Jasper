@@ -405,19 +405,35 @@ export class SettingsCommand extends Subcommand {
 	// ============================================================
 
 	public async messagePrefixSet(message: Message, args: Args) {
-		return handleMessagePrefixSet(this, message, args);
+		try {
+			return handleMessagePrefixSet(this, message, args);
+		} catch (error) {
+			return this.handleMessageError(message, 'prefix set', error);
+		}
 	}
 
 	public async messagePrefixView(message: Message, args: Args) {
-		return handleMessagePrefixView(this, message, args);
+		try {
+			return handleMessagePrefixView(this, message, args);
+		} catch (error) {
+			return this.handleMessageError(message, 'prefix view', error);
+		}
 	}
 
 	public async chatInputPrefixSet(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputPrefixSet(this, interaction);
+		try {
+			return handleChatInputPrefixSet(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'prefix set', error);
+		}
 	}
 
 	public async chatInputPrefixView(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputPrefixView(this, interaction);
+		try {
+			return handleChatInputPrefixView(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'prefix view', error);
+		}
 	}
 
 	// ============================================================
@@ -425,27 +441,51 @@ export class SettingsCommand extends Subcommand {
 	// ============================================================
 
 	public async messageRoleAdd(message: Message, args: Args) {
-		return handleMessageRoleAdd(this, message, args);
+		try {
+			return handleMessageRoleAdd(this, message, args);
+		} catch (error) {
+			return this.handleMessageError(message, 'roles add', error);
+		}
 	}
 
 	public async messageRoleRemove(message: Message, args: Args) {
-		return handleMessageRoleRemove(this, message, args);
+		try {
+			return handleMessageRoleRemove(this, message, args);
+		} catch (error) {
+			return this.handleMessageError(message, 'roles remove', error);
+		}
 	}
 
 	public async messageRoleList(message: Message, args: Args) {
-		return handleMessageRoleList(this, message, args);
+		try {
+			return handleMessageRoleList(this, message, args);
+		} catch (error) {
+			return this.handleMessageError(message, 'roles list', error);
+		}
 	}
 
 	public async chatInputRoleAdd(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputRoleAdd(this, interaction);
+		try {
+			return handleChatInputRoleAdd(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'roles add', error);
+		}
 	}
 
 	public async chatInputRoleRemove(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputRoleRemove(this, interaction);
+		try {
+			return handleChatInputRoleRemove(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'roles remove', error);
+		}
 	}
 
 	public async chatInputRoleList(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputRoleList(this, interaction);
+		try {
+			return handleChatInputRoleList(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'roles list', error);
+		}
 	}
 
 	// ============================================================
@@ -453,27 +493,51 @@ export class SettingsCommand extends Subcommand {
 	// ============================================================
 
 	public async messageChannelAdd(message: Message, args: Args) {
-		return handleMessageChannelAdd(this, message, args);
+		try {
+			return handleMessageChannelAdd(this, message, args);
+		} catch (error) {
+			return this.handleMessageError(message, 'channels add', error);
+		}
 	}
 
 	public async messageChannelRemove(message: Message, args: Args) {
-		return handleMessageChannelRemove(this, message, args);
+		try {
+			return handleMessageChannelRemove(this, message, args);
+		} catch (error) {
+			return this.handleMessageError(message, 'channels remove', error);
+		}
 	}
 
 	public async messageChannelList(message: Message, args: Args) {
-		return handleMessageChannelList(this, message, args);
+		try {
+			return handleMessageChannelList(this, message, args);
+		} catch (error) {
+			return this.handleMessageError(message, 'channels list', error);
+		}
 	}
 
 	public async chatInputChannelAdd(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputChannelAdd(this, interaction);
+		try {
+			return handleChatInputChannelAdd(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'channels add', error);
+		}
 	}
 
 	public async chatInputChannelRemove(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputChannelRemove(this, interaction);
+		try {
+			return handleChatInputChannelRemove(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'channels remove', error);
+		}
 	}
 
 	public async chatInputChannelList(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputChannelList(this, interaction);
+		try {
+			return handleChatInputChannelList(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'channels list', error);
+		}
 	}
 
 	// ============================================================
@@ -481,19 +545,35 @@ export class SettingsCommand extends Subcommand {
 	// ============================================================
 
 	public async messageSlowmodeView(message: Message) {
-		return handleMessageSlowmodeView(this, message);
+		try {
+			return handleMessageSlowmodeView(this, message);
+		} catch (error) {
+			return this.handleMessageError(message, 'slowmode view', error);
+		}
 	}
 
 	public async messageSlowmodeConfigure(message: Message, args: Args) {
-		return handleMessageSlowmodeConfigure(this, message, args);
+		try {
+			return handleMessageSlowmodeConfigure(this, message, args);
+		} catch (error) {
+			return this.handleMessageError(message, 'slowmode configure', error);
+		}
 	}
 
 	public async chatInputSlowmodeView(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputSlowmodeView(this, interaction);
+		try {
+			return handleChatInputSlowmodeView(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'slowmode view', error);
+		}
 	}
 
 	public async chatInputSlowmodeConfigure(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputSlowmodeConfigure(this, interaction);
+		try {
+			return handleChatInputSlowmodeConfigure(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'slowmode configure', error);
+		}
 	}
 
 	// ============================================================
@@ -501,43 +581,83 @@ export class SettingsCommand extends Subcommand {
 	// ============================================================
 
 	public async messageTopicAdd(message: Message, args: Args) {
-		return handleMessageTopicAdd(this, message, args);
+		try {
+			return handleMessageTopicAdd(this, message, args);
+		} catch (error) {
+			return this.handleMessageError(message, 'topics add', error);
+		}
 	}
 
 	public async messageTopicRemove(message: Message, args: Args) {
-		return handleMessageTopicRemove(this, message, args);
+		try {
+			return handleMessageTopicRemove(this, message, args);
+		} catch (error) {
+			return this.handleMessageError(message, 'topics remove', error);
+		}
 	}
 
 	public async messageTopicList(message: Message, args: Args) {
-		return handleMessageTopicList(this, message, args);
+		try {
+			return handleMessageTopicList(this, message, args);
+		} catch (error) {
+			return this.handleMessageError(message, 'topics list', error);
+		}
 	}
 
 	public async chatInputTopicAdd(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputTopicAdd(this, interaction);
+		try {
+			return handleChatInputTopicAdd(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'topics add', error);
+		}
 	}
 
 	public async chatInputTopicRemove(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputTopicRemove(this, interaction);
+		try {
+			return handleChatInputTopicRemove(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'topics remove', error);
+		}
 	}
 
 	public async chatInputTopicList(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputTopicList(this, interaction);
+		try {
+			return handleChatInputTopicList(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'topics list', error);
+		}
 	}
 
 	public async messageTopicImport(message: Message, args: Args) {
-		return handleMessageTopicImport(this, message, args);
+		try {
+			return handleMessageTopicImport(this, message, args);
+		} catch (error) {
+			return this.handleMessageError(message, 'topics import', error);
+		}
 	}
 
 	public async messageTopicExport(message: Message, args: Args) {
-		return handleMessageTopicExport(this, message, args);
+		try {
+			return handleMessageTopicExport(this, message, args);
+		} catch (error) {
+			return this.handleMessageError(message, 'topics export', error);
+		}
 	}
 
 	public async chatInputTopicImport(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputTopicImport(this, interaction);
+		try {
+			return handleChatInputTopicImport(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'topics import', error);
+		}
 	}
 
 	public async chatInputTopicExport(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputTopicExport(this, interaction);
+		try {
+			return handleChatInputTopicExport(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'topics export', error);
+		}
 	}
 
 	// ============================================================
@@ -545,19 +665,35 @@ export class SettingsCommand extends Subcommand {
 	// ============================================================
 
 	public async messageSupportSet(message: Message, args: Args) {
-		return handleMessageSupportSet(this, message, args);
+		try {
+			return handleMessageSupportSet(this, message, args);
+		} catch (error) {
+			return this.handleMessageError(message, 'support set', error);
+		}
 	}
 
 	public async messageSupportView(message: Message, args: Args) {
-		return handleMessageSupportView(this, message, args);
+		try {
+			return handleMessageSupportView(this, message, args);
+		} catch (error) {
+			return this.handleMessageError(message, 'support view', error);
+		}
 	}
 
 	public async chatInputSupportSet(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputSupportSet(this, interaction);
+		try {
+			return handleChatInputSupportSet(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'support set', error);
+		}
 	}
 
 	public async chatInputSupportView(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputSupportView(this, interaction);
+		try {
+			return handleChatInputSupportView(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'support view', error);
+		}
 	}
 
 	// ============================================================
@@ -565,42 +701,144 @@ export class SettingsCommand extends Subcommand {
 	// ============================================================
 
 	public async messageYouTubeEnable(message: Message, args: Args) {
-		return handleMessageYouTubeEnable(this, message, args);
+		try {
+			return handleMessageYouTubeEnable(this, message, args);
+		} catch (error) {
+			return this.handleMessageError(message, 'youtube enable', error);
+		}
 	}
 
 	public async messageYouTubeDisable(message: Message) {
-		return handleMessageYouTubeDisable(this, message);
+		try {
+			return handleMessageYouTubeDisable(this, message);
+		} catch (error) {
+			return this.handleMessageError(message, 'youtube disable', error);
+		}
 	}
 
 	public async messageYouTubeView(message: Message) {
-		return handleMessageYouTubeView(this, message);
+		try {
+			return handleMessageYouTubeView(this, message);
+		} catch (error) {
+			return this.handleMessageError(message, 'youtube view', error);
+		}
 	}
 
 	public async messageYouTubeTest(message: Message) {
-		return handleMessageYouTubeTest(this, message);
+		try {
+			return handleMessageYouTubeTest(this, message);
+		} catch (error) {
+			return this.handleMessageError(message, 'youtube test', error);
+		}
 	}
 
 	public async messageYouTubeForceUpdate(message: Message, args: Args) {
-		return handleMessageYouTubeForceUpdate(this, message, args);
+		try {
+			return handleMessageYouTubeForceUpdate(this, message, args);
+		} catch (error) {
+			return this.handleMessageError(message, 'youtube force-update', error);
+		}
 	}
 
 	public async chatInputYouTubeEnable(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputYouTubeEnable(this, interaction);
+		try {
+			return handleChatInputYouTubeEnable(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'youtube enable', error);
+		}
 	}
 
 	public async chatInputYouTubeDisable(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputYouTubeDisable(this, interaction);
+		try {
+			return handleChatInputYouTubeDisable(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'youtube disable', error);
+		}
 	}
 
 	public async chatInputYouTubeView(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputYouTubeView(this, interaction);
+		try {
+			return handleChatInputYouTubeView(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'youtube view', error);
+		}
 	}
 
 	public async chatInputYouTubeTest(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputYouTubeTest(this, interaction);
+		try {
+			return handleChatInputYouTubeTest(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'youtube test', error);
+		}
 	}
 
 	public async chatInputYouTubeForceUpdate(interaction: Subcommand.ChatInputCommandInteraction) {
-		return handleChatInputYouTubeForceUpdate(this, interaction);
+		try {
+			return handleChatInputYouTubeForceUpdate(this, interaction);
+		} catch (error) {
+			return this.handleInteractionError(interaction, 'youtube force-update', error);
+		}
+	}
+
+	private getInteractionContext(interaction: Subcommand.ChatInputCommandInteraction) {
+		const group = interaction.options.getSubcommandGroup(false);
+		const subcommand = interaction.options.getSubcommand(false);
+		return { group, subcommand };
+	}
+
+	private async handleInteractionError(interaction: Subcommand.ChatInputCommandInteraction, stage: string, error: unknown) {
+		const { group, subcommand } = this.getInteractionContext(interaction);
+		this.container.logger.error(`[Settings] ${stage} failed`, error, {
+			guildId: interaction.guildId ?? 'dm',
+			userId: interaction.user.id,
+			interactionId: interaction.id,
+			subcommandGroup: group ?? 'none',
+			subcommand: subcommand ?? 'none'
+		});
+
+		const editPayload = {
+			content: 'I hit an error while processing that settings command. Please try again.'
+		};
+		const replyPayload = {
+			content: 'I hit an error while processing that settings command. Please try again.',
+			ephemeral: true
+		};
+
+		if (interaction.replied || interaction.deferred) {
+			return interaction.editReply(editPayload).catch((replyError) => {
+				this.container.logger.error('[Settings] Failed to edit reply after error', replyError, {
+					guildId: interaction.guildId ?? 'dm',
+					userId: interaction.user.id,
+					interactionId: interaction.id
+				});
+				return undefined;
+			});
+		}
+
+		return interaction.reply(replyPayload).catch((replyError) => {
+			this.container.logger.error('[Settings] Failed to send reply after error', replyError, {
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id,
+				interactionId: interaction.id
+			});
+			return undefined;
+		});
+	}
+
+	private async handleMessageError(message: Message, stage: string, error: unknown) {
+		this.container.logger.error(`[Settings] ${stage} failed`, error, {
+			guildId: message.guildId ?? 'dm',
+			userId: message.author.id,
+			messageId: message.id
+		});
+
+		return message.reply('I hit an error while processing that settings command. Please try again.').catch((replyError) => {
+			this.container.logger.error('[Settings] Failed to send message reply after error', replyError, {
+				guildId: message.guildId ?? 'dm',
+				userId: message.author.id,
+				messageId: message.id
+			});
+			return undefined;
+		});
 	}
 }

@@ -144,7 +144,17 @@ export class SupportTagCreateModalHandler extends InteractionHandler {
 					embedImageUrl: image
 				});
 
-				return interaction.editReply({ content: `Created tag **${tag.name}**.` });
+				const reply = await interaction.editReply({ content: `Created tag **${tag.name}**.` });
+
+				this.container.logger.debug('[SupportTagCreateModal] Created tag', {
+					guildId,
+					userId: interaction.user.id,
+					tagId: tag.id,
+					tagName: tag.name,
+					interactionId: interaction.id
+				});
+
+				return reply;
 			} catch (error) {
 				if (error instanceof SupportTagDuplicateNameError) {
 					return interaction.editReply({ content: 'A tag with that name already exists.' });

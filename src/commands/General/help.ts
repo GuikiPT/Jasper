@@ -203,9 +203,12 @@ export class HelpCommand extends Command {
 
 	// Handle autocomplete: score entries against the query and return top matches
 	public override async autocompleteRun(interaction: AutocompleteInteraction) {
+		let focusedOption: string | undefined;
+		let query = '';
 		try {
 			const focused = interaction.options.getFocused(true);
-			const query = String(focused.value ?? '')
+			focusedOption = focused.name;
+			query = String(focused.value ?? '')
 				.trim()
 				.toLowerCase();
 			const entries = this.collectEntries();
@@ -237,12 +240,20 @@ export class HelpCommand extends Command {
 			return interaction.respond(choices);
 		} catch (error) {
 			this.container.logger.error('[Help] Autocomplete failed', error, {
-				guildId: interaction.guildId ?? 'dm'
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id,
+				focusedOption,
+				query
 			});
 			try {
 				return interaction.respond([]);
 			} catch (respondError) {
-				this.container.logger.debug('[Help] Failed to send autocomplete fallback', respondError);
+				this.container.logger.error('[Help] Autocomplete fallback respond failed', respondError, {
+					guildId: interaction.guildId ?? 'dm',
+					userId: interaction.user.id,
+					focusedOption,
+					query
+				});
 				return;
 			}
 		}
@@ -250,9 +261,11 @@ export class HelpCommand extends Command {
 
 	// Slash /help handler: resolve entry (if any) and send contextual help
 	public override async chatInputRun(interaction: ChatInputCommandInteraction) {
+		let requested: string | null = null;
+		let isEphemeral = true;
 		try {
-			const requested = interaction.options.getString('command');
-			const isEphemeral = interaction.options.getBoolean('ephemeral') ?? true;
+			requested = interaction.options.getString('command');
+			isEphemeral = interaction.options.getBoolean('ephemeral') ?? true;
 			const normalizedQuery = requested?.trim() ?? '';
 			const entries = this.collectEntries();
 			const entry = this.findEntry(entries, normalizedQuery);
@@ -265,14 +278,29 @@ export class HelpCommand extends Command {
 					? this.createNotFoundResponse({ query: normalizedQuery, mode: 'slash', prefix })
 					: this.createOverviewResponse(entries, prefix, { ephemeral: isEphemeral });
 
-			return interaction.reply({
+
+			const reply = await interaction.reply({
 				components: [response.component],
 				flags: response.flags
 			});
+
+			this.container.logger.debug('[Help] Sent help response', {
+				guildId: interaction.guildId ?? 'dm',
+				userId: interaction.user.id,
+				interactionId: interaction.id,
+				requested: normalizedQuery || 'overview',
+				entryFound: Boolean(entry),
+				isEphemeral
+			});
+
+			return reply;
 		} catch (error) {
 			this.container.logger.error('[Help] Failed to build help response', error, {
 				guildId: interaction.guildId ?? 'dm',
-				commandOption: interaction.options.getString('command') ?? 'none'
+				userId: interaction.user.id,
+				interactionId: interaction.id,
+				commandOption: requested ?? 'none',
+				ephemeral: isEphemeral
 			});
 			const fallbackComponent = createErrorTextComponent('I hit an error while building help content. Please try again in a moment.');
 			const flags = MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral;
@@ -285,9 +313,10 @@ export class HelpCommand extends Command {
 
 	// Message-based help handler mirroring slash flow
 	public override async messageRun(message: Message, args: Args) {
+		let normalizedQuery: string | null = null;
 		try {
 			const rawQuery = args.finished ? null : await args.rest('string');
-			const normalizedQuery = rawQuery?.trim() ?? '';
+			normalizedQuery = rawQuery?.trim() ?? '';
 			const entries = this.collectEntries();
 			const entry = this.findEntry(entries, normalizedQuery);
 
@@ -299,13 +328,28 @@ export class HelpCommand extends Command {
 					? this.createNotFoundResponse({ query: normalizedQuery, mode: 'message', prefix })
 					: this.createOverviewResponse(entries, prefix, { ephemeral: false });
 
-			return message.reply({
+
+			const reply = await message.reply({
 				components: [response.component],
 				flags: response.flags
 			});
+
+			this.container.logger.debug('[Help] Sent help response (message)', {
+				guildId: message.guildId ?? 'dm',
+				userId: message.author.id,
+				messageId: message.id,
+				replyId: reply.id,
+				requested: normalizedQuery || 'overview',
+				entryFound: Boolean(entry)
+			});
+
+			return reply;
 		} catch (error) {
 			this.container.logger.error('[Help] Failed to send message-based help', error, {
-				guildId: message.guildId ?? 'dm'
+				guildId: message.guildId ?? 'dm',
+				userId: message.author.id,
+				messageId: message.id,
+				query: normalizedQuery ?? 'none'
 			});
 			return message.reply('I ran into a problem while building help info. Please try again.').catch(() => undefined);
 		}
@@ -739,4 +783,5 @@ export class HelpCommand extends Command {
 		}
 		return { component, flags };
 	}
+
 }

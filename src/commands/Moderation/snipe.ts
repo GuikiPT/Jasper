@@ -95,18 +95,39 @@ export class SnipeCommand extends Command {
 			}
 
 			// Confirm to user ephemerally
-			return interaction.editReply({
+			const reply = await interaction.editReply({
 				content: `✅ <@${interaction.user.id}> got sniped.`
 			});
+
+			this.container.logger.debug('[Snipe] Posted sniped message via slash', {
+				guildId: interaction.guildId,
+				channelId: interaction.channel?.id,
+				userId: interaction.user.id,
+				interactionId: interaction.id
+			});
+
+			return reply;
 		} catch (error) {
 			this.container.logger.error('[Snipe] Failed to process slash command', error, {
 				guildId: interaction.guildId ?? 'dm',
-				channelId: interaction.channel?.id
+				channelId: interaction.channel?.id,
+				userId: interaction.user.id,
+				interactionId: interaction.id
 			});
-			return editReplyWithComponent(
-				interaction,
-				'I hit an unexpected error while trying to snipe the message. Please try again or check my permissions.'
-			);
+			try {
+				return editReplyWithComponent(
+					interaction,
+					'I hit an unexpected error while trying to snipe the message. Please try again or check my permissions.'
+				);
+			} catch (replyError) {
+				this.container.logger.error('[Snipe] Failed to send error fallback', replyError, {
+					guildId: interaction.guildId ?? 'dm',
+					channelId: interaction.channel?.id,
+					userId: interaction.user.id,
+					interactionId: interaction.id
+				});
+				return;
+			}
 		}
 	}
 
@@ -145,10 +166,19 @@ export class SnipeCommand extends Command {
 					allowedMentions: { parse: [] }
 				});
 			}
+
+			this.container.logger.debug('[Snipe] Posted sniped message via prefix', {
+				guildId: message.guildId,
+				channelId: message.channelId,
+				userId: message.author.id,
+				messageId: message.id
+			});
 		} catch (error) {
 			this.container.logger.error('[Snipe] Failed to process prefix command', error, {
 				guildId: message.guildId ?? 'dm',
-				channelId: message.channelId
+				channelId: message.channelId,
+				userId: message.author.id,
+				messageId: message.id
 			});
 			return (message.channel as any).send('I hit an unexpected error while trying to snipe that message.');
 		}
@@ -179,6 +209,11 @@ export class SnipeCommand extends Command {
 				components: [component],
 				flags: ['IsComponentsV2'],
 				allowedMentions: { parse: [] }
+			});
+			this.container.logger.debug('[Snipe] Sent sniped message to channel', {
+				channelId: channel.id,
+				messageId: (snipedMessage as any).id ?? (snipedMessage as any).messageId,
+				authorId: snipedMessage.author?.id
 			});
 			return true;
 		} catch (error) {

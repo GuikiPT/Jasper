@@ -1,7 +1,11 @@
 // utils module within subcommands/settings/youtube
 import { SlashCommandSubcommandGroupBuilder, ChannelType } from 'discord.js';
+import { createSubsystemLogger } from '../../../lib/subsystemLogger';
+
+const logger = createSubsystemLogger('SettingsYouTube');
 
 export function registerYouTubeSubcommandGroup(builder: SlashCommandSubcommandGroupBuilder) {
+	logger.debug('YouTube subcommand group registered');
 	return builder
 		.setName('youtube')
 		.setDescription('Configure YouTube subscriber count tracking.')

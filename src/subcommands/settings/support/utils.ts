@@ -2,9 +2,12 @@
 import type { Args } from '@sapphire/framework';
 import type { Subcommand } from '@sapphire/plugin-subcommands';
 import { ChannelType, MessageFlags, type SlashCommandSubcommandGroupBuilder } from 'discord.js';
+import { createSubsystemLogger } from '../../../lib/subsystemLogger';
 
 export type SupportCommand = Subcommand;
 export type SupportChatInputInteraction = Subcommand.ChatInputCommandInteraction;
+
+const logger = createSubsystemLogger('SettingsSupport');
 
 export type SupportSetContext = {
 	command: SupportCommand;
@@ -105,6 +108,7 @@ export function parseSettingChoice(value: string): SupportSettingKey {
 
 export async function executeSupportSet({ command, guildId, setting, value, deny, respond, defer }: SupportSetContext) {
 	if (!guildId) {
+		logger.warn('Support set denied (no guild)', { setting });
 		return deny('This command can only be used inside a server.');
 	}
 
@@ -115,6 +119,7 @@ export async function executeSupportSet({ command, guildId, setting, value, deny
 	const label = settingLabel(setting);
 	const service = command.container.guildSupportSettingsService;
 	if (!service) {
+		logger.error('Support settings service unavailable', { guildId });
 		return respond('Support settings are not available right now.');
 	}
 
@@ -126,9 +131,11 @@ export async function executeSupportSet({ command, guildId, setting, value, deny
 			try {
 				await service.setSetting(guildId, setting, null);
 			} catch (error) {
+				logger.error('Failed to clear support setting', error, { guildId, setting });
 				return respond('Failed to update support settings. Please try again later.');
 			}
 
+			logger.info('Support setting cleared', { guildId, setting });
 			return respond(`Removed **${label}** setting.`);
 		}
 
@@ -165,8 +172,11 @@ export async function executeSupportSet({ command, guildId, setting, value, deny
 	try {
 		await service.setSetting(guildId, setting, processedValue);
 	} catch (error) {
+		logger.error('Failed to update support setting', error, { guildId, setting });
 		return respond('Failed to update support settings. Please try again later.');
 	}
+
+	logger.info('Support setting updated', { guildId, setting, value: processedValue });
 
 	if (setting === 'supportForumChannelId') {
 		return respond(`Set **${label}** to <#${processedValue}>.`);

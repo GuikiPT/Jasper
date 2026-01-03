@@ -3,6 +3,9 @@ import type { GuildSlowmodeSettings } from '@prisma/client';
 import type { Subcommand, SubcommandMappingGroup } from '@sapphire/plugin-subcommands';
 import type { Args } from '@sapphire/framework';
 import { MessageFlags, type SlashCommandSubcommandGroupBuilder } from 'discord.js';
+import { createSubsystemLogger } from '../../../lib/subsystemLogger';
+
+const logger = createSubsystemLogger('SettingsSlowmode');
 
 export type SlowmodeCommand = Subcommand;
 export type SlowmodeChatInputInteraction = Subcommand.ChatInputCommandInteraction;
@@ -83,6 +86,7 @@ export const slowmodeSubcommandMapping: SubcommandMappingGroup = {
 
 export async function executeSlowmodeView({ command, guildId, respond, respondComponents, deny, defer }: SlowmodeViewContext) {
 	if (!guildId) {
+		logger.warn('Slowmode view denied (no guild)');
 		return deny('This command can only be used inside a server.');
 	}
 
@@ -94,6 +98,7 @@ export async function executeSlowmodeView({ command, guildId, respond, respondCo
 	const channelService = command.container.guildChannelSettingsService;
 
 	if (!slowmodeService || !channelService) {
+		logger.error('Slowmode view services unavailable', { guildId, slowmodeService: Boolean(slowmodeService), channelService: Boolean(channelService) });
 		return respond('Slowmode settings are not available right now.');
 	}
 
@@ -103,7 +108,7 @@ export async function executeSlowmodeView({ command, guildId, respond, respondCo
 	// If we have component support, use it
 	if (respondComponents) {
 		try {
-			command.container.logger.debug('[Slowmode] Using component response');
+			logger.debug('Using component response for slowmode view', { guildId });
 			const { createMultiSectionComponent } = await import('../../../lib/components.js');
 
 			const formatChannels = (channels: string[]) => (channels.length ? channels.map((id) => `<#${id}>`) : ['*(none)*']);
@@ -132,17 +137,17 @@ export async function executeSlowmodeView({ command, guildId, respond, respondCo
 
 			const component = createMultiSectionComponent(sections);
 			if (component) {
-				command.container.logger.debug('[Slowmode] Component created successfully');
+				logger.debug('Slowmode view component created', { guildId });
 				return respondComponents([component]);
 			} else {
-				command.container.logger.debug('[Slowmode] Component creation failed, falling back to text');
+				logger.debug('Slowmode view component creation failed, falling back to text', { guildId });
 			}
 			// Fallback to plain text if the component would exceed Discord limits
 		} catch (error) {
-			command.container.logger.error('[Slowmode] Error creating component', error);
+			logger.error('Error creating slowmode view component', error, { guildId });
 		}
 	} else {
-		command.container.logger.debug('[Slowmode] No component support, using text response');
+		logger.debug('Slowmode view using text response', { guildId });
 	}
 
 	// Fallback to plain text for message commands
@@ -153,11 +158,13 @@ export async function executeSlowmodeView({ command, guildId, respond, respondCo
 
 export async function executeSlowmodeUpdate({ command, guildId, updates, respond, respondComponents, deny, defer }: SlowmodeUpdateContext) {
 	if (!guildId) {
+		logger.warn('Slowmode update denied (no guild)');
 		return deny('This command can only be used inside a server.');
 	}
 
 	const sanitized = sanitizeUpdates(updates);
 	if (!sanitized) {
+		logger.debug('Slowmode update rejected (no valid fields)', { guildId });
 		return deny('Provide at least one valid slowmode field to update.');
 	}
 
@@ -169,6 +176,7 @@ export async function executeSlowmodeUpdate({ command, guildId, updates, respond
 	const channelService = command.container.guildChannelSettingsService;
 
 	if (!slowmodeService || !channelService) {
+		logger.error('Slowmode update services unavailable', { guildId, slowmodeService: Boolean(slowmodeService), channelService: Boolean(channelService) });
 		return respond('Slowmode settings are not available right now.');
 	}
 
@@ -176,7 +184,7 @@ export async function executeSlowmodeUpdate({ command, guildId, updates, respond
 	try {
 		settings = await slowmodeService.getOrCreateSettings(guildId);
 	} catch (error) {
-		command.container.logger.error('Failed to ensure slowmode settings', error, { guildId });
+		logger.error('Failed to ensure slowmode settings', error, { guildId });
 		return respond('Something went wrong while loading slowmode settings. Please try again.');
 	}
 
@@ -189,11 +197,11 @@ export async function executeSlowmodeUpdate({ command, guildId, updates, respond
 	try {
 		updated = await slowmodeService.updateSettings(guildId, updatePayload);
 	} catch (error) {
-		command.container.logger.error('Failed to update slowmode settings', error, { guildId });
+		logger.error('Failed to update slowmode settings', error, { guildId });
 		return respond('Failed to update slowmode settings. Please try again later.');
 	}
 
-	command.container.logger.info('[Settings:Slowmode] Updated automatic slowmode settings', {
+	logger.info('Updated automatic slowmode settings', {
 		guildId,
 		updates: updatePayload
 	});

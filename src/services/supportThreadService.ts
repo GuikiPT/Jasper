@@ -1,5 +1,6 @@
 // Support thread service - Database operations for support thread inactivity tracking
 import type { PrismaClient, SupportThread } from '@prisma/client';
+import { createSubsystemLogger } from '../lib/subsystemLogger';
 
 // ============================================================
 // Type Definitions
@@ -33,6 +34,8 @@ export interface SupportThreadReminderPayload {
  * - Manages thread lifecycle (active/closed)
  */
 export class SupportThreadService {
+    private readonly logger = createSubsystemLogger('SupportThreadService');
+
     public constructor(private readonly database: PrismaClient) {}
 
     // ============================================================
@@ -64,7 +67,7 @@ export class SupportThreadService {
      * @returns Updated thread record
      */
     public async recordAuthorActivity(payload: SupportThreadActivityPayload): Promise<SupportThread> {
-        return this.database.supportThread.upsert({
+        const record = await this.database.supportThread.upsert({
             where: { threadId: payload.threadId },
             create: {
                 threadId: payload.threadId,
@@ -83,6 +86,15 @@ export class SupportThreadService {
                 reminderCount: 0
             }
         });
+
+        this.logger.info('Support thread activity recorded', {
+            threadId: payload.threadId,
+            guildId: payload.guildId,
+            authorId: payload.authorId,
+            messageId: payload.messageId
+        });
+
+        return record;
     }
 
     /**
@@ -95,7 +107,7 @@ export class SupportThreadService {
      * @returns Updated thread record
      */
     public async markReminderSent(payload: SupportThreadReminderPayload): Promise<SupportThread> {
-        return this.database.supportThread.update({
+        const record = await this.database.supportThread.update({
             where: { threadId: payload.threadId },
             data: {
                 lastReminderAt: payload.timestamp,
@@ -103,6 +115,14 @@ export class SupportThreadService {
                 reminderCount: { increment: 1 }
             }
         });
+
+        this.logger.info('Support thread reminder marked sent', {
+            threadId: payload.threadId,
+            messageId: payload.messageId,
+            timestamp: payload.timestamp.toISOString()
+        });
+
+        return record;
     }
 
     // ============================================================
@@ -125,6 +145,8 @@ export class SupportThreadService {
                 reminderMessageId: null
             }
         });
+
+        this.logger.info('Support thread closed', { threadId });
     }
 
     /**
@@ -142,6 +164,8 @@ export class SupportThreadService {
                 reminderMessageId: null
             }
         });
+
+        this.logger.debug('Support thread reminder cleared', { threadId });
     }
 
     // ============================================================
@@ -161,7 +185,7 @@ export class SupportThreadService {
      */
     public async findThreadsNeedingReminder(cutoff: Date, options: { guildId?: string } = {}): Promise<SupportThread[]> {
         const { guildId } = options;
-        return this.database.supportThread.findMany({
+        const threads = await this.database.supportThread.findMany({
             where: {
                 closedAt: null,
                 lastAuthorMessageId: { not: null }, // Only send reminders if we have a valid author message
@@ -170,6 +194,15 @@ export class SupportThreadService {
                 ...(guildId ? { guildId } : {})
             }
         });
+
+        if (threads.length > 0) {
+            this.logger.debug('Threads needing reminders', {
+                guildId: guildId ?? 'all',
+                count: threads.length
+            });
+        }
+
+        return threads;
     }
 
     /**
@@ -185,7 +218,7 @@ export class SupportThreadService {
      */
     public async findThreadsNeedingAutoClose(reminderCutoff: Date, options: { guildId?: string } = {}): Promise<SupportThread[]> {
         const { guildId } = options;
-        return this.database.supportThread.findMany({
+        const threads = await this.database.supportThread.findMany({
             where: {
                 closedAt: null,
                 lastAuthorMessageId: { not: null }, // Only auto-close if we have a valid author message
@@ -194,6 +227,15 @@ export class SupportThreadService {
                 ...(guildId ? { guildId } : {})
             }
         });
+
+        if (threads.length > 0) {
+            this.logger.debug('Threads needing auto-close', {
+                guildId: guildId ?? 'all',
+                count: threads.length
+            });
+        }
+
+        return threads;
     }
 }
 

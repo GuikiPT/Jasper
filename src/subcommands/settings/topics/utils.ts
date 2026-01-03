@@ -1,9 +1,12 @@
 // utils module within subcommands/settings/topics
 import type { Subcommand } from '@sapphire/plugin-subcommands';
 import { MessageFlags, type SlashCommandSubcommandGroupBuilder } from 'discord.js';
+import { createSubsystemLogger } from '../../../lib/subsystemLogger';
 
 export type TopicCommand = Subcommand;
 export type TopicChatInputInteraction = Subcommand.ChatInputCommandInteraction;
+
+const logger = createSubsystemLogger('SettingsTopics');
 
 export const MAX_TOPIC_LENGTH = 256;
 export const MAX_TOPICS_PER_IMPORT = 500;
@@ -47,6 +50,9 @@ export const registerTopicSubcommandGroup = (group: SlashCommandSubcommandGroupB
 				.addStringOption((option) => option.setName('text').setDescription('Paste a JSON array directly if not using a file.'))
 		)
 		.addSubcommand((subcommand) => subcommand.setName('export').setDescription('Export the configured topics as a JSON file.'));
+
+// Lightweight helper to record when topic commands are registered (useful during startup diagnostics)
+logger.debug('Topic subcommand group registered');
 
 export const denyInteraction = (interaction: TopicChatInputInteraction, content: string) =>
 	interaction.reply({ content, flags: MessageFlags.Ephemeral });

@@ -4,7 +4,10 @@ import type { Subcommand } from '@sapphire/plugin-subcommands';
 import { MessageFlags, type SlashCommandSubcommandGroupBuilder } from 'discord.js';
 import { createErrorTextComponent, createTextComponent } from '../../../lib/components.js';
 import type { RoleBucketKey as RoleBucketKeyBase } from '../../../services/guildRoleSettingsService';
+import { createSubsystemLogger } from '../../../lib/subsystemLogger';
 export type RoleBucketKey = RoleBucketKeyBase;
+
+const logger = createSubsystemLogger('SettingsRoles');
 
 export type RoleMutationContext = {
 	command: RoleCommand;
@@ -133,6 +136,7 @@ export async function executeRoleMutation({
 	defer
 }: RoleMutationContext) {
 	if (!guildId) {
+		logger.warn('Role mutation denied (no guild)', { bucket, roleId, operation });
 		return deny('This command can only be used inside a server.');
 	}
 
@@ -142,6 +146,7 @@ export async function executeRoleMutation({
 
 	const service = command.container.guildRoleSettingsService;
 	if (!service) {
+		logger.error('Role settings service unavailable', { guildId });
 		return respondWithComponent(respond, respondComponents, 'Role settings are not available right now.', true);
 	}
 	const label = bucketLabel(bucket);
@@ -149,15 +154,21 @@ export async function executeRoleMutation({
 	if (operation === 'add') {
 		const { added } = await service.addRole(guildId, bucket, roleId);
 		if (!added) {
+			logger.info('Role already present in bucket', { guildId, bucket, roleId });
 			return respondWithComponent(respond, respondComponents, `That role is already part of **${label}**.`, true);
 		}
+
+		logger.info('Role added to bucket', { guildId, bucket, roleId });
 
 		return respondWithComponent(respond, respondComponents, `Added <@&${roleId}> to **${label}**.`);
 	} else {
 		const { removed } = await service.removeRole(guildId, bucket, roleId);
 		if (!removed) {
+			logger.info('Role not present in bucket', { guildId, bucket, roleId });
 			return respondWithComponent(respond, respondComponents, `That role is not configured for **${label}**.`, true);
 		}
+
+		logger.info('Role removed from bucket', { guildId, bucket, roleId });
 
 		return respondWithComponent(respond, respondComponents, `Removed <@&${roleId}> from **${label}**.`);
 	}
@@ -165,6 +176,7 @@ export async function executeRoleMutation({
 
 export async function executeRoleList({ command, guildId, bucket, deny, respond, respondComponents, defer }: RoleListContext) {
 	if (!guildId) {
+		logger.warn('Role list denied (no guild)', { bucket });
 		return deny('This command can only be used inside a server.');
 	}
 
@@ -174,10 +186,19 @@ export async function executeRoleList({ command, guildId, bucket, deny, respond,
 
 	const service = command.container.guildRoleSettingsService;
 	if (!service) {
+		logger.error('Role settings service unavailable for list', { guildId });
 		return respondWithComponent(respond, respondComponents, 'Role settings are not available right now.', true);
 	}
 	const buckets = bucket ? [bucket] : ROLE_BUCKETS.map((entry) => entry.key);
 	const allBuckets = await service.getAllBuckets(guildId);
+	logger.debug('Role buckets listed', {
+		guildId,
+		bucket,
+		counts: buckets.reduce<Record<string, number>>((acc, key) => {
+			acc[key] = allBuckets[key].length;
+			return acc;
+		}, {})
+	});
 
 	// If we have component support, use it
 	if (respondComponents) {

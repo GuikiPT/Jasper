@@ -92,27 +92,61 @@ export class AutomodCheckCommand extends Command {
 		} catch (error) {
 			this.container.logger.error('[AutomodCheck] Failed to defer interaction', error, {
 				guildId: interaction.guildId,
-				userId: interaction.user.id
+				userId: interaction.user.id,
+				interactionId: interaction.id
 			});
-			return editReplyWithComponent(interaction, 'I could not start the automod check because the reply was rejected. Please try again.');
+			if (!interaction.deferred && !interaction.replied) {
+				return replyWithComponent(interaction, 'I could not start the automod check because the reply was rejected. Please try again.', true);
+			}
+			try {
+				return editReplyWithComponent(interaction, 'I could not start the automod check because the reply was rejected. Please try again.');
+			} catch (replyError) {
+				this.container.logger.error('[AutomodCheck] Failed to send defer fallback', replyError, {
+					guildId: interaction.guildId,
+					userId: interaction.user.id,
+					interactionId: interaction.id
+				});
+				return;
+			}
 		}
 
 		try {
 			const result = this.container.automodRuleChecker.checkContent(content);
 			const components = await this.createResultComponents(content, result, interaction.user.id);
 
-			return interaction.editReply({
+			const reply = await interaction.editReply({
 				components: components,
 				flags: ['IsComponentsV2']
 			});
+
+			this.container.logger.debug('[AutomodCheck] Responded with automod analysis', {
+				guildId: interaction.guildId,
+				userId: interaction.user.id,
+				interactionId: interaction.id,
+				isBlocked: result.isBlocked,
+				matchCount: result.matchCount ?? (result.isBlocked ? 1 : 0),
+				isEphemeral
+			});
+
+			return reply;
 		} catch (error) {
 			this.container.logger.error('[AutomodCheck] Failed to check content', error, {
 				guildId: interaction.guildId,
 				userId: interaction.user.id,
+				interactionId: interaction.id,
 				content: content.substring(0, 100)
 			});
 
-			return editReplyWithComponent(interaction, 'An error occurred while checking the content against automod rules. Please try again later.');
+			try {
+				return editReplyWithComponent(interaction, 'An error occurred while checking the content against automod rules. Please try again later.');
+			} catch (replyError) {
+				this.container.logger.error('[AutomodCheck] Failed to send error fallback', replyError, {
+					guildId: interaction.guildId,
+					userId: interaction.user.id,
+					interactionId: interaction.id
+				});
+				return;
+			}
 		}
 	}
 

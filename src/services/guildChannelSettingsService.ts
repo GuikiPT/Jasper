@@ -2,6 +2,7 @@
 import type { GuildChannelSettings, PrismaClient } from '@prisma/client';
 import { GuildSettingsService } from './guildSettingsService';
 import { BaseBucketSettingsService } from './baseBucketSettingsService';
+import { createSubsystemLogger } from '../lib/subsystemLogger';
 
 // ============================================================
 // Constants and Types
@@ -28,6 +29,8 @@ export type ChannelBucketKey = (typeof CHANNEL_BUCKET_KEYS)[number];
  * - Inherits common bucket management from base service
  */
 export class GuildChannelSettingsService extends BaseBucketSettingsService<GuildChannelSettings, ChannelBucketKey> {
+    private readonly logger = createSubsystemLogger('GuildChannelSettingsService');
+
     public constructor(database: PrismaClient, guildSettingsService: GuildSettingsService) {
         super(database, guildSettingsService);
     }
@@ -51,9 +54,12 @@ export class GuildChannelSettingsService extends BaseBucketSettingsService<Guild
         // Ensure parent guild settings exist
         await this.guildSettingsService.ensureGuild(guildId);
 
-        return this.database.guildChannelSettings.create({
+        const created = await this.database.guildChannelSettings.create({
             data: this.createBlankSettings(guildId)
         });
+
+        this.logger.info('Created channel settings for guild', { guildId });
+        return created;
     }
 
     /**
@@ -104,6 +110,14 @@ export class GuildChannelSettingsService extends BaseBucketSettingsService<Guild
                 });
             }
         );
+
+        this.logger.info(result.added ? 'Channel added to bucket' : 'Channel already present in bucket', {
+            guildId,
+            bucket,
+            channelId,
+            count: result.items.length
+        });
+
         return { added: result.added, channels: result.items };
     }
 
@@ -129,6 +143,14 @@ export class GuildChannelSettingsService extends BaseBucketSettingsService<Guild
                 });
             }
         );
+
+        this.logger.info(result.removed ? 'Channel removed from bucket' : 'Channel not present in bucket', {
+            guildId,
+            bucket,
+            channelId,
+            count: result.items.length
+        });
+
         return { removed: result.removed, channels: result.items };
     }
 
@@ -141,11 +163,19 @@ export class GuildChannelSettingsService extends BaseBucketSettingsService<Guild
      * @param channels Channel IDs to set
      */
     public async replaceBucket(guildId: string, bucket: ChannelBucketKey, channels: Iterable<string>) {
-        await this.replaceBucketContents(guildId, bucket, channels, async (guildId, bucket, data) => {
+        const uniqueChannels = Array.from(new Set(Array.from(channels)));
+
+        await this.replaceBucketContents(guildId, bucket, uniqueChannels, async (guildId, bucket, data) => {
             await this.database.guildChannelSettings.update({
                 where: { guildId },
                 data: { [bucket]: data }
             });
+        });
+
+        this.logger.info('Replaced channel bucket contents', {
+            guildId,
+            bucket,
+            count: uniqueChannels.length
         });
     }
 
