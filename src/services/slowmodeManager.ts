@@ -69,7 +69,7 @@ export class SlowmodeManager {
 	public constructor(
 		private readonly client: SapphireClient,
 		private readonly database: PrismaClient
-	) {}
+	) { }
 
 	// ============================================================
 	// Message Handling
@@ -170,10 +170,7 @@ export class SlowmodeManager {
 				return;
 			}
 
-			this.logger.info('Threshold reached, processing slowmode', {
-				guildId: message.guildId,
-				channelId: channel.id,
-				messageCount,
+			this.logger.debug('Threshold reached, processing slowmode', {
 				threshold
 			});
 
@@ -234,7 +231,7 @@ export class SlowmodeManager {
 				state.lastSlowmodeUpdate = now;
 				this.scheduleReset(message.guildId, channel.id, config.resetTime);
 
-				this.logger.info('Upgraded automatic slowmode', {
+				this.logger.debug('Upgraded automatic slowmode', {
 					guildId: message.guildId,
 					channelId: channel.id,
 					previousSlowmode: currentSlowmode,
@@ -376,7 +373,7 @@ export class SlowmodeManager {
 				guildState.channels.delete(channelId);
 			}
 
-			this.logger.info('Slowmode reset to minimum', {
+			this.logger.debug('Slowmode reset to minimum', {
 				guildId,
 				channelId,
 				slowmode: MIN_SLOWMODE_SECONDS,
