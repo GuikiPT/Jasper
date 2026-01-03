@@ -24,8 +24,8 @@ import { AutomodRuleChecker } from './services/automodRuleChecker';
 import { VirusTotalService } from './services/virusTotalService';
 
 const isProduction = process.env.NODE_ENV === 'production';
-const logLevel = isProduction ? LogLevel.Info : LogLevel.Debug;
-const fileLogLevel = isProduction ? LogLevel.Info : LogLevel.Debug;
+const logLevel = isProduction ? LogLevel.Info : LogLevel.Debug; // console/logger level
+const fileLogLevel = LogLevel.Debug; // always persist debug+ to disk for diagnostics
 
 const client = new SapphireClient({
 	defaultPrefix: 'j!',
