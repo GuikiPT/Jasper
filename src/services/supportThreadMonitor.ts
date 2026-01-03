@@ -29,6 +29,12 @@ const REOPEN_DELAY_MS = 1000; // Delay after reopening archived thread
 const MESSAGE_FETCH_LIMIT = 100; // Limit for fetching initial messages
 const PRUNE_INTERVAL_MS = 30 * 60 * 1000; // Run stale record prune every 30 minutes
 const PRUNE_FETCH_DELAY_MS = 250; // Throttle between prune-related API fetches (~4 req/s)
+const IGNORED_THREADS = new Set(
+	(process.env.IGNORE_SUPPORT_THREAD_INACTIVE_VERIFICATION ?? '')
+		.split(',')
+		.map((id) => id.trim())
+		.filter(Boolean)
+);
 
 /**
  * Monitor for support thread inactivity
@@ -101,6 +107,14 @@ export class SupportThreadMonitor {
 			if (!message.channel || message.channel.type !== ChannelType.PublicThread) return;
 
 			const thread = message.channel as ThreadChannel;
+
+			if (this.isIgnoredThread(thread.id)) {
+				this.logger.debug('Ignoring tracked activity for thread (configured ignore list)', {
+					threadId: thread.id,
+					guildId: message.guildId
+				});
+				return;
+			}
 
 			// Verify thread is in configured support forum
 			const settings = await this.supportSettingsService.getSettings(message.guildId);
@@ -259,6 +273,13 @@ export class SupportThreadMonitor {
 		});
 
 		for (const record of threads) {
+			if (this.isIgnoredThread(record.threadId)) {
+				this.logger.debug('Skipping reminder for ignored thread', {
+					threadId: record.threadId,
+					guildId: record.guildId
+				});
+				continue;
+			}
 			await this.sendReminder(record);
 		}
 	}
@@ -281,6 +302,13 @@ export class SupportThreadMonitor {
 		});
 
 		for (const record of threads) {
+			if (this.isIgnoredThread(record.threadId)) {
+				this.logger.debug('Skipping auto-close for ignored thread', {
+					threadId: record.threadId,
+					guildId: record.guildId
+				});
+				continue;
+			}
 			await this.autoCloseThread(record, settings);
 		}
 	}
@@ -557,6 +585,10 @@ export class SupportThreadMonitor {
 		return new Promise((resolve) => setTimeout(resolve, ms));
 	}
 
+	private isIgnoredThread(threadId: string): boolean {
+		return IGNORED_THREADS.has(threadId);
+	}
+
 	/**
 	 * Prunes stale support thread records that should no longer be tracked
 	 * - Removes rows for threads that were closed, deleted, archived+locked, or tagged resolved
@@ -584,6 +616,14 @@ export class SupportThreadMonitor {
 			cursor = batch[batch.length - 1].threadId;
 
 			for (const record of batch) {
+				if (this.isIgnoredThread(record.threadId)) {
+					this.logger.debug('Skipping prune for ignored thread', {
+						threadId: record.threadId,
+						guildId: record.guildId
+					});
+					continue;
+				}
+
 				checked++;
 
 				// Legacy rows that were already marked closed should be pruned immediately

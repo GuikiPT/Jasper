@@ -44,6 +44,9 @@ Before you begin, ensure you have met the following requirements:
     # Database Connection URL (Example for PostgreSQL)
     DATABASE_URL="postgresql://user:password@localhost:5432/jasper_db?schema=public"
 
+    # Comma-separated support thread IDs to ignore from inactivity tracking
+    IGNORE_SUPPORT_THREAD_INACTIVE_VERIFICATION="123456789012345678,987654321098765432"
+
     # Sapphire specific (Optional)
     NODE_ENV=development
     ```

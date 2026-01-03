@@ -22,6 +22,8 @@ export async function messageRoleList(command: RoleCommand, message: Message, ar
 			command,
 			guildId: message.guildId ?? null,
 			bucket,
+			actorId: message.author.id,
+			allowed: true,
 			deny: (content) =>
 				message.reply({
 					components: [createErrorTextComponent(content)],
@@ -59,6 +61,8 @@ export async function chatInputRoleList(command: RoleCommand, interaction: RoleC
 		command,
 		guildId: interaction.guildId ?? null,
 		bucket,
+		actorId: interaction.user.id,
+		allowed: true,
 		deny: (content) => denyInteraction(interaction, content),
 		respond: (content) =>
 			interaction.editReply({

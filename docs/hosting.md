@@ -25,12 +25,14 @@ Create `.env` in the project root:
 DISCORD_TOKEN=your_bot_token
 DATABASE_URL=mysql://user:password@localhost:3306/jasper
 OWNERS=123456789012345678,987654321098765432
+IGNORE_SUPPORT_THREAD_INACTIVE_VERIFICATION=123456789012345678,987654321098765432
 NODE_ENV=production
 ```
 
 - `DISCORD_TOKEN`: The bot token from the Discord Developer Portal.
 - `DATABASE_URL`: MySQL connection string. Aurora/MySQL 8.x or MariaDB 10.x both work.
 - `OWNERS`: Comma separated list of Discord user IDs that should bypass owner checks.
+- `IGNORE_SUPPORT_THREAD_INACTIVE_VERIFICATION`: Comma separated support thread IDs that should be skipped by inactivity tracking (no reminders/auto-close/prune).
 
 ## 3. Provision the database
 

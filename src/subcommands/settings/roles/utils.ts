@@ -25,6 +25,8 @@ export type RoleListContext = {
 	command: RoleCommand;
 	guildId: string | null;
 	bucket: RoleBucketKey | null;
+	actorId: string | null;
+	allowed?: boolean;
 	deny: (content: string) => Promise<unknown>;
 	respond: (content: string) => Promise<unknown>;
 	respondComponents?: (components: any[]) => Promise<unknown>;
@@ -174,9 +176,9 @@ export async function executeRoleMutation({
 	}
 }
 
-export async function executeRoleList({ command, guildId, bucket, deny, respond, respondComponents, defer }: RoleListContext) {
+export async function executeRoleList({ command, guildId, bucket, actorId, allowed = true, deny, respond, respondComponents, defer }: RoleListContext) {
 	if (!guildId) {
-		logger.warn('Role list denied (no guild)', { bucket });
+		logger.warn('Role list denied (no guild)', { bucket, actorId, allowed });
 		return deny('This command can only be used inside a server.');
 	}
 
@@ -191,9 +193,11 @@ export async function executeRoleList({ command, guildId, bucket, deny, respond,
 	}
 	const buckets = bucket ? [bucket] : ROLE_BUCKETS.map((entry) => entry.key);
 	const allBuckets = await service.getAllBuckets(guildId);
-	logger.debug('Role buckets listed', {
+	logger.info('Role buckets listed', {
 		guildId,
 		bucket,
+		actorId,
+		allowed,
 		counts: buckets.reduce<Record<string, number>>((acc, key) => {
 			acc[key] = allBuckets[key].length;
 			return acc;

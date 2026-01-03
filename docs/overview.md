@@ -20,7 +20,7 @@ Jasper Revamp is the next generation of my Jasper moderation assistant. It blend
 | Runtime | Node.js 20+, Sapphire Framework, Discord.js 14 |
 | Language | TypeScript with project references and strict compiler options |
 | Persistence | MySQL (Prisma schema in `prisma/schema.prisma`) |
-| Configuration | `.env` loaded via `@skyra/env-utilities`, with typed keys for `DISCORD_TOKEN`, `DATABASE_URL`, and `OWNERS` |
+| Configuration | `.env` loaded via `@skyra/env-utilities`, with typed keys for `DISCORD_TOKEN`, `DATABASE_URL`, `OWNERS`, and `IGNORE_SUPPORT_THREAD_INACTIVE_VERIFICATION` (comma-separated thread IDs to skip inactivity tracking) |
 | Hosting | Docker or bare Node.js service with systemd/PM2 |
 
 ## Repository layout
