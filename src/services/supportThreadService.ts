@@ -36,7 +36,7 @@ export interface SupportThreadReminderPayload {
 export class SupportThreadService {
 	private readonly logger = createSubsystemLogger('SupportThreadService');
 
-	public constructor(private readonly database: PrismaClient) { }
+	public constructor(private readonly database: PrismaClient) {}
 
 	// ============================================================
 	// Thread Retrieval
@@ -67,9 +67,9 @@ export class SupportThreadService {
 			orderBy: { threadId: 'asc' },
 			...(cursor
 				? {
-					skip: 1,
-					cursor: { threadId: cursor }
-				}
+						skip: 1,
+						cursor: { threadId: cursor }
+					}
 				: {})
 		});
 	}
@@ -109,8 +109,7 @@ export class SupportThreadService {
 			}
 		});
 
-		this.logger.debug('Support thread activity recorded', {
-		});
+		this.logger.debug('Support thread activity recorded', {});
 
 		return record;
 	}

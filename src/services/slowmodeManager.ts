@@ -69,7 +69,7 @@ export class SlowmodeManager {
 	public constructor(
 		private readonly client: SapphireClient,
 		private readonly database: PrismaClient
-	) { }
+	) {}
 
 	// ============================================================
 	// Message Handling
