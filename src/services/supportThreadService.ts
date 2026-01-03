@@ -52,6 +52,28 @@ export class SupportThreadService {
 		return this.database.supportThread.findUnique({ where: { threadId } });
 	}
 
+	/**
+	 * Lists tracked threads with cursor-based pagination
+	 * - Used by maintenance jobs and admin cleanup commands
+	 *
+	 * @param options.batchSize Number of rows to fetch per page (default: 500)
+	 * @param options.cursor Thread ID to resume from (exclusive)
+	 */
+	public listTrackedThreads(options: { batchSize?: number; cursor?: string | null } = {}): Promise<SupportThread[]> {
+		const { batchSize = 500, cursor = null } = options;
+
+		return this.database.supportThread.findMany({
+			take: batchSize,
+			orderBy: { threadId: 'asc' },
+			...(cursor
+				? {
+					skip: 1,
+					cursor: { threadId: cursor }
+				}
+				: {})
+		});
+	}
+
 	// ============================================================
 	// Activity Recording
 	// ============================================================
@@ -131,22 +153,20 @@ export class SupportThreadService {
 
 	/**
 	 * Marks a thread as closed
-	 * - Sets closure timestamp
-	 * - Clears reminder message ID
-	 * - Stops further monitoring
+	 * - Deletes the tracking row so closed/resolved threads don't pile up
+	 * - Stops further monitoring and lets future activity recreate the record
 	 * 
 	 * @param threadId Thread ID
 	 */
 	public async markThreadClosed(threadId: string): Promise<void> {
-		await this.database.supportThread.updateMany({
-			where: { threadId },
-			data: {
-				closedAt: new Date(),
-				reminderMessageId: null
-			}
+		const result = await this.database.supportThread.deleteMany({
+			where: { threadId }
 		});
 
-		this.logger.info('Support thread closed', { threadId });
+		this.logger.info('Support thread closed and pruned', {
+			threadId,
+			deletedCount: result.count
+		});
 	}
 
 	/**

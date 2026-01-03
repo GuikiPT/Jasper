@@ -27,6 +27,8 @@ const DEFAULT_REMINDER_INTERVAL_MS = 15 * 1000; // 15 seconds (test cadence)
 const MINIMUM_THRESHOLD_MINUTES = 1; // Sanity check to prevent overly aggressive reminders
 const REOPEN_DELAY_MS = 1000; // Delay after reopening archived thread
 const MESSAGE_FETCH_LIMIT = 100; // Limit for fetching initial messages
+const PRUNE_INTERVAL_MS = 30 * 60 * 1000; // Run stale record prune every 30 minutes
+const PRUNE_FETCH_DELAY_MS = 250; // Throttle between prune-related API fetches (~4 req/s)
 
 /**
  * Monitor for support thread inactivity
@@ -39,6 +41,7 @@ const MESSAGE_FETCH_LIMIT = 100; // Limit for fetching initial messages
 export class SupportThreadMonitor {
 	private checkTimer: NodeJS.Timeout | null = null;
 	private maintenanceRunning = false;
+	private lastPruneAt = 0;
 	private readonly logger = createSubsystemLogger('SupportThreadMonitor');
 
 	public constructor(
@@ -214,6 +217,18 @@ export class SupportThreadMonitor {
 
 				await this.processRemindersForGuild(settings, now, inactivityMinutes);
 				await this.processAutoClosuresForGuild(settings, now, autoCloseMinutes);
+			}
+
+			// Periodically prune stale/closed records left in the database
+			if (now - this.lastPruneAt >= PRUNE_INTERVAL_MS) {
+				const result = await this.pruneStaleThreadRecords();
+				this.lastPruneAt = now;
+
+				if (result.deleted > 0) {
+					this.logger.info('Pruned stale support thread records', result);
+				} else {
+					this.logger.debug('No stale support thread records found during prune');
+				}
 			}
 
 			if (guildSettings.length > 0) {
@@ -536,6 +551,93 @@ export class SupportThreadMonitor {
 			this.logger.debug('Failed to fetch thread channel', { threadId, error });
 			return null;
 		}
+	}
+
+	private delay(ms: number): Promise<void> {
+		return new Promise((resolve) => setTimeout(resolve, ms));
+	}
+
+	/**
+	 * Prunes stale support thread records that should no longer be tracked
+	 * - Removes rows for threads that were closed, deleted, archived+locked, or tagged resolved
+	 * - Removes rows whose parent is no longer the configured support forum
+	 * - Safe to invoke from admin commands or scheduled maintenance
+	 *
+	 * @param batchSize Number of rows to scan per page (default: 500)
+	 */
+	public async pruneStaleThreadRecords(batchSize = 500): Promise<{ checked: number; deleted: number }> {
+		let checked = 0;
+		let deleted = 0;
+		let cursor: string | null = null;
+		const settingsCache = new Map<string, GuildSupportSettings | null>();
+
+		const loadSettings = async (guildId: string) => {
+			if (settingsCache.has(guildId)) return settingsCache.get(guildId) ?? null;
+			const settings = await this.supportSettingsService.getSettings(guildId);
+			settingsCache.set(guildId, settings ?? null);
+			return settings ?? null;
+		};
+
+		while (true) {
+			const batch = await this.supportThreadService.listTrackedThreads({ batchSize, cursor });
+			if (batch.length === 0) break;
+			cursor = batch[batch.length - 1].threadId;
+
+			for (const record of batch) {
+				checked++;
+
+				// Legacy rows that were already marked closed should be pruned immediately
+				if (record.closedAt) {
+					await this.supportThreadService.markThreadClosed(record.threadId);
+					deleted++;
+					continue;
+				}
+
+				const settings = await loadSettings(record.guildId);
+				if (!settings || !settings.supportForumChannelId) {
+					await this.supportThreadService.markThreadClosed(record.threadId);
+					deleted++;
+					continue;
+				}
+
+				// Throttle API calls to avoid hitting rate limits when scanning many threads
+				if (PRUNE_FETCH_DELAY_MS > 0) {
+					await this.delay(PRUNE_FETCH_DELAY_MS);
+				}
+
+				const thread = await this.fetchSupportThread(record.threadId);
+				if (!thread || !thread.parent || thread.parent.id !== settings.supportForumChannelId) {
+					await this.supportThreadService.markThreadClosed(record.threadId);
+					deleted++;
+					continue;
+				}
+
+				try {
+					if (PRUNE_FETCH_DELAY_MS > 0) {
+						await this.delay(PRUNE_FETCH_DELAY_MS);
+					}
+
+					const freshThread = await thread.fetch();
+					const resolvedTagId = settings.resolvedTagId;
+					const hasResolvedTag = resolvedTagId ? freshThread.appliedTags.includes(resolvedTagId) : false;
+					const fullyClosed = freshThread.archived && freshThread.locked;
+
+					if (fullyClosed || hasResolvedTag) {
+						await this.supportThreadService.markThreadClosed(record.threadId);
+						deleted++;
+					}
+				} catch (error) {
+					this.logger.debug('Failed to fetch thread during prune', {
+						threadId: record.threadId,
+						error
+					});
+					await this.supportThreadService.markThreadClosed(record.threadId);
+					deleted++;
+				}
+			}
+		}
+
+		return { checked, deleted };
 	}
 
 	/**
