@@ -1,6 +1,6 @@
 // roles-remove module within subcommands/settings/roles
 import type { Args } from '@sapphire/framework';
-import type { Message, Role } from 'discord.js';
+import type { Message } from 'discord.js';
 import { MessageFlags } from 'discord.js';
 import { createErrorTextComponent, createTextComponent } from '../../../lib/components.js';
 

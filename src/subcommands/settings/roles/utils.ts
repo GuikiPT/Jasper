@@ -177,7 +177,7 @@ export async function executeRoleMutation({
 
 		// Check if role still exists to provide appropriate feedback
 		try {
-			const guild = command.client.guilds.cache.get(guildId);
+			const guild = command.container.client.guilds.cache.get(guildId);
 			const role = guild?.roles.cache.get(roleId);
 
 			if (!role) {

@@ -171,7 +171,7 @@ export async function executeChannelMutation({ command, guildId, bucket, channel
 
 		// Check if channel still exists to provide appropriate feedback
 		try {
-			const guild = command.client.guilds.cache.get(guildId);
+			const guild = command.container.client.guilds.cache.get(guildId);
 			const channel = guild?.channels.cache.get(channelId);
 
 			if (!channel) {
