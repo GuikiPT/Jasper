@@ -75,7 +75,13 @@ export const registerChannelSubcommandGroup = (group: SlashCommandSubcommandGrou
 						.setRequired(true)
 						.addChoices(...CHANNEL_BUCKETS.map((b) => ({ name: b.label, value: b.key })))
 				)
-				.addChannelOption((option) => option.setName('channel').setDescription('Channel to remove from the list.').setRequired(true))
+				.addChannelOption((option) => option.setName('channel').setDescription('Channel to remove from the list.').setRequired(false))
+				.addStringOption((option) =>
+					option
+						.setName('channel_id')
+						.setDescription('Channel ID or link (use if channel no longer exists).')
+						.setRequired(false)
+				)
 		)
 		.addSubcommand((sub) =>
 			sub
@@ -162,6 +168,26 @@ export async function executeChannelMutation({ command, guildId, bucket, channel
 		}
 
 		logger.info('Channel removed from bucket', { guildId, bucket, channelId });
+
+		// Check if channel still exists to provide appropriate feedback
+		try {
+			const guild = command.client.guilds.cache.get(guildId);
+			const channel = guild?.channels.cache.get(channelId);
+
+			if (!channel) {
+				// Try to fetch channel in case it's not in cache
+				try {
+					await guild?.channels.fetch(channelId);
+				} catch {
+					// Channel doesn't exist anymore
+					logger.info('Removed non-existent channel from bucket', { guildId, bucket, channelId });
+					return respond(`Removed channel (ID: ${channelId}) from **${label}**. The channel no longer exists.`);
+				}
+			}
+		} catch (error) {
+			logger.warn('Failed to check channel existence', { guildId, bucket, channelId, error });
+			// Fallback to standard message if we can't check
+		}
 	}
 
 	return respond(operation === 'add' ? `Added <#${channelId}> to **${label}**.` : `Removed <#${channelId}> from **${label}**.`);
@@ -245,6 +271,28 @@ export async function executeChannelList({ command, guildId, bucket, deny, respo
 // Get human-readable label for a bucket key
 export function bucketLabel(bucket: ChannelBucketKey) {
 	return CHANNEL_BUCKETS.find((entry) => entry.key === bucket)?.label ?? bucket;
+}
+
+// Extract channel ID from various formats (raw ID, mention, or URL)
+export function parseChannelId(input: string): string | null {
+	// Raw snowflake ID (17-20 digits)
+	if (/^\d{17,20}$/.test(input)) {
+		return input;
+	}
+
+	// Channel mention format: <#123456789>
+	const mentionMatch = input.match(/^<#(\d{17,20})>$/);
+	if (mentionMatch) {
+		return mentionMatch[1];
+	}
+
+	// Discord channel URL: https://discord.com/channels/guildId/channelId
+	const urlMatch = input.match(/discord\.com\/channels\/\d{17,20}\/(\d{17,20})/);
+	if (urlMatch) {
+		return urlMatch[1];
+	}
+
+	return null;
 }
 
 // Send ephemeral denial message for slash commands

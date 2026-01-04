@@ -1130,11 +1130,18 @@ Remove a role from a permission bucket.
 **Options**
 
 - `setting` (choice, required): Bucket to update.
-- `role` (role, required): Role to remove.
+- `role` (role, optional): Role to remove.
+- `role_id` (string, optional): Role ID or mention (use if role no longer exists).
 
 **Syntax**
 
-`/settings roles remove setting:<bucket> role:<@role>` | `j!settings roles remove <bucket> <@role>`
+`/settings roles remove setting:<bucket> role:<@role>` | `/settings roles remove setting:<bucket> role_id:<id>` | `j!settings roles remove <bucket> <@role|id|mention>`
+
+**Notes**
+
+- Slash command: Provide either `role` OR `role_id`, not both.
+- Message command: Accepts role mentions or raw IDs.
+- If the role no longer exists, the bot will remove it from the database and inform you.
 
 **Bucket choices**
 
@@ -1229,11 +1236,18 @@ Remove a channel from an allow-list bucket.
 **Options**
 
 - `setting` (choice, required): Bucket that should no longer include the channel.
-- `channel` (channel, required): Channel to remove.
+- `channel` (channel, optional): Channel to remove.
+- `channel_id` (string, optional): Channel ID, mention, or URL (use if channel no longer exists).
 
 **Syntax**
 
-`/settings channels remove setting:<bucket> channel:<#channel>` | `j!settings channels remove <bucket> <#channel>`
+`/settings channels remove setting:<bucket> channel:<#channel>` | `/settings channels remove setting:<bucket> channel_id:<id>` | `j!settings channels remove <bucket> <#channel|id|mention|url>`
+
+**Notes**
+
+- Slash command: Provide either `channel` OR `channel_id`, not both.
+- Message command: Accepts channel mentions, raw IDs, or Discord channel URLs.
+- If the channel no longer exists, the bot will remove it from the database and inform you.
 
 **Bucket choices**
 

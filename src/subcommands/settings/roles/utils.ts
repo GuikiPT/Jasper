@@ -77,7 +77,10 @@ export const registerRoleSubcommandGroup = (group: SlashCommandSubcommandGroupBu
 						.setRequired(true)
 						.addChoices(...ROLE_BUCKETS.map((bucket) => ({ name: bucket.label, value: bucket.key })))
 				)
-				.addRoleOption((option) => option.setName('role').setDescription('Role to remove from the list.').setRequired(true))
+				.addRoleOption((option) => option.setName('role').setDescription('Role to remove from the list.').setRequired(false))
+				.addStringOption((option) =>
+					option.setName('role_id').setDescription('Role ID or mention (use if role no longer exists).').setRequired(false)
+				)
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
@@ -172,6 +175,30 @@ export async function executeRoleMutation({
 
 		logger.info('Role removed from bucket', { guildId, bucket, roleId });
 
+		// Check if role still exists to provide appropriate feedback
+		try {
+			const guild = command.client.guilds.cache.get(guildId);
+			const role = guild?.roles.cache.get(roleId);
+
+			if (!role) {
+				// Try to fetch role in case it's not in cache
+				try {
+					await guild?.roles.fetch(roleId);
+				} catch {
+					// Role doesn't exist anymore
+					logger.info('Removed non-existent role from bucket', { guildId, bucket, roleId });
+					return respondWithComponent(
+						respond,
+						respondComponents,
+						`Removed role (ID: ${roleId}) from **${label}**. The role no longer exists.`
+					);
+				}
+			}
+		} catch (error) {
+			logger.warn('Failed to check role existence', { guildId, bucket, roleId, error });
+			// Fallback to standard message if we can't check
+		}
+
 		return respondWithComponent(respond, respondComponents, `Removed <@&${roleId}> from **${label}**.`);
 	}
 }
@@ -263,6 +290,22 @@ export async function executeRoleList({
 
 export function bucketLabel(bucket: RoleBucketKey) {
 	return ROLE_BUCKETS.find((entry) => entry.key === bucket)?.label ?? bucket;
+}
+
+// Extract role ID from various formats (raw ID, mention, or URL)
+export function parseRoleId(input: string): string | null {
+	// Raw snowflake ID (17-20 digits)
+	if (/^\d{17,20}$/.test(input)) {
+		return input;
+	}
+
+	// Role mention format: <@&123456789>
+	const mentionMatch = input.match(/^<@&(\d{17,20})>$/);
+	if (mentionMatch) {
+		return mentionMatch[1];
+	}
+
+	return null;
 }
 
 export const denyInteraction = (interaction: RoleChatInputInteraction, content: string) =>
