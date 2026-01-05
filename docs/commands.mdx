@@ -528,17 +528,18 @@ Quick access command to send the predefined "done" support tag to the current ch
 
 **Options**
 
-- `user` (user, optional): Mention a user alongside the tag.
+- None
 
 **Syntax**
 
-`/is_done [user]`
+`/is_done`
 
 **Notes**
 
 - This command uses the "done" tag that must exist in the database.
 - If the "done" tag doesn't exist, create it first using `/tag create`.
 - Respects channel restrictions configured in `allowedTagChannels`.
+- Automatically mentions the thread starter when used in a thread.
 - Provides the same functionality as `/tag use name:done` but with simpler syntax.
 
 </details>
@@ -565,17 +566,18 @@ Quick access command to send the predefined "no_response" support tag to the cur
 
 **Options**
 
-- `user` (user, optional): Mention a user alongside the tag.
+- None
 
 **Syntax**
 
-`/no_response [user]`
+`/no_response`
 
 **Notes**
 
 - This command uses the "no_response" tag that must exist in the database.
 - If the "no_response" tag doesn't exist, create it first using `/tag create`.
 - Respects channel restrictions configured in `allowedTagChannels`.
+- Automatically mentions the thread starter when used in a thread.
 - Provides the same functionality as `/tag use name:no_response` but with simpler syntax.
 
 </details>
