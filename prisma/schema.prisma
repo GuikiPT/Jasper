@@ -131,3 +131,18 @@ model SupportThread {
     @@index([closedAt])
     @@map("SupportThread")
 }
+
+model Reminder {
+    id        Int      @id @default(autoincrement())
+    uuid      String   @unique @db.VarChar(8)
+    userId    String
+    guildId   String?
+    channelId String
+    message   String   @db.Text
+    remindAt  DateTime
+    createdAt DateTime @default(now())
+
+    @@index([remindAt])
+    @@index([userId])
+    @@map("Reminder")
+}

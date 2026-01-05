@@ -25,7 +25,8 @@ const expectedTables = [
 	'GuildSupportTagSettings',
 	'GuildTopicSettings',
 	'GuildSlowmodeSettings',
-	'SupportThread'
+	'SupportThread',
+	'Reminder'
 ];
 
 // Readiness state tracking

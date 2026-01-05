@@ -18,6 +18,7 @@ export class UserEvent extends Listener {
 			this.printStoreDebugInformation();
 			this.startYouTubeManager();
 			this.startSupportThreadMonitor();
+			this.startReminderService();
 			this.setBotActivity();
 		} catch (error) {
 			this.container.logger.error('Unhandled error during ready listener run', error);
@@ -83,6 +84,14 @@ ${line03}${dev ? ` ${pad}${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MO
 			this.container.supportThreadMonitor.start();
 		} catch (error) {
 			this.container.logger.error('Failed to start SupportThreadMonitor:', error);
+		}
+	}
+
+	private async startReminderService() {
+		try {
+			this.container.reminderService.start();
+		} catch (error) {
+			this.container.logger.error('Failed to start ReminderService:', error);
 		}
 	}
 }

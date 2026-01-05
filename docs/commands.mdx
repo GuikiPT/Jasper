@@ -991,6 +991,206 @@ Send a saved tag to the current channel or mention a user directly.
 
 </details>
 
+## Reminder Commands
+
+### Quick Reference
+
+| Command | Summary |
+| --- | --- |
+| [`/remind`](#remind) | Set a reminder for yourself. |
+| [`/reminders list`](#reminders-list) | List all your active reminders. |
+| [`/reminders delete`](#reminders-delete) | Delete a reminder by UUID. |
+| [`/reminders edit`](#reminders-edit) | Edit a reminder's time or message. |
+
+<a id="remind"></a>
+### `/remind`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Create a reminder that will notify you after a specified duration. Reminders are delivered via DM if possible, otherwise in the channel where the command was used.
+
+**Where it works**
+
+- Guilds
+- Direct messages
+
+**Permissions**
+
+- Support Roles
+- Allowed Tag Roles
+- Allowed Staff Roles
+- Allowed Admin Roles
+
+**Options**
+
+- `when` (string, required): When to remind you (e.g., "in 1 hour", "in 30 minutes").
+- `message` (string, required): What to remind you about (max 1000 characters).
+
+**Syntax**
+
+`/remind when:"in 1 hour" message:"update my vps"` | `j!remind in 1 hour update my vps`
+
+**Aliases**
+
+- `reminder` (command alias)
+
+**Time Format Examples**
+
+```
+in 1 hour
+in 30 minutes
+in 2 hours and 15 minutes
+in 2 days
+in 1h 30m
+in 45min
+```
+
+**Notes**
+
+- Maximum duration: 1 year.
+- Each reminder is assigned a unique 5-character UUID for identification.
+- The bot checks if DMs are enabled and falls back to channel delivery if needed.
+- If DMs are closed and the bot lacks channel permissions, the command will fail with an error.
+- Reminders are checked every 60 seconds and delivered within that window of their scheduled time.
+- Reminders more than 1 hour overdue are automatically deleted.
+
+</details>
+
+<a id="reminders-list"></a>
+### `/reminders list`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Display all your active reminders with pagination (2 reminders per page).
+
+**Where it works**
+
+- Guilds
+- Direct messages
+
+**Permissions**
+
+- Support Roles
+- Allowed Tag Roles
+- Allowed Staff Roles
+- Allowed Admin Roles
+
+**Options**
+
+None.
+
+**Syntax**
+
+`/reminders list` | `j!reminders list`
+
+**Aliases**
+
+- `j!reminder list` (message command)
+
+**Notes**
+
+- Shows reminder UUID, message, and relative time (e.g., "in 2 hours").
+- Empty state displays "📭 You have no active reminders."
+- Use the Previous/Next buttons to navigate between pages.
+- Only you can interact with your pagination buttons - others cannot navigate your reminders.
+- Only you can see your own reminders.
+
+</details>
+
+<a id="reminders-delete"></a>
+### `/reminders delete`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Delete a specific reminder by its UUID.
+
+**Where it works**
+
+- Guilds
+- Direct messages
+
+**Permissions**
+
+- Support Roles
+- Allowed Tag Roles
+- Allowed Staff Roles
+- Allowed Admin Roles
+
+**Options**
+
+- `id` (string, required, autocomplete): The reminder UUID to delete.
+
+**Syntax**
+
+`/reminders delete id:<uuid>` | `j!reminders delete <uuid>`
+
+**Aliases**
+
+- `j!reminder delete <uuid>` (message command)
+
+**Notes**
+
+- The `id` field provides autocomplete showing your reminders with their UUIDs and messages.
+- You can only delete your own reminders.
+- Deletion is permanent and immediate.
+
+</details>
+
+<a id="reminders-edit"></a>
+### `/reminders edit`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Edit a reminder's scheduled time and/or message content.
+
+**Where it works**
+
+- Guilds
+- Direct messages
+
+**Permissions**
+
+- Support Roles
+- Allowed Tag Roles
+- Allowed Staff Roles
+- Allowed Admin Roles
+
+**Options**
+
+- `id` (string, required, autocomplete): The reminder UUID to edit.
+- `when` (string, optional): New time (e.g., "in 1 hour").
+- `message` (string, optional): New message content (max 1000 characters).
+
+**Syntax**
+
+`/reminders edit id:<uuid> [when:"in 2 hours"] [message:"new text"]` | `j!reminders edit <uuid> <when> <message>`
+
+**Aliases**
+
+- `j!reminder edit <uuid> <when> <message>` (message command)
+
+**Notes**
+
+- You must provide at least one field to update (`when` or `message`).
+- The `id` field provides autocomplete showing your reminders.
+- You can only edit your own reminders.
+- Time is calculated from the current moment (not from the original reminder time).
+- Maximum duration: 1 year.
+
+</details>
+
 ## Settings Commands
 
 The `/settings` command configures guild-specific behavior. Most actions are available as both slash and message commands. Where "Manage Server" is noted, users with that Discord permission may also execute the action.

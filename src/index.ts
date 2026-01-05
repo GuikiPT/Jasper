@@ -22,6 +22,7 @@ import { SupportThreadService } from './services/supportThreadService';
 import { SupportThreadMonitor } from './services/supportThreadMonitor';
 import { AutomodRuleChecker } from './services/automodRuleChecker';
 import { VirusTotalService } from './services/virusTotalService';
+import { ReminderService } from './services/reminderService';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const logLevel = isProduction ? LogLevel.Info : LogLevel.Debug; // console/logger level
@@ -96,6 +97,7 @@ try {
 	container.snipeManager = new SnipeManager(client, container.database);
 	container.automodRuleChecker = new AutomodRuleChecker();
 	container.virusTotalService = new VirusTotalService();
+	container.reminderService = new ReminderService(client, container.database);
 } catch (error) {
 	Logger.fatal('Failed to initialize services', error);
 	void client.destroy();
