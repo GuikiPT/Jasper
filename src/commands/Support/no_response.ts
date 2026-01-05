@@ -4,8 +4,7 @@ import { Command, CommandOptionsRunTypeEnum } from '@sapphire/framework';
 import {
 	ApplicationIntegrationType,
 	InteractionContextType,
-	MessageFlags,
-	type SlashCommandUserOption
+	MessageFlags
 } from 'discord.js';
 import {
 	SUPPORT_TAG_TABLE_MISSING_MESSAGE,
@@ -23,11 +22,11 @@ import {
 	description: 'Send the "no_response" tag to the current channel.',
 	detailedDescription: {
 		summary: 'Quick access command to send the predefined "no_response" support tag.',
-		chatInputUsage: '/no_response [user]',
+		chatInputUsage: '/no_response',
 		notes: [
 			'This command uses the predefined "no_response" tag from the database.',
 			'Requires an allowed tag role, staff role, or admin role.',
-			'Optionally mention a user alongside the tag.'
+			'Automatically mentions the thread starter when used in a thread.'
 		]
 	},
 	fullCategory: ['Support'],
@@ -55,9 +54,6 @@ export class NoResponseCommand extends Command {
 				.setDescription(this.description)
 				.setIntegrationTypes(this.integrationTypes)
 				.setContexts(this.contexts)
-				.addUserOption((option: SlashCommandUserOption) =>
-					option.setName('user').setDescription('Mention a user alongside the tag.').setRequired(false)
-				)
 		);
 	}
 
@@ -76,8 +72,26 @@ export class NoResponseCommand extends Command {
 			return replyEphemeral(interaction, 'This command can only be used inside a server.');
 		}
 
-		// Get optional user mention
-		const user = interaction.options.getUser('user');
+		// Get thread OP if in a thread
+		const channel = interaction.channel;
+		if (!channel) {
+			return replyEphemeral(interaction, 'Could not access the channel. Please try again.');
+		}
+
+		let threadOp;
+		if (channel.isThread()) {
+			try {
+				const owner = await channel.fetchOwner();
+				threadOp = owner?.user;
+			} catch (error) {
+				this.container.logger.warn('[no_response] Failed to fetch thread owner', error, {
+					guildId,
+					channelId: channel.id,
+					threadId: channel.id
+				});
+				// Continue without thread OP mention if fetch fails
+			}
+		}
 
 		// Check channel restrictions
 		const access = await ensureTagChannelAccess(this, interaction);
@@ -113,8 +127,8 @@ export class NoResponseCommand extends Command {
 			return replyEphemeral(interaction, 'The "no_response" tag does not exist. Please create it first using `/tag create`.');
 		}
 
-		// Build tag embed components with optional user mention
-		const components = buildTagComponents(tag, user ? { id: user.id } : undefined);
+		// Build tag embed components with thread OP mention
+		const components = buildTagComponents(tag, threadOp ? { id: threadOp.id } : undefined);
 
 		// Send tag to channel (public message)
 		return interaction.reply({
@@ -124,14 +138,45 @@ export class NoResponseCommand extends Command {
 	}
 
 	private async handleError(interaction: Command.ChatInputCommandInteraction, error: unknown) {
-		this.container.logger.error('[no_response] Command failed', error, {
+		// Determine error message based on error type
+		let errorMessage = 'An unexpected error occurred while processing the command. Please try again.';
+		let logLevel: 'error' | 'warn' = 'error';
+
+		if (error instanceof Error) {
+			// Handle specific Discord API errors
+			if ('code' in error) {
+				const code = (error as any).code;
+				switch (code) {
+					case 50001: // Missing Access
+						errorMessage = 'I don\'t have permission to access this channel.';
+						logLevel = 'warn';
+						break;
+					case 50013: // Missing Permissions
+						errorMessage = 'I don\'t have the required permissions to send messages in this channel.';
+						logLevel = 'warn';
+						break;
+					case 10003: // Unknown Channel
+						errorMessage = 'This channel no longer exists or I cannot access it.';
+						logLevel = 'warn';
+						break;
+					case 10008: // Unknown Message
+						errorMessage = 'The message could not be found.';
+						logLevel = 'warn';
+						break;
+				}
+			}
+		}
+
+		this.container.logger[logLevel]('[no_response] Command failed', error, {
 			guildId: interaction.guildId ?? 'dm',
 			userId: interaction.user.id,
-			interactionId: interaction.id
+			interactionId: interaction.id,
+			channelId: interaction.channelId,
+			errorType: error instanceof Error ? error.constructor.name : typeof error
 		});
 
 		const payload = {
-			content: 'I hit an error while processing the no_response command. Please try again.',
+			content: errorMessage,
 			ephemeral: true
 		};
 

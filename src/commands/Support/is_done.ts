@@ -4,8 +4,7 @@ import { Command, CommandOptionsRunTypeEnum } from '@sapphire/framework';
 import {
 	ApplicationIntegrationType,
 	InteractionContextType,
-	MessageFlags,
-	type SlashCommandUserOption
+	MessageFlags
 } from 'discord.js';
 import {
 	SUPPORT_TAG_TABLE_MISSING_MESSAGE,
@@ -23,11 +22,11 @@ import {
 	description: 'Send the "done" tag to the current channel.',
 	detailedDescription: {
 		summary: 'Quick access command to send the predefined "done" support tag.',
-		chatInputUsage: '/is_done [user]',
+		chatInputUsage: '/is_done',
 		notes: [
 			'This command uses the predefined "done" tag from the database.',
 			'Requires an allowed tag role, staff role, or admin role.',
-			'Optionally mention a user alongside the tag.'
+			'Automatically mentions the thread starter when used in a thread.'
 		]
 	},
 	fullCategory: ['Support'],
@@ -55,9 +54,6 @@ export class IsDoneCommand extends Command {
 				.setDescription(this.description)
 				.setIntegrationTypes(this.integrationTypes)
 				.setContexts(this.contexts)
-				.addUserOption((option: SlashCommandUserOption) =>
-					option.setName('user').setDescription('Mention a user alongside the tag.').setRequired(false)
-				)
 		);
 	}
 
@@ -76,8 +72,26 @@ export class IsDoneCommand extends Command {
 			return replyEphemeral(interaction, 'This command can only be used inside a server.');
 		}
 
-		// Get optional user mention
-		const user = interaction.options.getUser('user');
+		// Get thread OP if in a thread
+		const channel = interaction.channel;
+		if (!channel) {
+			return replyEphemeral(interaction, 'Could not access the channel. Please try again.');
+		}
+
+		let threadOp;
+		if (channel.isThread()) {
+			try {
+				const owner = await channel.fetchOwner();
+				threadOp = owner?.user;
+			} catch (error) {
+				this.container.logger.warn('[is_done] Failed to fetch thread owner', error, {
+					guildId,
+					channelId: channel.id,
+					threadId: channel.id
+				});
+				// Continue without thread OP mention if fetch fails
+			}
+		}
 
 		// Check channel restrictions
 		const access = await ensureTagChannelAccess(this, interaction);
@@ -113,8 +127,8 @@ export class IsDoneCommand extends Command {
 			return replyEphemeral(interaction, 'The "done" tag does not exist. Please create it first using `/tag create`.');
 		}
 
-		// Build tag embed components with optional user mention
-		const components = buildTagComponents(tag, user ? { id: user.id } : undefined);
+		// Build tag embed components with thread OP mention
+		const components = buildTagComponents(tag, threadOp ? { id: threadOp.id } : undefined);
 
 		// Send tag to channel (public message)
 		return interaction.reply({
@@ -124,14 +138,45 @@ export class IsDoneCommand extends Command {
 	}
 
 	private async handleError(interaction: Command.ChatInputCommandInteraction, error: unknown) {
-		this.container.logger.error('[is_done] Command failed', error, {
+		// Determine error message based on error type
+		let errorMessage = 'An unexpected error occurred while processing the command. Please try again.';
+		let logLevel: 'error' | 'warn' = 'error';
+
+		if (error instanceof Error) {
+			// Handle specific Discord API errors
+			if ('code' in error) {
+				const code = (error as any).code;
+				switch (code) {
+					case 50001: // Missing Access
+						errorMessage = 'I don\'t have permission to access this channel.';
+						logLevel = 'warn';
+						break;
+					case 50013: // Missing Permissions
+						errorMessage = 'I don\'t have the required permissions to send messages in this channel.';
+						logLevel = 'warn';
+						break;
+					case 10003: // Unknown Channel
+						errorMessage = 'This channel no longer exists or I cannot access it.';
+						logLevel = 'warn';
+						break;
+					case 10008: // Unknown Message
+						errorMessage = 'The message could not be found.';
+						logLevel = 'warn';
+						break;
+				}
+			}
+		}
+
+		this.container.logger[logLevel]('[is_done] Command failed', error, {
 			guildId: interaction.guildId ?? 'dm',
 			userId: interaction.user.id,
-			interactionId: interaction.id
+			interactionId: interaction.id,
+			channelId: interaction.channelId,
+			errorType: error instanceof Error ? error.constructor.name : typeof error
 		});
 
 		const payload = {
-			content: 'I hit an error while processing the is_done command. Please try again.',
+			content: errorMessage,
 			ephemeral: true
 		};
 
