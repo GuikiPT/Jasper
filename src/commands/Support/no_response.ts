@@ -78,19 +78,9 @@ export class NoResponseCommand extends Command {
 			return replyEphemeral(interaction, 'Could not access the channel. Please try again.');
 		}
 
-		let threadOp;
+		let threadOpId: string | undefined;
 		if (channel.isThread()) {
-			try {
-				const owner = await channel.fetchOwner();
-				threadOp = owner?.user;
-			} catch (error) {
-				this.container.logger.warn('[no_response] Failed to fetch thread owner', error, {
-					guildId,
-					channelId: channel.id,
-					threadId: channel.id
-				});
-				// Continue without thread OP mention if fetch fails
-			}
+			threadOpId = channel.ownerId ?? undefined;
 		}
 
 		// Check channel restrictions
@@ -128,7 +118,7 @@ export class NoResponseCommand extends Command {
 		}
 
 		// Build tag embed components with thread OP mention
-		const components = buildTagComponents(tag, threadOp ? { id: threadOp.id } : undefined);
+		const components = buildTagComponents(tag, threadOpId ? { id: threadOpId } : undefined);
 
 		// Send tag to channel (public message)
 		return interaction.reply({
