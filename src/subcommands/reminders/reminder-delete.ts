@@ -3,7 +3,7 @@ import type { ReminderCommand, ReminderChatInputInteraction } from './utils.js';
 import { replyEphemeral } from './utils.js';
 
 export async function chatInputReminderDelete(this: ReminderCommand, interaction: ReminderChatInputInteraction) {
-	const reminderUuid = interaction.options.getString('reminder', true);
+	const reminderUuid = interaction.options.getString('id', true);
 
 	try {
 		// Check if reminder exists and belongs to user

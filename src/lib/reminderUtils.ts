@@ -25,7 +25,13 @@ export function truncateMessage(message: string, maxLength: number = 40): string
 
 /**
  * Formats a reminder for autocomplete display
+ * Limits total length to 40 characters (uuid + " - " + message)
  */
 export function formatReminderForAutocomplete(uuid: string, message: string): string {
-	return `${uuid} - ${truncateMessage(message, 40)}`;
+	const separator = ' - ';
+	const uuidLength = uuid.length;
+	const separatorLength = separator.length;
+	const maxMessageLength = 40 - uuidLength - separatorLength;
+
+	return `${uuid}${separator}${truncateMessage(message, maxMessageLength)}`;
 }
