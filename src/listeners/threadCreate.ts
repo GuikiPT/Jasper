@@ -6,6 +6,11 @@ import { ThreadChannel, MessageType } from 'discord.js';
 // Delay before attempting to delete pin notification
 const PIN_NOTIFICATION_DELETE_DELAY_MS = 1000;
 
+// Message fetch retry configuration
+const MAX_FETCH_ATTEMPTS = 6;
+const INITIAL_RETRY_DELAY_MS = 500; // Start with 500ms
+const MAX_RETRY_DELAY_MS = 5000; // Cap at 5 seconds
+
 @ApplyOptions<Listener.Options>({ event: Events.ThreadCreate, once: false })
 export class UserEvent extends Listener {
 	/**
@@ -63,9 +68,6 @@ export class UserEvent extends Listener {
 	 */
 	private async handleNewSupportThread(thread: ThreadChannel) {
 		try {
-			// Fetch the first message (thread starter message)
-			const message = await thread.messages.fetch(thread.id);
-
 			// Verify thread owner
 			const threadOwnerId = thread.ownerId || (await this.resolveThreadOwnerId(thread));
 			if (!threadOwnerId) {
@@ -75,11 +77,12 @@ export class UserEvent extends Listener {
 				return;
 			}
 
-			// Only pin if the first message is from the thread owner
-			if (message.author.id !== threadOwnerId) {
-				this.container.logger.debug('First message is not from thread owner, skipping pin', {
+			// Retry fetching messages with dynamic wait
+			const message = await this.fetchFirstOwnerMessage(thread, threadOwnerId);
+
+			if (!message) {
+				this.container.logger.debug('No message from thread owner found after retries, skipping pin', {
 					threadId: thread.id,
-					messageAuthorId: message.author.id,
 					threadOwnerId
 				});
 				return;
@@ -94,7 +97,8 @@ export class UserEvent extends Listener {
 			});
 
 			// Pin the first support message
-			await message.pin();
+			await message.pin('Automatic pin of first support message');
+
 			this.container.logger.debug('Successfully pinned the first support message', {
 				threadId: thread.id,
 				messageId: message.id
@@ -111,34 +115,124 @@ export class UserEvent extends Listener {
 	}
 
 	/**
+	 * Fetches the first message from the thread owner with retry logic
+	 * - Tries starter message first (forum threads)
+	 * - Retries multiple times with exponential backoff
+	 * - Returns early if message is found
+	 * 
+	 * @param thread Thread to fetch messages from
+	 * @param threadOwnerId ID of the thread owner
+	 * @returns First message from owner or null if not found
+	 */
+	private async fetchFirstOwnerMessage(thread: ThreadChannel, threadOwnerId: string) {
+		// Try to fetch starter message first (more efficient for forum threads)
+		if (thread.isThread() && thread.parent?.type === 15) { // 15 = GuildForum
+			try {
+				const starterMessage = await thread.fetchStarterMessage();
+				if (starterMessage && starterMessage.author.id === threadOwnerId) {
+					this.container.logger.debug('Found starter message from thread owner', {
+						threadId: thread.id,
+						messageId: starterMessage.id
+					});
+					return starterMessage;
+				}
+			} catch (error) {
+				this.container.logger.debug('Could not fetch starter message, will try regular messages', {
+					threadId: thread.id,
+					error: error instanceof Error ? error.message : String(error)
+				});
+			}
+		}
+
+		// Fall back to fetching messages with retry and exponential backoff
+		for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt++) {
+			try {
+				// Calculate delay with exponential backoff: 500ms, 1s, 2s, 4s, 5s, 5s
+				const retryDelay = Math.min(INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt - 1), MAX_RETRY_DELAY_MS);
+
+				this.container.logger.debug('Attempting to fetch messages from thread', {
+					threadId: thread.id,
+					attempt,
+					maxAttempts: MAX_FETCH_ATTEMPTS,
+					nextRetryDelayMs: attempt < MAX_FETCH_ATTEMPTS ? retryDelay : undefined
+				});
+
+				// Fetch recent messages with increased limit
+				const messages = await thread.messages.fetch({ limit: 20 });
+
+				if (messages.size > 0) {
+					// Find the first message from the thread owner (oldest first)
+					const sortedMessages = Array.from(messages.values()).sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+					const message = sortedMessages.find(msg => msg.author.id === threadOwnerId);
+
+					if (message) {
+						this.container.logger.debug('Found message from thread owner', {
+							threadId: thread.id,
+							messageId: message.id,
+							attempt
+						});
+						return message;
+					}
+				}
+
+				// If not the last attempt, wait before retrying with exponential backoff
+				if (attempt < MAX_FETCH_ATTEMPTS) {
+					this.container.logger.debug('No messages found, waiting before retry', {
+						threadId: thread.id,
+						attempt,
+						retryDelayMs: retryDelay
+					});
+					await new Promise((resolve) => setTimeout(resolve, retryDelay));
+				}
+			} catch (error) {
+				const retryDelay = Math.min(INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt - 1), MAX_RETRY_DELAY_MS);
+
+				this.container.logger.warn('Error fetching messages during retry', {
+					threadId: thread.id,
+					attempt,
+					error: error instanceof Error ? error.message : String(error)
+				});
+
+				// If not the last attempt, wait before retrying
+				if (attempt < MAX_FETCH_ATTEMPTS) {
+					await new Promise((resolve) => setTimeout(resolve, retryDelay));
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Deletes the automatic pin notification message
 	 * - Waits for notification to be sent
 	 * - Finds and deletes ChannelPinnedMessage type
 	 */
 	private async deletePinNotification(thread: ThreadChannel) {
-		setTimeout(async () => {
-			try {
-				const messages = await thread.messages.fetch({ limit: 5 });
-				const notification = messages.find((m) => m.type === MessageType.ChannelPinnedMessage);
+		// Wait for notification to appear
+		await new Promise((resolve) => setTimeout(resolve, PIN_NOTIFICATION_DELETE_DELAY_MS));
 
-				if (notification) {
-					await notification.delete();
-					this.container.logger.debug('Deleted pin notification message for support thread', {
-						threadId: thread.id,
-						notificationId: notification.id
-					});
-				} else {
-					this.container.logger.debug('No pin notification found to delete', {
-						threadId: thread.id
-					});
-				}
-			} catch (error) {
-				this.container.logger.error('Failed to delete pin notification in support thread', error, {
+		try {
+			const messages = await thread.messages.fetch({ limit: 5 });
+			const notification = messages.find((m) => m.type === MessageType.ChannelPinnedMessage);
+
+			if (notification) {
+				await notification.delete();
+				this.container.logger.debug('Deleted pin notification message for support thread', {
 					threadId: thread.id,
-					guildId: thread.guildId
+					notificationId: notification.id
+				});
+			} else {
+				this.container.logger.debug('No pin notification found to delete', {
+					threadId: thread.id
 				});
 			}
-		}, PIN_NOTIFICATION_DELETE_DELAY_MS);
+		} catch (error) {
+			this.container.logger.error('Failed to delete pin notification in support thread', error, {
+				threadId: thread.id,
+				guildId: thread.guildId
+			});
+		}
 	}
 
 	// ============================================================
