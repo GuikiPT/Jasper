@@ -113,40 +113,34 @@ export async function executeSlowmodeView({ command, guildId, respond, respondCo
 	if (respondComponents) {
 		try {
 			logger.debug('Using component response for slowmode view', { guildId });
-			const { createMultiSectionComponent } = await import('../../../lib/components.js');
+			const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize } = await import('discord.js');
 
-			const formatChannels = (channels: string[]) => (channels.length ? channels.map((id) => `<#${id}>`) : ['*(none)*']);
+			const container = new ContainerBuilder();
 
-			const sections = [
-				{
-					title: 'General Settings',
-					items: [
-						`**Enabled:** ${settings.enabled ? 'Yes' : 'No'}`,
-						`**Message Threshold:** ${settings.messageThreshold} message${settings.messageThreshold === 1 ? '' : 's'}`,
-						`**Activity Window:** ${settings.messageTimeWindow} second${settings.messageTimeWindow === 1 ? '' : 's'}`,
-						`**Cooldown Between Adjustments:** ${settings.cooldownDuration} second${settings.cooldownDuration === 1 ? '' : 's'}`,
-						`**Reset After Inactivity:** ${settings.resetTime} second${settings.resetTime === 1 ? '' : 's'}`,
-						`**Maximum Slowmode:** ${settings.maxSlowmode} second${settings.maxSlowmode === 1 ? '' : 's'}`
-					],
-					emptyMessage: '*(none)*',
-					forceNewlines: true
-				},
-				{
-					title: 'Tracked Channels',
-					items: formatChannels(trackedChannels),
-					emptyMessage: '*(none)*',
-					forceNewlines: false
-				}
+			const formatChannels = (channels: string[]) => (channels.length ? channels.map((id) => `<#${id}>`).join(', ') : '*(none)*');
+
+			// General Settings section
+			container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### General Settings'));
+			container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
+
+			const generalItems = [
+				`**Enabled:** ${settings.enabled ? 'Yes' : 'No'}`,
+				`**Message Threshold:** ${settings.messageThreshold} message${settings.messageThreshold === 1 ? '' : 's'}`,
+				`**Activity Window:** ${settings.messageTimeWindow} second${settings.messageTimeWindow === 1 ? '' : 's'}`,
+				`**Cooldown Between Adjustments:** ${settings.cooldownDuration} second${settings.cooldownDuration === 1 ? '' : 's'}`,
+				`**Reset After Inactivity:** ${settings.resetTime} second${settings.resetTime === 1 ? '' : 's'}`,
+				`**Maximum Slowmode:** ${settings.maxSlowmode} second${settings.maxSlowmode === 1 ? '' : 's'}`
 			];
 
-			const component = createMultiSectionComponent(sections);
-			if (component) {
-				logger.debug('Slowmode view component created', { guildId });
-				return respondComponents([component]);
-			} else {
-				logger.debug('Slowmode view component creation failed, falling back to text', { guildId });
-			}
-			// Fallback to plain text if the component would exceed Discord limits
+			container.addTextDisplayComponents(new TextDisplayBuilder().setContent(generalItems.join('\n')));
+
+			// Tracked Channels section
+			container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### Tracked Channels'));
+			container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
+			container.addTextDisplayComponents(new TextDisplayBuilder().setContent(formatChannels(trackedChannels)));
+
+			logger.debug('Slowmode view component created', { guildId });
+			return respondComponents([container]);
 		} catch (error) {
 			logger.error('Error creating slowmode view component', error, { guildId });
 		}

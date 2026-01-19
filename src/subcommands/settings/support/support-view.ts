@@ -2,6 +2,7 @@
 import type { Args } from '@sapphire/framework';
 import type { Message } from 'discord.js';
 import { MessageFlags } from 'discord.js';
+import { createErrorTextComponent, createTextComponent } from '../../../lib/components.js';
 import { executeSupportView, formatError, type SupportCommand, type SupportChatInputInteraction } from './utils';
 
 export async function messageSupportView(command: SupportCommand, message: Message, _args: Args) {
@@ -9,8 +10,18 @@ export async function messageSupportView(command: SupportCommand, message: Messa
 		return executeSupportView({
 			command,
 			guildId: message.guild?.id ?? null,
-			deny: (content) => message.reply({ content, allowedMentions: { users: [], roles: [] } }),
-			respond: (content) => message.reply({ content, allowedMentions: { users: [], roles: [] } }),
+			deny: (content) =>
+				message.reply({
+					components: [createErrorTextComponent(content)],
+					flags: MessageFlags.IsComponentsV2,
+					allowedMentions: { users: [], roles: [] }
+				}),
+			respond: (content) =>
+				message.reply({
+					components: [createTextComponent(content)],
+					flags: MessageFlags.IsComponentsV2,
+					allowedMentions: { users: [], roles: [] }
+				}),
 			respondComponents: (components) =>
 				message.reply({
 					components,
@@ -19,7 +30,11 @@ export async function messageSupportView(command: SupportCommand, message: Messa
 				})
 		});
 	} catch (error) {
-		return message.reply({ content: formatError(error), allowedMentions: { users: [], roles: [] } });
+		return message.reply({
+			components: [createErrorTextComponent(formatError(error))],
+			flags: MessageFlags.IsComponentsV2,
+			allowedMentions: { users: [], roles: [] }
+		});
 	}
 }
 
@@ -29,7 +44,12 @@ export async function chatInputSupportView(command: SupportCommand, interaction:
 			command,
 			guildId: interaction.guild?.id ?? null,
 			deny: (content) => interaction.editReply({ content, allowedMentions: { users: [], roles: [] } }),
-			respond: (content) => interaction.editReply({ content, allowedMentions: { users: [], roles: [] } }),
+			respond: (content) =>
+				interaction.editReply({
+					components: [createTextComponent(content)],
+					flags: MessageFlags.IsComponentsV2,
+					allowedMentions: { users: [], roles: [] }
+				}),
 			respondComponents: (components) =>
 				interaction.editReply({
 					components,
@@ -39,6 +59,10 @@ export async function chatInputSupportView(command: SupportCommand, interaction:
 			defer: () => interaction.deferReply({ flags: MessageFlags.Ephemeral })
 		});
 	} catch (error) {
-		return interaction.editReply({ content: formatError(error), allowedMentions: { users: [], roles: [] } });
+		return interaction.editReply({
+			components: [createErrorTextComponent(formatError(error))],
+			flags: MessageFlags.IsComponentsV2,
+			allowedMentions: { users: [], roles: [] }
+		});
 	}
 }

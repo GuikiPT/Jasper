@@ -198,23 +198,31 @@ export async function executeSupportView({ command, guildId, deny, respond, resp
 
 	const service = command.container.guildSupportSettingsService;
 	if (!service) {
-		return respond('Support settings are not available right now.');
+		return deny('Support settings are not available right now.');
 	}
 
 	let settings: Awaited<ReturnType<typeof service.getSettings>> | null = null;
 	try {
 		settings = await service.getSettings(guildId);
 	} catch {
-		return respond('Failed to load support settings. Please try again later.');
+		return deny('Failed to load support settings. Please try again later.');
 	}
 
 	// Use components if available
 	if (respondComponents) {
-		const { createListComponent } = await import('../../../lib/components.js');
+		const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize } = await import('discord.js');
+
+		const container = new ContainerBuilder();
+
+		// Add title
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### Support Settings'));
+
+		// Add separator after title
+		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 
 		if (!settings) {
-			const component = createListComponent('Support Settings', [], 'No support settings configured for this server.');
-			return respondComponents([component]);
+			container.addTextDisplayComponents(new TextDisplayBuilder().setContent('*No support settings configured for this server.*'));
+			return respondComponents([container]);
 		}
 
 		const items = SUPPORT_SETTINGS.map((setting) => {
@@ -222,20 +230,22 @@ export async function executeSupportView({ command, guildId, deny, respond, resp
 			const label = setting.label;
 
 			if (!value) {
-				return `${label}: *(not set)*`;
+				return `**${label}:** *(not set)*`;
 			}
 
 			if (setting.key === 'supportForumChannelId') {
-				return `${label}: <#${value}>`;
+				return `**${label}:** <#${value}>`;
 			} else if (setting.key === 'inactivityReminderMinutes' || setting.key === 'autoCloseMinutes') {
-				return `${label}: ${value} minute(s)`;
+				return `**${label}:** ${value} minute${value === 1 ? '' : 's'}`;
 			} else {
-				return `${label}: \`${value}\``;
+				return `**${label}:** \`${value}\``;
 			}
 		});
 
-		const component = createListComponent('Support Settings', items);
-		return respondComponents([component]);
+		const content = items.join('\n');
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
+
+		return respondComponents([container]);
 	}
 
 	// Fallback to plain text
