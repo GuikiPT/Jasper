@@ -188,6 +188,11 @@ export class ResolveCommand extends Command {
 		// Prepare new tag list (max 5 tags in Discord)
 		let newTags = [...thread.appliedTags];
 
+		// Remove waiting for update tag if present
+		if (supportSettings.waitingForUpdateTagId) {
+			newTags = newTags.filter((tagId) => tagId !== supportSettings.waitingForUpdateTagId);
+		}
+
 		// Remove resolved tag if already present to avoid duplicates
 		newTags = newTags.filter((tagId) => tagId !== supportSettings.resolvedTagId);
 

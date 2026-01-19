@@ -11,12 +11,14 @@ import { createSubsystemLogger } from '../lib/subsystemLogger';
  * Available support setting keys
  * - supportForumChannelId: Discord forum channel ID for support threads
  * - resolvedTagId: Tag ID to apply when threads are resolved
+ * - waitingForUpdateTagId: Tag ID to apply when waiting for user update
  * - inactivityReminderMinutes: Minutes before sending inactivity reminder
  * - autoCloseMinutes: Minutes of inactivity before auto-closing thread
  */
 export const SUPPORT_SETTING_KEYS = [
 	'supportForumChannelId',
 	'resolvedTagId',
+	'waitingForUpdateTagId',
 	'inactivityReminderMinutes',
 	'autoCloseMinutes'
 ] as const satisfies readonly (keyof GuildSupportSettings)[];
@@ -36,7 +38,7 @@ export class GuildSupportSettingsService {
 	public constructor(
 		private readonly database: PrismaClient,
 		private readonly guildSettingsService: GuildSettingsService
-	) {}
+	) { }
 
 	// ============================================================
 	// Settings Management

@@ -46,6 +46,7 @@ model GuildSupportSettings {
     guildId                   String        @id
     supportForumChannelId     String?
     resolvedTagId             String?
+    waitingForUpdateTagId     String?
     inactivityReminderMinutes Int           @default(2880)
     autoCloseMinutes          Int           @default(1440)
     guild                     GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)

@@ -31,6 +31,7 @@ export type SupportViewContext = {
 export const SUPPORT_SETTINGS = [
 	{ key: 'supportForumChannelId', label: 'Support Forum Channel' },
 	{ key: 'resolvedTagId', label: 'Resolved Tag' },
+	{ key: 'waitingForUpdateTagId', label: 'Waiting For Update Tag' },
 	{ key: 'inactivityReminderMinutes', label: 'Reminder After (minutes)' },
 	{ key: 'autoCloseMinutes', label: 'Auto-close After (minutes)' }
 ] as const;
@@ -45,7 +46,8 @@ export const settingLookup = new Map<string, SupportSettingKey>(
 		['forum', 'supportForumChannelId'],
 		['channel', 'supportForumChannelId'],
 		['resolved', 'resolvedTagId'],
-		['tag', 'resolvedTagId'],
+		['waiting', 'waitingForUpdateTagId'],
+		['waitingforupdate', 'waitingForUpdateTagId'],
 		['reminder', 'inactivityReminderMinutes'],
 		['inactivity', 'inactivityReminderMinutes'],
 		['minutes', 'inactivityReminderMinutes'],
