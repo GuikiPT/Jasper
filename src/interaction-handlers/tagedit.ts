@@ -12,10 +12,10 @@ import {
 	SUPPORT_TAG_MODAL_FIELD_TITLE
 } from '../subcommands/support/tag/constants';
 import {
-	SUPPORT_ROLE_REQUIRED_MESSAGE,
 	SUPPORT_TAG_TABLE_MISSING_MESSAGE,
-	ensureSupportRoleAccess,
+	TAG_MANAGEMENT_ROLE_REQUIRED_MESSAGE,
 	ensureTagChannelAccess,
+	ensureTagManagementRoleAccess,
 	formatTagChannelRestrictionMessage,
 	isSupportTagPrismaTableMissingError,
 	isSupportTagTableMissingError,
@@ -73,10 +73,10 @@ export class SupportTagEditModalHandler extends InteractionHandler {
 				});
 			}
 
-			// Verify user has support role access
-			const supportAccess = await ensureSupportRoleAccess(this, interaction);
-			if (!supportAccess.allowed) {
-				return interaction.reply({ content: SUPPORT_ROLE_REQUIRED_MESSAGE, flags: MessageFlags.Ephemeral });
+			// Verify user has tag management role access (tag role, staff role, or admin role)
+			const roleAccess = await ensureTagManagementRoleAccess(this, interaction);
+			if (!roleAccess.allowed) {
+				return interaction.reply({ content: TAG_MANAGEMENT_ROLE_REQUIRED_MESSAGE, flags: MessageFlags.Ephemeral });
 			}
 
 			// Verify channel access restrictions
