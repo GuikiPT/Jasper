@@ -6,6 +6,8 @@
   "license": "UNLICENSE",
   "type": "commonjs",
   "dependencies": {
+    "@google/genai": "^1.38.0",
+    "@modelcontextprotocol/sdk": "^1.25.3",
     "@prisma/client": "^6.16.2",
     "@sapphire/cron": "^1.2.1",
     "@sapphire/decorators": "^6.2.0",
@@ -24,7 +26,8 @@
     "@skyra/env-utilities": "^2.0.1",
     "axios": "^1.13.1",
     "colorette": "^2.0.20",
-    "discord.js": "^14.22.1"
+    "discord.js": "^14.22.1",
+    "groq-sdk": "^0.37.0"
   },
   "devDependencies": {
     "@sapphire/cli": "^1.9.3",

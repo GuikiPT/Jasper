@@ -49,5 +49,6 @@ declare module '@skyra/env-utilities' {
 		OWNERS: ArrayString;
 		DATABASE_URL: string;
 		DISCORD_TOKEN: string;
+		GEMINI_API_KEY: string;
 	}
 }

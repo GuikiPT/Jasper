@@ -21,7 +21,6 @@ Notes
 | --- | --- |
 | [`/help`](#help) | Interactive, searchable command catalogue with autocomplete. |
 | [`/ping`](#ping) | Measures gateway and interaction latency for Jasper. |
-| [`/topic`](#topic) | Send a random saved discussion topic. |
 
 <a id="help"></a>
 ### `/help`
@@ -94,61 +93,6 @@ Measure Discord gateway latency (websocket heartbeat) and round-trip latency for
 
 </details>
 
-<a id="discord-api-latency"></a>
-### Discord API Latency
-
-<details>
-<summary>View details</summary>
-
-Explains the websocket heartbeat measurement that reflects the current Discord gateway latency as observed by Jasper. Values update each time you run `/ping`.
-
-</details>
-
-<a id="bot-latency"></a>
-### Bot Latency
-
-<details>
-<summary>View details</summary>
-
-Describes the interaction round-trip time (the delay between triggering the command and Jasper replying). Helps distinguish transient API delays from persistent gateway issues.
-
-</details>
-
-<a id="topic"></a>
-### `/topic`
-
-<details>
-<summary>View details</summary>
-
-**Purpose**
-
-Send a random discussion topic saved for the guild.
-
-**Where it works**
-
-- Guild channels
-
-**Permissions**
-
-- Allowed Staff Roles
-- Allowed Admin Roles
-- Manage Server (Discord permission, implicit)
-
-**Options**
-
-- None
-
-**Syntax**
-
-`/topic` | `j!topic`
-
-**Notes**
-
-- Topics are configured through `/settings topics`.
-- Only allowed staff or admins can call this command.
-
-</details>
-
 ## Moderation Commands
 
 ### Quick Reference
@@ -157,6 +101,8 @@ Send a random discussion topic saved for the guild.
 | --- | --- |
 | [`/automod-check`](#automod-check) | Check if a word or phrase would be blocked by automod rules. |
 | [`/snipe`](#snipe) | Recover the most recently deleted message when allowed. |
+| [`/topic`](#topic) | Send a random saved discussion topic from the database. |
+| [`/topic-ai`](#topic-ai) | AI-powered topic generator with approval workflow. |
 | [`/virustotal`](#virustotal) | Analyze files, URLs, domains, and IP addresses using VirusTotal. |
 
 <a id="automod-check"></a>
@@ -307,6 +253,148 @@ Retrieve the most recently deleted message in the current channel.
 
 - Channel must be included in `allowedSnipeChannels`.
 - Command reply is ephemeral; recovered content posts publicly in the channel.
+
+</details>
+
+<a id="topic"></a>
+### `/topic`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Send a random discussion topic from the server's configured topic list.
+
+**Where it works**
+
+- Guild channels
+
+**Permissions**
+
+- Allowed Staff Roles
+- Allowed Admin Roles
+- Manage Server (Discord permission, implicit)
+
+**Options**
+
+- None
+
+**Syntax**
+
+`/topic` | `j!topic`
+
+**Cooldown**
+
+- 2 uses per 5 seconds per channel
+
+**Notes**
+
+- Topics are configured through `/settings topics`.
+- Pulls random topic from database and posts it formatted for visibility.
+- Only allowed staff or admins can call this command.
+
+</details>
+
+<a id="topic-ai"></a>
+### `/topic-ai`
+
+<details>
+<summary>View details</summary>
+
+**Purpose**
+
+Generate conversation topics using AI with a moderator approval workflow. Combines AI-powered creativity with human oversight to ensure topics are appropriate, engaging, and compliant with community rules.
+
+**Where it works**
+
+- Guild channels
+
+**Permissions**
+
+- Allowed Staff Roles
+- Allowed Admin Roles
+- Manage Server (Discord permission, implicit)
+
+**Options**
+
+- `prompt` (string, optional): Optional theme or inspiration for the topic (e.g., "tech", "food", "gaming", "movies").
+
+**Syntax**
+
+`/topic-ai [prompt:"theme"]` | `j!topic-ai [theme]`
+
+**Cooldown**
+
+- 2 uses per 10 seconds per channel
+
+**AI Providers**
+
+The command supports three AI providers (configured via `AI_PROVIDER` environment variable):
+
+- **Groq** (`groq`): Fastest inference with generous free tier
+- **Google Gemini** (`gemini`): Reliable cloud-based AI (default)
+- **Ollama** (`ollama`): Self-hosted for privacy and no rate limits
+
+**Features**
+
+- **AI Generation**: Uses selected AI provider to generate creative, rule-compliant topics
+- **Two-Layer Security**: 
+  - Regex pattern matching catches obvious prompt injection attempts
+  - AI semantic validation ensures prompt is legitimate theme, not malicious instructions
+- **Approval Workflow**: 
+  - Moderators see generated topic with three buttons: Approve, Regenerate, Reject
+  - 2-minute timeout for decision
+  - Only the moderator who triggered the command can interact with buttons
+- **Rule Compliance**: 
+  - Enforces community rules (no NSFW, politics, religion, controversy)
+  - Topics are family-friendly and appropriate for all ages
+  - Maintains positive, respectful, inclusive tone
+- **History Tracking**: 
+  - Approved topics saved to database
+  - Rejected topics tracked to avoid regeneration
+  - AI avoids generating similar or previously used topics (tracks last 150)
+- **Smart Deduplication**: Prevents repeating topics from manual list, approved AI topics, or rejected AI topics
+- **User-Friendly Errors**: Clean error messages for rate limits, auth failures, network issues
+
+**Security Protections**
+
+The command includes multiple layers of protection against prompt injection:
+
+1. **Regex Sanitization**: Detects patterns like "ignore instructions", "act as", "you are now"
+2. **AI Validation**: Uses AI to extract only legitimate themes, rejecting malicious instructions
+3. **Rule Enforcement**: AI system prompt cannot be overridden by user input
+4. **Max Length**: Topics limited to 200 characters
+5. **Approval Gate**: Human moderator must approve before posting
+
+**Configuration**
+
+Set `AI_PROVIDER` in your `.env` file:
+
+```bash
+# Choose provider: 'groq', 'gemini', or 'ollama'
+AI_PROVIDER=groq
+
+# Groq Configuration
+GROQ_API_KEY=gsk_your_key_here
+GROQ_MODEL=llama-3.3-70b-versatile  # optional
+
+# Gemini Configuration
+GEMINI_API_KEY=your_key_here
+
+# Ollama Configuration (self-hosted)
+OLLAMA_BASE_URL=http://ollama:11434
+OLLAMA_MODEL=llama3.2  # optional
+```
+
+**Notes**
+
+- Moderators see ephemeral preview before topic is posted publicly
+- Approved topics are added to the guild's AI topic history
+- Rejected topics are remembered to prevent regeneration
+- Button timeout: 2 minutes
+- Only one provider is used per request (no fallback chain)
+- See [AI_PROVIDER_QUICKSTART.md](../AI_PROVIDER_QUICKSTART.md) for setup guide
 
 </details>
 

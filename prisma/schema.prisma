@@ -18,6 +18,7 @@ model GuildSettings {
     supportSettings       GuildSupportSettings?
     supportTags           GuildSupportTagSettings[]
     topics                GuildTopicSettings[]
+    aiTopics              GuildAITopicSettings[]
     youtubeSettings       GuildYouTubeSettings?
 
     @@map("GuildSettings")
@@ -97,18 +98,36 @@ model GuildTopicSettings {
     @@map("GuildTopicSettings")
 }
 
+model GuildAITopicSettings {
+    id            Int           @id @default(autoincrement())
+    guildId       String
+    value         String        @db.Text
+    userPrompt    String?       @db.VarChar(255)
+    approved      Boolean?
+    reviewedBy    String?
+    reviewedAt    DateTime?
+    createdAt     DateTime      @default(now())
+    updatedAt     DateTime      @updatedAt
+    GuildSettings GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+    @@index([guildId])
+    @@index([approved])
+    @@index([createdAt])
+    @@map("GuildAITopicSettings")
+}
+
 model GuildYouTubeSettings {
     guildId               String        @id
     enabled               Boolean       @default(false)
     youtubeChannelUrl     String?
     discordChannelId      String?
-    channelName           String?       @db.VarChar(255)
-    channelAvatarUrl      String?       @db.VarChar(512)
     lastSubCount          String?
-    lastTimeUpdated       DateTime?
     updateIntervalMinutes Int           @default(30)
     createdAt             DateTime      @default(now())
     updatedAt             DateTime      @updatedAt
+    lastTimeUpdated       DateTime?
+    channelName           String?       @db.VarChar(255)
+    channelAvatarUrl      String?       @db.VarChar(512)
     guild                 GuildSettings @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
     @@map("GuildYouTubeSettings")
@@ -121,11 +140,11 @@ model SupportThread {
     createdAt           DateTime  @default(now())
     updatedAt           DateTime  @updatedAt
     lastAuthorMessageAt DateTime
-    lastAuthorMessageId String?
     lastReminderAt      DateTime?
     reminderMessageId   String?
     reminderCount       Int       @default(0)
     closedAt            DateTime?
+    lastAuthorMessageId String?
 
     @@index([guildId])
     @@index([lastAuthorMessageAt])
@@ -135,15 +154,30 @@ model SupportThread {
 
 model Reminder {
     id        Int      @id @default(autoincrement())
-    uuid      String   @unique @db.VarChar(8)
     userId    String
     guildId   String?
     channelId String
     message   String   @db.Text
     remindAt  DateTime
     createdAt DateTime @default(now())
+    uuid      String   @unique @db.VarChar(8)
 
     @@index([remindAt])
     @@index([userId])
     @@map("Reminder")
+}
+
+model CommandBlacklist {
+    id            Int      @id @default(autoincrement())
+    guildId       String
+    userId        String
+    commandName   String
+    reason        String?  @db.Text
+    blacklistedBy String
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime
+
+    @@unique([guildId, userId, commandName])
+    @@index([guildId])
+    @@index([userId])
 }

@@ -17,6 +17,7 @@ import { GuildChannelSettingsService } from './services/guildChannelSettingsServ
 import { GuildSupportSettingsService } from './services/guildSupportSettingsService';
 import { GuildSlowmodeSettingsService } from './services/guildSlowmodeSettingsService';
 import { GuildTopicSettingsService } from './services/guildTopicSettingsService';
+import { GuildAITopicSettingsService } from './services/guildAITopicSettingsService';
 import { SupportTagService } from './services/supportTagService';
 import { SupportThreadService } from './services/supportThreadService';
 import { SupportThreadMonitor } from './services/supportThreadMonitor';
@@ -84,6 +85,7 @@ try {
 	container.guildSupportSettingsService = new GuildSupportSettingsService(container.database, container.guildSettingsService);
 	container.guildSlowmodeSettingsService = new GuildSlowmodeSettingsService(container.database, container.guildSettingsService);
 	container.guildTopicSettingsService = new GuildTopicSettingsService(container.database);
+	container.guildAITopicSettingsService = new GuildAITopicSettingsService(container.database);
 	container.supportTagService = new SupportTagService(container.database);
 	container.supportThreadService = new SupportThreadService(container.database);
 	container.supportThreadMonitor = new SupportThreadMonitor(
