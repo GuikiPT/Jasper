@@ -182,16 +182,12 @@ export class TopicAICommand extends Command {
 				if (i.customId === 'approve_topic') {
 					try {
 						const aiTopicService = this.container.guildAITopicSettingsService;
-						const topicService = this.container.guildTopicSettingsService;
 
 						// Create AI topic record
 						const aiTopic = await aiTopicService.createAITopic(interaction.guildId!, topic, userPrompt);
 
 						// Mark as approved
 						await aiTopicService.approveTopic(aiTopic.id, interaction.user.id);
-
-						// Add to regular topics
-						await topicService.addTopic(interaction.guildId!, topic);
 
 						const channel = interaction.channel as GuildTextBasedChannel;
 						await channel.send({
@@ -570,7 +566,19 @@ export class TopicAICommand extends Command {
 			/\b(drugs|weed|marijuana|cocaine|heroin|meth)\b/gi,
 			/\b(alcohol|drunk|beer|wine|vodka|whiskey)\b/gi,
 			/\b(racism|racist|sexism|sexist|homophob|transphob)\b/gi,
-			/\b(suicide|self.?harm|cutting)\b/gi
+			/\b(suicide|self.?harm|cutting)\b/gi,
+			// Racial slurs and variations (with common obfuscation attempts)
+			/n\s*[i1e]\s*g\s*g\s*[aer@4]+\s*r?/gi,
+			/n\s*e\s*g\s*r\s*o/gi,
+			// Inappropriate internet slang
+			/\bbrainrot\b/gi,
+			/\bbrain\s*rot\b/gi,
+			/\bskibidi\b/gi,
+			/\bgyatt\b/gi,
+			/\brizz\b/gi,
+			/\bsigma\b/gi,
+			/\balpha\s*male\b/gi,
+			/\bbeta\s*male\b/gi
 		];
 
 		let sanitized = userPrompt.trim();
