@@ -558,27 +558,55 @@ export class TopicAICommand extends Command {
 		// Forbidden themes that violate community rules
 		const forbiddenThemes = [
 			/\bnsfw\b/gi,
-			/\b(sex|sexual|sexy|porn|hentai|lewd|nude|naked)\b/gi,
-			/\b(gore|blood|violence|murder|kill|death)\b/gi,
-			/\b(dating|flirt|romantic|romance|love|crush)\b/gi,
-			/\b(politics|political|democrat|republican|liberal|conservative)\b/gi,
-			/\b(religion|religious|god|jesus|allah|muslim|christian|atheist)\b/gi,
-			/\b(drugs|weed|marijuana|cocaine|heroin|meth)\b/gi,
-			/\b(alcohol|drunk|beer|wine|vodka|whiskey)\b/gi,
-			/\b(racism|racist|sexism|sexist|homophob|transphob)\b/gi,
-			/\b(suicide|self.?harm|cutting)\b/gi,
-			// Racial slurs and variations (with common obfuscation attempts)
-			/n\s*[i1e]\s*g\s*g\s*[aer@4]+\s*r?/gi,
+			/\b(sex|sexual|sexy|porn|hentai|lewd|nude|naked|xxx|erotic)\b/gi,
+			/\b(gore|blood|violence|murder|kill|death|brutal|torture)\b/gi,
+			/\b(dating|flirt|romantic|romance|love|crush|simp|simping)\b/gi,
+			/\b(politics|political|democrat|republican|liberal|conservative|leftist|rightist|trump|biden)\b/gi,
+			/\b(religion|religious|god|jesus|allah|muslim|christian|atheist|islam|hindu|buddhist)\b/gi,
+			/\b(drugs|weed|marijuana|cocaine|heroin|meth|cannabis|420|pot|stoned|high)\b/gi,
+			/\b(alcohol|drunk|beer|wine|vodka|whiskey|liquor|booze|wasted)\b/gi,
+			/\b(racism|racist|sexism|sexist|homophob|transphob|bigot|xenophob|misogyn)\b/gi,
+			/\b(suicide|self.?harm|cutting|kms|kill\s*myself)\b/gi,
+			
+			// Comprehensive racial slurs and variations (with obfuscation attempts)
+			// N-word variations
+			/n\s*[i1e!\|]\s*g\s*g\s*[aer@4!\|]+\s*r?/gi,
 			/n\s*e\s*g\s*r\s*o/gi,
-			// Inappropriate internet slang
-			/\bbrainrot\b/gi,
-			/\bbrain\s*rot\b/gi,
-			/\bskibidi\b/gi,
-			/\bgyatt\b/gi,
-			/\brizz\b/gi,
-			/\bsigma\b/gi,
-			/\balpha\s*male\b/gi,
-			/\bbeta\s*male\b/gi
+			// Other slurs (partial patterns to catch variations)
+			/\b(ch[i1]nk|sp[i1]c|k[i1]ke|beaner|wetback|coon|gook|towelhead)\b/gi,
+			/\b(f[a4]g|f[a4]gg[o0]t|tr[a4]nny|ret[a4]rd|mongoloid)\b/gi,
+			/\b(sl[u4]t|wh[o0]re|b[i1]tch|c[u4]nt|tw[a4]t)\b/gi,
+			
+			// Comprehensive brainrot/internet slang (Gen Z/Alpha inappropriate terms)
+			/\b(brainrot|brain\s*rot)\b/gi,
+			/\b(skibidi|gyatt|rizz|rizzler|ohio|fanum\s*tax|griddy)\b/gi,
+			/\b(sigma|alpha\s*male|beta\s*male|gigachad|soy\s*boy|cuck)\b/gi,
+			/\b(simp|chad|incel|femcel|blackpill|redpill|based|cringe\s*lord)\b/gi,
+			/\b(mog|mogging|looksmaxx|softmaxx|hardmaxx)\b/gi,
+			/\b(edging|gooning|goon|coomer)\b/gi,
+			/\b(sus|sussy|amogus|imposter|mogus)\b/gi,
+			
+			// Controversial/edgy internet culture
+			/\b(pedo|pedoph|loli|lolicon|shota|degen|degenerate)\b/gi,
+			/\b(kek|pepe|wojak|4chan|8chan|incel|doomer|coomer)\b/gi,
+			/\b(karen|boomer|zoomer|chud|npc)\b/gi,
+			
+			// Meme culture that's inappropriate
+			/\b(dababy|ratio|cope|seethe|mald|touch\s*grass)\b/gi,
+			/\b(no\s*cap|fr\s*fr|ong|bussin|sheesh|yeet|yoink)\b/gi,
+			
+			// Hateful ideologies
+			/\b(nazi|hitler|swastika|kkk|white\s*power|supremac|fascis)/gi,
+			
+			// Slang for body parts/actions
+			/\b(thicc|dummy\s*thicc|cake|booty|ass|tits|boobs|d[i1]ck|c[o0]ck|p[u4]ssy)\b/gi,
+			
+			// Internet toxicity
+			/\b(toxic|troll|trolling|bait|rage\s*bait|flame|cancer|cringe)\b/gi,
+			/\b(snowflake|triggered|safe\s*space|echo\s*chamber)\b/gi,
+			
+			// Inappropriate challenges/trends
+			/\b(tide\s*pod|ice\s*bucket|harlem\s*shake|dab|lit|fire|slaps)\b/gi
 		];
 
 		let sanitized = userPrompt.trim();
