@@ -24,6 +24,7 @@ import { SupportThreadMonitor } from './services/supportThreadMonitor';
 import { AutomodRuleChecker } from './services/automodRuleChecker';
 import { VirusTotalService } from './services/virusTotalService';
 import { ReminderService } from './services/reminderService';
+import { PurgedMessagesCache } from './services/purgedMessagesCache';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const logLevel = isProduction ? LogLevel.Info : LogLevel.Debug; // console/logger level
@@ -76,7 +77,12 @@ const client = new SapphireClient({
 		GatewayIntentBits.MessageContent
 	],
 	partials: [Partials.Channel],
-	loadMessageCommandListeners: true
+	loadMessageCommandListeners: true,
+	api: {
+		listenOptions: {
+			port: process.env.API_PORT ? parseInt(process.env.API_PORT, 10) : 4000
+		}
+	}
 });
 try {
 	container.guildSettingsService = new GuildSettingsService(container.database);
@@ -100,6 +106,7 @@ try {
 	container.automodRuleChecker = new AutomodRuleChecker();
 	container.virusTotalService = new VirusTotalService();
 	container.reminderService = new ReminderService(client, container.database);
+	container.purgedMessagesCache = new PurgedMessagesCache();
 } catch (error) {
 	Logger.fatal('Failed to initialize services', error);
 	void client.destroy();
