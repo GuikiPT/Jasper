@@ -5,7 +5,8 @@ export class ViewPurgedMessagesCommand extends Command {
 	public constructor(context: Command.LoaderContext, options: Command.Options) {
 		super(context, {
 			...options,
-			name: 'View Purged Messages',
+			name: 'View GearBot Message Logs',
+
 			description: 'View purged messages from a GearBot archive in a visual format',
 			preconditions: [
 				{
@@ -22,9 +23,8 @@ export class ViewPurgedMessagesCommand extends Command {
 
 	public override registerApplicationCommands(registry: Command.Registry) {
 		const command = new ContextMenuCommandBuilder()
-			.setName(this.name)
+			.setName('View GearBot Message Logs')
 			.setType(ApplicationCommandType.Message)
-			.setDMPermission(false);
 
 		registry.registerContextMenuCommand(command);
 	}
