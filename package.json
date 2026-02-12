@@ -8,7 +8,7 @@
   "dependencies": {
     "@google/genai": "^1.38.0",
     "@modelcontextprotocol/sdk": "^1.25.3",
-    "@prisma/client": "^6.16.2",
+    "@prisma/client": "^7.4.0",
     "@sapphire/cron": "^1.2.1",
     "@sapphire/decorators": "^6.2.0",
     "@sapphire/discord-utilities": "^3.5.0",
