@@ -415,7 +415,8 @@ export const ensureTagManagementRoleAccess = async (
 	return { allowed: false, reason: 'forbidden' };
 };
 
-// Check if member has tag role or admin role access
+// Check if member has tag role or tag admin role access (tag-specific buckets only)
+// Staff and general admin access is handled by ensureTagManagementRoleAccess
 export const ensureAllowedTagRoleAccess = async (
 	context: ContainerAccessor,
 	interaction: SupportRoleAwareInteraction

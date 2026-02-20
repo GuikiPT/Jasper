@@ -24,6 +24,7 @@ export {
 	ensureAllowedTagAdminRoleAccess,
 	ensureAllowedTagRoleAccess,
 	ensureSupportRoleAccess,
+	ensureTagManagementRoleAccess,
 	ensureTagChannelAccess,
 	formatTagChannelRestrictionMessage,
 	fetchAllowedTagChannels,

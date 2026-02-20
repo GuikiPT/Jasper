@@ -3,7 +3,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
 import type { ApplicationCommandOptionChoiceData, AutocompleteInteraction } from 'discord.js';
 
-import { ensureAllowedTagRoleAccess, ensureSupportRoleAccess, ensureTagChannelAccess, normalizeTagName } from '../subcommands/support/tag/utils';
+import { ensureTagManagementRoleAccess, ensureTagChannelAccess, normalizeTagName } from '../subcommands/support/tag/utils';
 
 // Subcommands that require tag name autocomplete
 const HANDLED_SUBCOMMANDS = new Set(['delete', 'edit', 'use']);
@@ -52,18 +52,11 @@ export class SupportTagsAutocompleteHandler extends InteractionHandler {
 				return this.none();
 			}
 
-			// Verify user has support role access
-			const supportAccess = await ensureSupportRoleAccess(this, interaction);
-			if (!supportAccess.allowed) {
+			// Verify user has tag management access (allowedTagRoles, allowedStaffRoles, or allowedAdminRoles)
+			// This mirrors the AllowedGuildRoleBuckets precondition used by delete, edit, and use subcommands
+			const tagAccess = await ensureTagManagementRoleAccess(this, interaction);
+			if (!tagAccess.allowed) {
 				return this.some([]);
-			}
-
-			// For "use" subcommand, verify tag role access
-			if (subcommand === 'use') {
-				const allowedTagRoleAccess = await ensureAllowedTagRoleAccess(this, interaction);
-				if (!allowedTagRoleAccess.allowed) {
-					return this.some([]);
-				}
 			}
 
 			// Verify channel access restrictions
