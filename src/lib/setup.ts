@@ -15,9 +15,9 @@ import './database';
 // Application Command Registry Configuration
 // ============================================================
 
-// Set default behavior to bulk overwrite for slash command registration
+// Set default behavior to overwrite for slash command registration
 // This ensures commands are synced with Discord when definitions change
-ApplicationCommandRegistries.setDefaultBehaviorWhenNotIdentical(RegisterBehavior.BulkOverwrite);
+ApplicationCommandRegistries.setDefaultBehaviorWhenNotIdentical(RegisterBehavior.Overwrite);
 
 // ============================================================
 // Environment Configuration
