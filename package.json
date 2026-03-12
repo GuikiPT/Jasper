@@ -28,7 +28,7 @@
     "axios": "^1.13.1",
     "colorette": "^2.0.20",
     "discord.js": "^14.22.1",
-    "groq-sdk": "^0.37.0"
+    "groq-sdk": "^1.1.1"
   },
   "devDependencies": {
     "@sapphire/cli": "^1.9.3",
