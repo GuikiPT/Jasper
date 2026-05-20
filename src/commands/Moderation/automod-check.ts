@@ -13,7 +13,7 @@ import {
 	type ChatInputCommandInteraction
 } from 'discord.js';
 import { replyWithComponent, editReplyWithComponent } from '../../lib/components.js';
-import { type AutomodCheckResult } from '../../services/automodRuleChecker.js';
+import { type AutomodCheckResult, type AutomodMatch } from '../../services/automodRuleChecker.js';
 
 // Pagination configuration for violation display
 const AUTOMOD_CHECK_CUSTOM_ID = 'automod-check';
@@ -191,7 +191,7 @@ export class AutomodCheckCommand extends Command {
 		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
 
 		const truncated = content.length > 500 ? content.substring(0, 497) + '...' : content;
-		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`**📝 Checked Content:**\n\`\`\`\n${truncated}\n\`\`\``));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`### Checked Content\n${this.formatContentPreview(truncated)}`));
 
 		return container;
 	}
@@ -220,11 +220,9 @@ export class AutomodCheckCommand extends Command {
 		container.setAccentColor(0xff4444);
 
 		const matchCount = result.matchCount || 1;
-		const header = matchCount > 1 ? `## 🚫 BLOCKED (${matchCount} matches)` : '## 🚫 BLOCKED';
+		const header = '## 🚫 Blocked';
 		const subtitle =
-			matchCount > 1
-				? `This content would be flagged by automod (${matchCount} rule violations found)`
-				: 'This content would be flagged by automod';
+			matchCount > 1 ? `This content matched ${matchCount} automod rules.` : 'This content matched 1 automod rule.';
 
 		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(header));
 		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(subtitle));
@@ -245,61 +243,74 @@ export class AutomodCheckCommand extends Command {
 		const endIndex = Math.min(startIndex + VIOLATIONS_PER_PAGE, result.allMatches!.length);
 		const pageMatches = result.allMatches!.slice(startIndex, endIndex);
 
-		const pageTitle = totalPages > 1 ? `## **Rule Violations:** (Page ${validPage}/${totalPages})` : '## **All Rule Violations:**';
-		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(pageTitle));
+		if (totalPages > 1) {
+			container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### Violations'));
+			container.addTextDisplayComponents(
+				new TextDisplayBuilder().setContent(`-# Page ${validPage}/${totalPages} • Showing ${startIndex + 1}-${endIndex} of ${result.allMatches!.length}`)
+			);
+		}
 
 		pageMatches.forEach((match, localIndex) => {
 			const globalIndex = startIndex + localIndex + 1;
 			this.addViolationDetails(container, content, match, globalIndex);
-		});
 
-		if (totalPages > 1) {
-			container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small));
-			container.addTextDisplayComponents(
-				new TextDisplayBuilder().setContent(`*Showing violations ${startIndex + 1}-${endIndex} of ${result.allMatches!.length}*`)
-			);
-		}
+			if (localIndex < pageMatches.length - 1) {
+				container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true));
+			}
+		});
 	}
 
 	// Add single violation details (backwards compatibility for single match)
 	private addSingleViolation(container: ContainerBuilder, content: string, result: AutomodCheckResult): void {
-		const escapedPattern = this.escapePattern(result.matchedPattern!);
-		const caughtText = this.findCaughtText(content, result.matchedPattern!);
-
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`### - **Rule:** \`${result.matchedRuleId} - ${result.matchedRule}\``)
+		this.addViolationDetails(
+			container,
+			content,
+			{
+				matchedRule: result.matchedRule!,
+				matchedRuleId: result.matchedRuleId!,
+				matchType: result.matchType!,
+				matchedPattern: result.matchedPattern!,
+				caughtText: result.caughtText
+			},
+			undefined
 		);
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`- **Type:** \`${result.matchType === 'word' ? 'Word/Phrase Match' : 'Regex Pattern'}\``)
-		);
-		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`- **Pattern:** \`${escapedPattern}\``));
-		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`- **Caught:** \`${caughtText}\``));
 	}
 
 	// Add details for a specific violation match
-	private addViolationDetails(container: ContainerBuilder, content: string, match: any, index: number): void {
+	private addViolationDetails(container: ContainerBuilder, content: string, match: AutomodMatch, index?: number): void {
 		const escapedPattern = this.escapePattern(match.matchedPattern);
-		const caughtText = this.findCaughtText(content, match.matchedPattern);
+		const caughtText = this.escapePattern(match.caughtText ?? this.findCaughtText(content, match.matchedPattern));
+		const title = typeof index === 'number' ? `### ${index}. ${match.matchedRule}` : `### ${match.matchedRule}`;
 
 		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`### ${index}. **Rule:** \`${match.matchedRuleId} - ${match.matchedRule}\``)
+			new TextDisplayBuilder().setContent(
+				`${title}\n> - Type: \`${this.formatMatchType(match.matchType)}\`\n> - Pattern: \`${escapedPattern}\`\n> - Caught: \`${caughtText}\``
+			)
 		);
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`- **Type:** \`${match.matchType === 'word' ? 'Word/Phrase Match' : 'Regex Pattern'}\``)
-		);
-		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`- **Pattern:** \`${escapedPattern}\``));
-		container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`- **Caught:** \`${caughtText}\``));
+	}
+
+	private formatMatchType(matchType: AutomodCheckResult['matchType']): string {
+		switch (matchType) {
+			case 'word':
+				return 'Word/Phrase Match';
+			case 'regex':
+				return 'Regex Pattern';
+			case 'mention':
+				return 'Mention Limit';
+			default:
+				return 'Unknown';
+		}
 	}
 
 	// Build allowed result section with green accent
 	private buildAllowedResult(container: ContainerBuilder, result: AutomodCheckResult): void {
 		container.setAccentColor(0x00ff00);
-		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('## ✅ ALLOWED'));
-		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('This content is explicitly allowed'));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('## ✅ Allowed'));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('This content matched an explicit allowlist entry.'));
 		container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small));
 		container.addTextDisplayComponents(
 			new TextDisplayBuilder().setContent(
-				`**Rule:** \`${result.matchedRuleId} - ${result.matchedRule}\`\n**Exception:** \`${result.allowedPattern}\``
+				`### ${result.matchedRule}\n> - Allowlist Match: \`${this.escapePattern(result.allowedPattern ?? 'Unknown')}\``
 			)
 		);
 	}
@@ -307,8 +318,8 @@ export class AutomodCheckCommand extends Command {
 	// Build clean result section with green accent
 	private buildCleanResult(container: ContainerBuilder): void {
 		container.setAccentColor(0x00ff00);
-		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('## ✅ CLEAN'));
-		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('This content would not be flagged by automod'));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('## ✅ Clean'));
+		container.addTextDisplayComponents(new TextDisplayBuilder().setContent('No configured automod rules matched this content.'));
 	}
 
 	// Build footer text with rule count and match information
@@ -323,6 +334,11 @@ export class AutomodCheckCommand extends Command {
 
 		footer += ' • Does not check for bypasses';
 		return footer;
+	}
+
+	private formatContentPreview(content: string): string {
+		const safeContent = content.replace(/```/g, '``\\`');
+		return `\`\`\`\n${safeContent}\n\`\`\``;
 	}
 
 	// Escape pattern for safe display in markdown code blocks

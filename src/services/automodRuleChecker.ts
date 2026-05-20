@@ -9,25 +9,59 @@ interface AutomodRule {
 	blockedWords: string[];
 	regexPatterns: string[];
 	allowedWords: string[];
+	mentionTotalLimit: number | null;
+	mentionRaidProtectionEnabled: boolean;
 }
 
 interface AutomodRules {
 	rules: Record<string, AutomodRule>;
 }
 
+interface LegacyAutomodRule {
+	name: string;
+	blockedWords?: string[];
+	regexPatterns?: string[];
+	allowedWords?: string[];
+	mentionTotalLimit?: number | null;
+	mentionRaidProtectionEnabled?: boolean;
+}
+
+interface LegacyAutomodRules {
+	rules: Record<string, LegacyAutomodRule>;
+}
+
+interface ExportedAutomodRule {
+	id: string;
+	name: string;
+	enabled?: boolean;
+	trigger?: {
+		raw?: {
+			keywordFilter?: string[];
+			regexPatterns?: string[];
+			allowList?: string[];
+			mentionTotalLimit?: number | null;
+			mentionRaidProtectionEnabled?: boolean;
+		};
+	};
+}
+
+type AutomodMatchType = 'word' | 'regex' | 'mention';
+
 export interface AutomodMatch {
 	matchedRule: string;
 	matchedRuleId: string;
-	matchType: 'word' | 'regex';
+	matchType: AutomodMatchType;
 	matchedPattern: string;
+	caughtText?: string;
 }
 
 export interface AutomodCheckResult {
 	isBlocked: boolean;
 	matchedRule?: string;
 	matchedRuleId?: string;
-	matchType?: 'word' | 'regex';
+	matchType?: AutomodMatchType;
 	matchedPattern?: string;
+	caughtText?: string;
 	isAllowed?: boolean;
 	allowedPattern?: string;
 	allMatches?: AutomodMatch[];
@@ -53,11 +87,84 @@ export class AutomodRuleChecker {
 		try {
 			const rulesPath = join(srcDir, 'data', 'automod-rules.json');
 			const rulesData = readFileSync(rulesPath, 'utf-8');
-			this.rules = JSON.parse(rulesData);
+			this.rules = this.normalizeRules(JSON.parse(rulesData));
 		} catch (error) {
 			container.logger.error('Failed to load automod rules:', error);
 			this.rules = { rules: {} };
 		}
+	}
+
+	private normalizeRules(rawRules: unknown): AutomodRules {
+		if (this.isLegacyRulesShape(rawRules)) {
+			return {
+				rules: Object.fromEntries(Object.entries(rawRules.rules).map(([ruleId, rule]) => [ruleId, this.normalizeLegacyRule(rule)]))
+			};
+		}
+
+		if (Array.isArray(rawRules)) {
+			const normalizedRules: Record<string, AutomodRule> = {};
+
+			for (const rawRule of rawRules) {
+				if (!this.isExportedRule(rawRule) || rawRule.enabled === false) {
+					continue;
+				}
+
+				normalizedRules[rawRule.id] = this.normalizeExportedRule(rawRule);
+			}
+
+			return { rules: normalizedRules };
+		}
+
+		throw new Error('Unsupported automod rules format.');
+	}
+
+	private isLegacyRulesShape(value: unknown): value is LegacyAutomodRules {
+		return typeof value === 'object' && value !== null && 'rules' in value && typeof (value as LegacyAutomodRules).rules === 'object';
+	}
+
+	private isExportedRule(value: unknown): value is ExportedAutomodRule {
+		return typeof value === 'object' && value !== null && typeof (value as ExportedAutomodRule).id === 'string' && typeof (value as ExportedAutomodRule).name === 'string';
+	}
+
+	private normalizeLegacyRule(rule: LegacyAutomodRule): AutomodRule {
+		return {
+			name: rule.name,
+			blockedWords: this.normalizePatternList(rule.blockedWords),
+			regexPatterns: this.normalizePatternList(rule.regexPatterns),
+			allowedWords: this.normalizePatternList(rule.allowedWords),
+			mentionTotalLimit: typeof rule.mentionTotalLimit === 'number' ? rule.mentionTotalLimit : null,
+			mentionRaidProtectionEnabled: rule.mentionRaidProtectionEnabled ?? false
+		};
+	}
+
+	private normalizeExportedRule(rule: ExportedAutomodRule): AutomodRule {
+		const rawTrigger = rule.trigger?.raw;
+
+		return {
+			name: rule.name,
+			blockedWords: this.normalizePatternList(rawTrigger?.keywordFilter),
+			regexPatterns: this.normalizePatternList(rawTrigger?.regexPatterns),
+			allowedWords: this.normalizePatternList(rawTrigger?.allowList),
+			mentionTotalLimit: typeof rawTrigger?.mentionTotalLimit === 'number' ? rawTrigger.mentionTotalLimit : null,
+			mentionRaidProtectionEnabled: rawTrigger?.mentionRaidProtectionEnabled ?? false
+		};
+	}
+
+	private normalizePatternList(patterns?: string[]): string[] {
+		return (patterns ?? [])
+			.filter((pattern): pattern is string => typeof pattern === 'string')
+			.map((pattern) => this.normalizePattern(pattern))
+			.filter((pattern) => pattern.length > 0);
+	}
+
+	private normalizePattern(pattern: string): string {
+		let normalized = pattern.trim();
+
+		while (normalized.length >= 2 && normalized.startsWith('"') && normalized.endsWith('"')) {
+			normalized = normalized.slice(1, -1).trim();
+		}
+
+		return normalized;
 	}
 
 	// Check content against all rules, return detailed result with all matches
@@ -102,6 +209,7 @@ export class AutomodRuleChecker {
 				matchedRuleId: firstMatch.matchedRuleId,
 				matchType: firstMatch.matchType,
 				matchedPattern: firstMatch.matchedPattern,
+				caughtText: firstMatch.caughtText,
 				allMatches,
 				matchCount: allMatches.length
 			};
@@ -156,10 +264,38 @@ export class AutomodRuleChecker {
 			}
 		}
 
+		const mentionMatch = this.checkMentionLimit(content, rule, ruleId);
+		if (mentionMatch) {
+			matches.push(mentionMatch);
+		}
+
 		return {
 			isAllowed: false,
 			matches
 		};
+	}
+
+	private checkMentionLimit(content: string, rule: AutomodRule, ruleId: string): AutomodMatch | null {
+		if (rule.mentionTotalLimit === null || rule.mentionTotalLimit < 1) {
+			return null;
+		}
+
+		const mentionMatches = this.extractMentions(content);
+		if (mentionMatches.length <= rule.mentionTotalLimit) {
+			return null;
+		}
+
+		return {
+			matchedRule: rule.name,
+			matchedRuleId: ruleId,
+			matchType: 'mention',
+			matchedPattern: `Max ${rule.mentionTotalLimit} mentions`,
+			caughtText: `${mentionMatches.length} mentions detected`
+		};
+	}
+
+	private extractMentions(content: string): string[] {
+		return content.match(/<@!?\d+>|<@&\d+>|@(everyone|here)\b/gi) ?? [];
 	}
 
 	// Build regex from pattern string, handling special Discord patterns
@@ -178,13 +314,30 @@ export class AutomodRuleChecker {
 				case 'webhook':
 					return WebhookRegex;
 				default:
-					// Custom patterns: case-insensitive + multiline
-					return new RegExp(regexPattern, 'im');
+					return this.buildCustomRegex(regexPattern);
 			}
 		} catch (error) {
 			container.logger.warn(`Invalid regex pattern: ${regexPattern}`, error);
 			return null;
 		}
+	}
+
+	private buildCustomRegex(regexPattern: string): RegExp {
+		const normalizedPattern = this.normalizePattern(regexPattern);
+		const flags = new Set(['i', 'm']);
+
+		for (const match of normalizedPattern.matchAll(/\(\?([imsu]+)\)/g)) {
+			for (const flag of match[1]) {
+				flags.add(flag);
+			}
+		}
+
+		if (normalizedPattern.includes('\\p{') || normalizedPattern.includes('\\P{')) {
+			flags.add('u');
+		}
+
+		const cleanedPattern = normalizedPattern.replace(/\(\?([imsu]+)\)/g, '');
+		return new RegExp(cleanedPattern, [...flags].join(''));
 	}
 
 	// Match content against pattern with wildcard and special character handling
@@ -194,14 +347,14 @@ export class AutomodRuleChecker {
 			return true;
 		}
 
-		// Special patterns (Discord mentions, URLs) use simple substring match
-		if (this.isSpecialPattern(pattern)) {
-			return content.toLowerCase().includes(pattern.toLowerCase());
-		}
-
 		// Wildcard patterns (*) converted to regex
 		if (pattern.includes('*')) {
 			return this.matchesWildcard(content, pattern);
+		}
+
+		// Special patterns (Discord mentions, URLs) use simple substring match
+		if (this.isSpecialPattern(pattern)) {
+			return content.toLowerCase().includes(pattern.toLowerCase());
 		}
 
 		// Normal word matching with boundary detection
