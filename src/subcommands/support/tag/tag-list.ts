@@ -1,4 +1,5 @@
 // Tag list subcommand - displays all available tags with pagination
+import type { GuildSupportTagSettings } from '@prisma/client';
 import { MessageFlags } from 'discord.js';
 
 import {
@@ -43,7 +44,7 @@ export async function chatInputTagList(command: TagCommand, interaction: TagChat
 	}
 
 	// Extract tag names for display
-	const tagNames = tags.map((tag) => tag.name);
+	const tagNames = tags.map((tag: GuildSupportTagSettings) => tag.name);
 
 	// Import components dynamically to avoid circular dependencies
 	const { createPaginatedComponentWithButtons, createPaginationButtons } = await import('../../../lib/components.js');

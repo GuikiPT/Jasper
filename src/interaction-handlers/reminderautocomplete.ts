@@ -1,6 +1,7 @@
 // Reminder autocomplete handler - provides reminder suggestions for delete and edit subcommands
 import { ApplyOptions } from '@sapphire/decorators';
 import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
+import type { Reminder } from '@prisma/client';
 import type { ApplicationCommandOptionChoiceData, AutocompleteInteraction } from 'discord.js';
 import { formatReminderForAutocomplete } from '../lib/reminderUtils';
 
@@ -44,7 +45,7 @@ export class ReminderAutocompleteHandler extends InteractionHandler {
 			}
 
 			// Fetch user's reminders
-			const reminders = await this.container.database.reminder.findMany({
+			const reminders: Reminder[] = await this.container.database.reminder.findMany({
 				where: {
 					userId: interaction.user.id
 				},
@@ -65,13 +66,13 @@ export class ReminderAutocompleteHandler extends InteractionHandler {
 
 			// Filter reminders based on user input
 			const query = focused.value.toLowerCase();
-			const filtered = reminders.filter((reminder) => {
+			const filtered = reminders.filter((reminder: Reminder) => {
 				const display = formatReminderForAutocomplete(reminder.uuid, reminder.message).toLowerCase();
 				return display.includes(query) || reminder.uuid.toLowerCase().includes(query);
 			});
 
 			// Create autocomplete choices
-			const choices: ApplicationCommandOptionChoiceData[] = filtered.slice(0, 25).map((reminder) => ({
+			const choices: ApplicationCommandOptionChoiceData[] = filtered.slice(0, 25).map((reminder: Reminder) => ({
 				name: formatReminderForAutocomplete(reminder.uuid, reminder.message),
 				value: reminder.uuid
 			}));
@@ -79,7 +80,7 @@ export class ReminderAutocompleteHandler extends InteractionHandler {
 			// If no matches, show first few reminders
 			if (choices.length === 0 && reminders.length > 0) {
 				return this.some(
-					reminders.slice(0, 25).map((reminder) => ({
+					reminders.slice(0, 25).map((reminder: Reminder) => ({
 						name: formatReminderForAutocomplete(reminder.uuid, reminder.message),
 						value: reminder.uuid
 					}))

@@ -112,7 +112,7 @@ export class GuildAITopicSettingsService {
 	 * @returns Array of approved topic values
 	 */
 	public async getApprovedTopicValues(guildId: string): Promise<string[]> {
-		const topics = await this.database.guildAITopicSettings.findMany({
+		const topics: Array<{ value: string }> = await this.database.guildAITopicSettings.findMany({
 			where: {
 				guildId,
 				approved: true
@@ -121,7 +121,7 @@ export class GuildAITopicSettingsService {
 			orderBy: { createdAt: 'desc' }
 		});
 
-		return topics.map((t) => t.value);
+		return topics.map((topic: { value: string }) => topic.value);
 	}
 
 	/**
@@ -131,7 +131,7 @@ export class GuildAITopicSettingsService {
 	 * @returns Array of rejected topic values
 	 */
 	public async getRejectedTopicValues(guildId: string): Promise<string[]> {
-		const topics = await this.database.guildAITopicSettings.findMany({
+		const topics: Array<{ value: string }> = await this.database.guildAITopicSettings.findMany({
 			where: {
 				guildId,
 				approved: false
@@ -140,7 +140,7 @@ export class GuildAITopicSettingsService {
 			orderBy: { createdAt: 'desc' }
 		});
 
-		return topics.map((t) => t.value);
+		return topics.map((topic: { value: string }) => topic.value);
 	}
 
 	/**

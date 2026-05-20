@@ -17,6 +17,14 @@ export class TopicAlreadyExistsError extends Error {
 	}
 }
 
+const isDuplicateError = (error: unknown): error is Prisma.PrismaClientKnownRequestError => {
+	if (typeof error !== 'object' || error === null) {
+		return false;
+	}
+
+	return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+};
+
 /**
  * Service for managing conversation topics
  * - Add/remove individual topics
@@ -53,7 +61,7 @@ export class GuildTopicSettingsService {
 			return created;
 		} catch (error) {
 			// Handle unique constraint violation (duplicate topic)
-			if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+			if (isDuplicateError(error)) {
 				this.logger.warn('Duplicate topic detected', error, { guildId });
 				throw new TopicAlreadyExistsError();
 			}

@@ -1,14 +1,30 @@
 // Database module - Prisma client initialization with readiness checks and lifecycle management
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { Prisma, PrismaClient } from '@prisma/client';
+import { join } from 'path';
 import { container } from '@sapphire/pieces';
+import { rootDir } from './constants';
 import { Logger } from './logger';
 
 // ============================================================
 // Prisma Client Configuration
 // ============================================================
 
+function getDatabaseAdapter() {
+	process.loadEnvFile?.(join(rootDir, '.env'));
+
+	const connectionString = process.env.DATABASE_URL;
+
+	if (!connectionString) {
+		throw new Error('DATABASE_URL is not configured.');
+	}
+
+	return new PrismaMariaDb(connectionString);
+}
+
 // Initialize Prisma client with event-based logging
 export const database = new PrismaClient({
+	adapter: getDatabaseAdapter(),
 	log: [
 		{ level: 'query', emit: 'event' },
 		{ level: 'error', emit: 'event' },
@@ -86,7 +102,7 @@ export async function ensureDatabaseReady() {
                 `);
 
 				// Check for missing required tables
-				const availableTables = new Set(rows.map((row) => row.table_name.toLowerCase()));
+				const availableTables = new Set(rows.map((row: { table_name: string }) => row.table_name.toLowerCase()));
 				const missingTables = expectedTables.filter((table) => !availableTables.has(table.toLowerCase()));
 
 				if (missingTables.length > 0) {

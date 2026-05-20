@@ -1,4 +1,5 @@
 // Tag list pagination handler - handles page navigation for tag list display
+import type { GuildSupportTagSettings } from '@prisma/client';
 import { ApplyOptions } from '@sapphire/decorators';
 import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
 import type { ButtonInteraction } from 'discord.js';
@@ -101,7 +102,7 @@ export class SupportTagListPaginationHandler extends InteractionHandler {
 			}
 
 			// Extract tag names for display
-			const tagNames = tags.map((tag) => tag.name);
+			const tagNames = tags.map((tag: GuildSupportTagSettings) => tag.name);
 			const requestedPage = data.targetPage;
 
 			// Import components dynamically to avoid circular dependencies

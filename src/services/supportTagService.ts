@@ -64,14 +64,20 @@ export class GuildSupportTagTableMissingError extends Error {
 /**
  * Checks if error is a missing table error (P2021)
  */
+const isPrismaKnownRequestError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
+	typeof error === 'object' && error !== null && error instanceof Prisma.PrismaClientKnownRequestError;
+
+/**
+ * Checks if error is a missing table error (P2021)
+ */
 const isTableMissingError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
-	error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2021';
+	isPrismaKnownRequestError(error) && error.code === 'P2021';
 
 /**
  * Checks if error is a duplicate key error (P2002)
  */
 const isDuplicateError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
-	error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+	isPrismaKnownRequestError(error) && error.code === 'P2002';
 
 /**
  * Service for managing support tags
@@ -98,7 +104,7 @@ export class SupportTagService {
 	 * @param name Tag name
 	 * @returns Tag or null if not found
 	 */
-	public async findTagByName(guildId: string, name: string) {
+	public async findTagByName(guildId: string, name: string): Promise<GuildSupportTagSettings | null> {
 		try {
 			const tag = await this.database.guildSupportTagSettings.findFirst({
 				where: { guildId, name }
@@ -118,7 +124,7 @@ export class SupportTagService {
 	 * @param id Tag ID
 	 * @returns Tag or null if not found
 	 */
-	public async findTagById(id: number) {
+	public async findTagById(id: number): Promise<GuildSupportTagSettings | null> {
 		try {
 			const tag = await this.database.guildSupportTagSettings.findUnique({ where: { id } });
 			if (tag) {
@@ -137,7 +143,7 @@ export class SupportTagService {
 	 * @param guildId Guild ID
 	 * @returns Array of all tags
 	 */
-	public async listTags(guildId: string) {
+	public async listTags(guildId: string): Promise<GuildSupportTagSettings[]> {
 		try {
 			const tags = await this.database.guildSupportTagSettings.findMany({
 				where: { guildId },
@@ -159,7 +165,7 @@ export class SupportTagService {
 	 * @param take Number of tags to fetch
 	 * @returns Array of tags for the page
 	 */
-	public async paginateTags(guildId: string, skip: number, take: number) {
+	public async paginateTags(guildId: string, skip: number, take: number): Promise<GuildSupportTagSettings[]> {
 		try {
 			const tags = await this.database.guildSupportTagSettings.findMany({
 				where: { guildId },
@@ -184,14 +190,14 @@ export class SupportTagService {
 	 * @param limit Maximum results to return
 	 * @returns Array of matching tags
 	 */
-	public async searchTags(guildId: string, query: string, limit: number) {
+	public async searchTags(guildId: string, query: string, limit: number): Promise<GuildSupportTagSettings[]> {
 		try {
 			const normalized = query.toLowerCase();
-			const tags = await this.database.guildSupportTagSettings.findMany({
+			const tags: GuildSupportTagSettings[] = await this.database.guildSupportTagSettings.findMany({
 				where: { guildId },
 				orderBy: { name: 'asc' }
 			});
-			return tags.filter((tag) => tag.name.toLowerCase().includes(normalized)).slice(0, Math.max(limit, 0));
+			return tags.filter((tag: GuildSupportTagSettings) => tag.name.toLowerCase().includes(normalized)).slice(0, Math.max(limit, 0));
 		} catch (error) {
 			throw this.transformError(error);
 		}
@@ -340,7 +346,7 @@ export class SupportTagService {
 		let updated = 0;
 
 		try {
-			await this.database.$transaction(async (tx) => {
+			await this.database.$transaction(async (tx: TransactionClient) => {
 				// Delete all existing tags if overwrite enabled
 				if (options.overwrite) {
 					await tx.guildSupportTagSettings.deleteMany({ where: { guildId } });
@@ -417,7 +423,11 @@ export class SupportTagService {
 			return new GuildSupportTagTableMissingError(error);
 		}
 
-		return error instanceof Error ? error : new Error('Unknown support tag error');
+		if (typeof error === 'object' && error !== null && error instanceof Error) {
+			return error;
+		}
+
+		return new Error('Unknown support tag error');
 	}
 }
 
