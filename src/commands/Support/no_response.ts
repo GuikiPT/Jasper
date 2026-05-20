@@ -9,6 +9,7 @@ import {
 import {
 	SUPPORT_TAG_TABLE_MISSING_MESSAGE,
 	buildTagComponents,
+	ensureSupportForumThreadAccess,
 	ensureTagChannelAccess,
 	formatTagChannelRestrictionMessage,
 	isSupportTagPrismaTableMissingError,
@@ -24,6 +25,7 @@ import {
 		summary: 'Quick access command to send the predefined "no_response" support tag.',
 		chatInputUsage: '/no_response',
 		notes: [
+			'Only works inside the configured support forum thread.',
 			'This command uses the predefined "no_response" tag from the database.',
 			'Requires an allowed tag role, staff role, or admin role.',
 			'Automatically mentions the thread starter when used in a thread.'
@@ -72,16 +74,12 @@ export class NoResponseCommand extends Command {
 			return replyEphemeral(interaction, 'This command can only be used inside a server.');
 		}
 
-		// Get thread OP if in a thread
-		const channel = interaction.channel;
-		if (!channel) {
-			return replyEphemeral(interaction, 'Could not access the channel. Please try again.');
+		const supportThreadAccess = await ensureSupportForumThreadAccess(this, interaction);
+		if (!supportThreadAccess.allowed) {
+			return replyEphemeral(interaction, supportThreadAccess.message);
 		}
 
-		let threadOpId: string | undefined;
-		if (channel.isThread()) {
-			threadOpId = channel.ownerId ?? undefined;
-		}
+		const threadOpId = supportThreadAccess.threadOwnerId;
 
 		// Check channel restrictions
 		const access = await ensureTagChannelAccess(this, interaction);

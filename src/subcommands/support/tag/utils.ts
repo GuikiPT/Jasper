@@ -2,6 +2,7 @@
 import type { Subcommand } from '@sapphire/plugin-subcommands';
 import type { APIInteractionGuildMember, GuildMember } from 'discord.js';
 import {
+	ChannelType,
 	EmbedBuilder,
 	MessageFlags,
 	ContainerBuilder,
@@ -9,7 +10,8 @@ import {
 	SeparatorBuilder,
 	SeparatorSpacingSize,
 	MediaGalleryBuilder,
-	MediaGalleryItemBuilder
+	MediaGalleryItemBuilder,
+	type ThreadChannel
 } from 'discord.js';
 import type { GuildSupportTagSettings } from '@prisma/client';
 import { GuildSupportTagTableMissingError, type NormalizedImportEntry as SupportTagNormalizedImportEntry } from '../../../services/supportTagService';
@@ -68,6 +70,22 @@ type ChannelAwareInteraction = {
 type SupportRoleAwareInteraction = {
 	guildId: string | null;
 	member: GuildMember | APIInteractionGuildMember | null;
+};
+
+type SupportForumThreadAccess =
+	| { allowed: true; thread: ThreadChannel; threadOwnerId?: string }
+	| { allowed: false; message: string };
+
+const isPublicThreadChannel = (channel: unknown): channel is ThreadChannel => {
+	if (!channel || typeof channel !== 'object') {
+		return false;
+	}
+
+	if (!('isThread' in channel) || typeof channel.isThread !== 'function' || !channel.isThread()) {
+		return false;
+	}
+
+	return 'type' in channel && channel.type === ChannelType.PublicThread;
 };
 
 // ============================================================
@@ -230,6 +248,57 @@ export const ensureTagChannelAccess = async (context: ContainerAccessor, interac
 	const allowed = allowedChannels.some((channelId) => candidateChannels.has(channelId));
 
 	return allowed ? { allowed: true, allowedChannels } : { allowed: false, allowedChannels, reason: 'not-allowed' };
+};
+
+// Check if interaction is in the configured support forum thread
+export const ensureSupportForumThreadAccess = async (
+	context: ContainerAccessor,
+	interaction: ChannelAwareInteraction
+): Promise<SupportForumThreadAccess> => {
+	const guildId = interaction.guildId;
+	if (!guildId) {
+		return { allowed: false, message: 'This command can only be used inside a server.' };
+	}
+
+	const channel = interaction.channel;
+	if (!channel || typeof channel !== 'object') {
+		return { allowed: false, message: 'Could not access the channel. Please try again.' };
+	}
+
+	if (!isPublicThreadChannel(channel)) {
+		return { allowed: false, message: 'This command can only be used in a support forum thread.' };
+	}
+
+	const thread = channel;
+	if (!thread.parent || thread.parent.type !== ChannelType.GuildForum) {
+		return { allowed: false, message: 'This command can only be used in a support forum thread.' };
+	}
+
+	const supportService = context.container.guildSupportSettingsService;
+	if (!supportService) {
+		logger.error('Support settings service unavailable', { guildId, channelId: thread.id });
+		return { allowed: false, message: 'Support settings are not available right now. Please try again later.' };
+	}
+
+	try {
+		const supportSettings = await supportService.getSettings(guildId);
+
+		if (!supportSettings?.supportForumChannelId) {
+			return {
+				allowed: false,
+				message: 'Support settings have not been configured yet. Please ask an admin to run `/settings support set`.'
+			};
+		}
+
+		if (supportSettings.supportForumChannelId !== thread.parent.id) {
+			return { allowed: false, message: 'This thread is not in the configured support forum channel.' };
+		}
+
+		return { allowed: true, thread, threadOwnerId: thread.ownerId ?? undefined };
+	} catch (error) {
+		logger.error('Failed to load support forum settings', error, { guildId, channelId: thread.id });
+		return { allowed: false, message: 'I could not load support settings right now. Please try again later.' };
+	}
 };
 
 type RestrictionCopy = {
