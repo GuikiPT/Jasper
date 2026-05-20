@@ -36,7 +36,7 @@ export interface SupportThreadReminderPayload {
 export class SupportThreadService {
 	private readonly logger = createSubsystemLogger('SupportThreadService');
 
-	public constructor(private readonly database: PrismaClient) {}
+	public constructor(private readonly database: PrismaClient) { }
 
 	// ============================================================
 	// Thread Retrieval
@@ -67,9 +67,9 @@ export class SupportThreadService {
 			orderBy: { threadId: 'asc' },
 			...(cursor
 				? {
-						skip: 1,
-						cursor: { threadId: cursor }
-					}
+					skip: 1,
+					cursor: { threadId: cursor }
+				}
 				: {})
 		});
 	}
@@ -101,7 +101,7 @@ export class SupportThreadService {
 			update: {
 				authorId: payload.authorId,
 				lastAuthorMessageAt: payload.timestamp,
-				lastAuthorMessageId: payload.messageId ?? null,
+				...(payload.messageId !== undefined ? { lastAuthorMessageId: payload.messageId } : {}),
 				closedAt: null, // Reopen if closed
 				lastReminderAt: null, // Reset reminder state
 				reminderMessageId: null,
