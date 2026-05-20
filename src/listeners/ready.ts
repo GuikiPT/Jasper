@@ -3,7 +3,6 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Events, Listener } from '@sapphire/framework';
 import type { StoreRegistryValue } from '@sapphire/pieces';
 import { blue, gray, green, magenta, magentaBright, white, yellow } from 'colorette';
-import { YouTubeService } from '../services/youtubeService';
 import { ActivityType } from 'discord.js';
 
 const dev = process.env.NODE_ENV !== 'production';
@@ -16,9 +15,9 @@ export class UserEvent extends Listener {
 		try {
 			this.printBanner();
 			this.printStoreDebugInformation();
-			this.startYouTubeManager();
-			this.startSupportThreadMonitor();
-			this.startReminderService();
+			this.container.logger.info(
+				'Gateway ready; waiting for application command synchronization before starting background services'
+			);
 			this.setBotActivity();
 		} catch (error) {
 			this.container.logger.error('Unhandled error during ready listener run', error);
@@ -68,30 +67,5 @@ ${line03}${dev ? ` ${pad}${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MO
 
 	private styleStore(store: StoreRegistryValue, last: boolean) {
 		return gray(`${last ? '└─' : '├─'} Loaded ${this.style(store.size.toString().padEnd(3, ' '))} ${store.name}.`);
-	}
-
-	private async startYouTubeManager() {
-		try {
-			const youtubeService = YouTubeService.getInstance();
-			await youtubeService.start();
-		} catch (error) {
-			this.container.logger.error('Failed to start YouTube service:', error);
-		}
-	}
-
-	private async startSupportThreadMonitor() {
-		try {
-			this.container.supportThreadMonitor.start();
-		} catch (error) {
-			this.container.logger.error('Failed to start SupportThreadMonitor:', error);
-		}
-	}
-
-	private async startReminderService() {
-		try {
-			this.container.reminderService.start();
-		} catch (error) {
-			this.container.logger.error('Failed to start ReminderService:', error);
-		}
 	}
 }
