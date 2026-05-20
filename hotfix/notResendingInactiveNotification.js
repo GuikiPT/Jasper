@@ -3,8 +3,8 @@ const { PrismaMariaDb } = require('@prisma/adapter-mariadb');
 const { PrismaClient } = require('@prisma/client');
 
 require('dotenv').config();
-const FORUM_CHANNEL_ID = '1141179304269598751';
-const REQUIRED_TAG_ID = '1144008960966402149';
+const FORUM_CHANNEL_ID = '';
+const REQUIRED_TAG_ID = '';
 const KEEP_OPEN_ACK_LINE = "We'll notify you again if we detect another period of inactivity.";
 const APPLY_DATABASE_REPAIRS = process.argv.includes('--apply');
 
